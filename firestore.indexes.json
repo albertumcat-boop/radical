@@ -1,0 +1,13 @@
+{ "indexes": [], "fieldOverrides": [] }
+```
+
+### `.gitignore`
+```
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
+.vercel
+dist/
+.firebase/
