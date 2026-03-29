@@ -20,7 +20,6 @@
   }
   html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px;-webkit-font-smoothing:antialiased}
 
-  /* ── Layout ── */
   #app{display:flex;height:100vh;width:100vw;overflow:hidden}
 
   /* ── Sidebar ── */
@@ -32,26 +31,21 @@
     overflow:hidden;z-index:20;flex-shrink:0;
   }
   #sidebar.collapsed{width:52px;min-width:52px}
- #sidebar.collapsed .sb-body,
-#sidebar.collapsed .sb-foot{opacity:0;pointer-events:none}
+  #sidebar.collapsed .sb-body,
+  #sidebar.collapsed .sb-foot{opacity:0;pointer-events:none}
+  #sidebar.collapsed .sb-logo{justify-content:center}
+  #sidebar.collapsed .logo-text,
+  #sidebar.collapsed .collapse-btn{display:none}
+  #sidebar.collapsed .logo-mark{
+    cursor:pointer;box-shadow:0 0 0 2px var(--acc2);
+    animation:blink 2s infinite;
+  }
 
-#sidebar.collapsed .sb-logo{justify-content:center}
-#sidebar.collapsed .logo-text,
-#sidebar.collapsed .collapse-btn{display:none}
-#sidebar.collapsed .logo-mark{
-  cursor:pointer;width:34px;height:34px;
-  box-shadow:0 0 0 2px var(--acc2);
-  animation:blink 2s infinite;
-}
-
-  <div class="sb-logo">
-  <div class="logo-mark" id="logo-mark">✂</div>
-  <div class="logo-text">
-    <span class="logo-name">PatrónAI</span>
-    <span class="logo-tag">Pro</span>
-  </div>
-  <button id="sidebar-toggle" class="collapse-btn">‹</button>
-</div>
+  .sb-logo{
+    display:flex;align-items:center;gap:10px;padding:14px;
+    border-bottom:1px solid var(--brd);flex-shrink:0;
+    background:linear-gradient(135deg,rgba(139,92,246,.07) 0%,transparent 100%);
+  }
   .logo-mark{
     width:34px;height:34px;border-radius:var(--r);
     background:var(--acc);display:flex;align-items:center;justify-content:center;
@@ -86,7 +80,6 @@
     font-size:9px;font-weight:700;letter-spacing:0;text-transform:lowercase;
   }
 
-  /* Prendas */
   .garment-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
   .garment-btn{
     display:flex;flex-direction:column;align-items:center;gap:4px;
@@ -99,14 +92,10 @@
   .g-label{font-size:9px;font-weight:600;white-space:nowrap}
   .garment-btn:hover{background:var(--hov);border-color:var(--brd2);color:var(--tx);transform:translateY(-2px)}
   .garment-btn:active{transform:translateY(0)}
-  .garment-btn.active{
-    background:var(--accbg);border-color:var(--acc);color:var(--acc2);
-    box-shadow:0 0 0 1px rgba(139,92,246,.2),0 2px 8px rgba(139,92,246,.15);
-  }
+  .garment-btn.active{background:var(--accbg);border-color:var(--acc);color:var(--acc2);box-shadow:0 0 0 1px rgba(139,92,246,.2),0 2px 8px rgba(139,92,246,.15)}
   .garment-btn.locked{opacity:.4}
   .garment-btn.locked::after{content:'🔒';position:absolute;top:2px;right:3px;font-size:8px}
 
-  /* Radio */
   .radio-grp{display:flex;gap:6px}
   .radio-opt{
     display:flex;align-items:center;gap:6px;padding:7px 12px;
@@ -116,13 +105,13 @@
   .radio-opt:hover{background:var(--hov);color:var(--tx)}
   .radio-opt input{accent-color:var(--acc)}
 
-  /* Medidas */
   .mgrp-title{
     font-size:10px;font-weight:700;color:var(--tx3);
     text-transform:uppercase;letter-spacing:.8px;
     margin:10px 0 8px;display:flex;align-items:center;gap:8px;
   }
   .mgrp-title::after{content:'';flex:1;height:1px;background:var(--brd)}
+
   .m-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:8px}
   .m-row label{color:var(--tx2);font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
   .m-row input[type="number"],.m-row select{
@@ -136,7 +125,6 @@
   .m-row input:focus,.m-row select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(139,92,246,.15)}
   .m-row select{width:92px;text-align:left;cursor:pointer}
 
-  /* Afiliado */
   .aff-row{display:flex;gap:6px;margin-bottom:5px}
   .aff-row input{
     flex:1;background:var(--inp);border:1.5px solid var(--brd);
@@ -153,17 +141,12 @@
   .aff-row button:hover{background:var(--hov);color:var(--grn);border-color:var(--grn)}
   #aff-msg{font-size:10px;min-height:14px;color:var(--tx3)}
 
-  /* Botones acción */
   .sb-actions{display:flex;flex-direction:column;gap:8px}
   .btn-p,.btn-s,.btn-g{
     display:flex;align-items:center;justify-content:center;gap:8px;
     width:100%;padding:10px 14px;border-radius:var(--r);border:none;
     font-size:12px;font-weight:600;font-family:var(--font);
     cursor:pointer;transition:all var(--ease);letter-spacing:.2px;
-    <button class="btn-g" id="btn-drafter" style="border-color:var(--acc);color:var(--acc2)">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-  Trazado manual
-</button>
   }
   .btn-p{background:var(--acc);color:#fff;box-shadow:0 2px 12px rgba(139,92,246,.35)}
   .btn-p:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 20px rgba(139,92,246,.5)}
@@ -172,10 +155,7 @@
   .btn-s:hover{background:var(--hov);border-color:rgba(139,92,246,.4)}
   .btn-g{background:transparent;color:var(--tx2);border:1.5px solid var(--brd)}
   .btn-g:hover{background:var(--inp);color:var(--tx);border-color:var(--brd2)}
-  .chip-exp{
-    background:var(--yel);color:#000;font-size:8px;font-weight:800;
-    padding:1px 5px;border-radius:6px;letter-spacing:.5px;
-  }
+  .chip-exp{background:var(--yel);color:#000;font-size:8px;font-weight:800;padding:1px 5px;border-radius:6px;letter-spacing:.5px}
 
   .sb-foot{
     padding:11px 14px;border-top:1px solid var(--brd);
@@ -197,10 +177,7 @@
     display:flex;align-items:center;gap:12px;
     padding:0 16px;flex-shrink:0;
   }
-  .view-sw{
-    display:flex;gap:2px;background:var(--inp);
-    border:1px solid var(--brd);border-radius:var(--r);padding:3px;
-  }
+  .view-sw{display:flex;gap:2px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--r);padding:3px}
   .view-btn{
     display:flex;align-items:center;gap:6px;padding:5px 14px;
     border-radius:6px;border:none;background:transparent;
@@ -210,32 +187,17 @@
   .view-btn:hover{color:var(--tx);background:rgba(255,255,255,.04)}
   .view-btn.active{background:var(--acc);color:#fff;box-shadow:0 1px 8px rgba(139,92,246,.35)}
   .tb-info{flex:1;display:flex;gap:8px;overflow:hidden}
-  .info-tag{
-    background:var(--inp);border:1px solid var(--brd);color:var(--tx2);
-    padding:3px 12px;border-radius:20px;font-size:11px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .zoom-bar{
-    display:flex;align-items:center;gap:4px;
-    background:var(--inp);border:1px solid var(--brd);
-    border-radius:var(--r);padding:3px 6px;
-  }
-  .zoom-btn{
-    background:none;border:none;color:var(--tx2);cursor:pointer;
-    width:26px;height:26px;border-radius:5px;font-size:16px;font-weight:700;
-    display:flex;align-items:center;justify-content:center;transition:all var(--ease);
-  }
+  .info-tag{background:var(--inp);border:1px solid var(--brd);color:var(--tx2);padding:3px 12px;border-radius:20px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .zoom-bar{display:flex;align-items:center;gap:4px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--r);padding:3px 6px}
+  .zoom-btn{background:none;border:none;color:var(--tx2);cursor:pointer;width:26px;height:26px;border-radius:5px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all var(--ease)}
   .zoom-btn:hover{background:var(--hov);color:var(--tx)}
   #zoom-label{font-size:11px;color:var(--tx2);min-width:42px;text-align:center;font-family:var(--mono);font-weight:700}
 
-  /* ── Vistas ── */
   .view-area{flex:1;position:relative;overflow:hidden;display:none}
   .view-area.on{display:flex}
   #view-pattern{
-    background:
-      radial-gradient(ellipse at 15% 50%,rgba(139,92,246,.05) 0%,transparent 55%),
-      radial-gradient(ellipse at 85% 20%,rgba(96,165,250,.04) 0%,transparent 45%),
-      #0a0a12;
+    background:radial-gradient(ellipse at 15% 50%,rgba(139,92,246,.05) 0%,transparent 55%),
+                radial-gradient(ellipse at 85% 20%,rgba(96,165,250,.04) 0%,transparent 45%),#0a0a12;
   }
   #svg-wrapper{width:100%;height:100%;overflow:hidden;cursor:grab;position:relative}
   #svg-wrapper:active{cursor:grabbing}
@@ -271,88 +233,47 @@
     background:rgba(18,18,30,.93);border:1px solid var(--brd2);
     border-radius:24px;padding:7px 16px;backdrop-filter:blur(10px);
   }
-  .c3-btn{
-    background:none;border:1px solid var(--brd);color:var(--tx2);
-    border-radius:var(--r);padding:5px 10px;cursor:pointer;
-    font-size:14px;transition:all var(--ease);
-  }
+  .c3-btn{background:none;border:1px solid var(--brd);color:var(--tx2);border-radius:var(--r);padding:5px 10px;cursor:pointer;font-size:14px;transition:all var(--ease)}
   .c3-btn:hover{background:var(--hov);color:var(--tx)}
   .c3-hint{font-size:11px;color:var(--tx3)}
 
-  /* ── Modales ── */
   .modal{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center}
   .modal.open{display:flex}
   .m-ov{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px)}
-  .m-box{
-    position:relative;z-index:1;background:var(--panel);
-    border:1px solid var(--brd2);border-radius:var(--r2);
-    width:min(420px,92vw);box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden;
-  }
-  .m-head{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:18px 20px;border-bottom:1px solid var(--brd);
-  }
+  .m-box{position:relative;z-index:1;background:var(--panel);border:1px solid var(--brd2);border-radius:var(--r2);width:min(420px,92vw);box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden}
+  .m-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--brd)}
   .m-head h3{font-size:15px;font-weight:700}
-  .m-close{
-    background:none;border:none;color:var(--tx3);font-size:16px;cursor:pointer;
-    width:28px;height:28px;border-radius:6px;
-    display:flex;align-items:center;justify-content:center;transition:all var(--ease);
-  }
+  .m-close{background:none;border:none;color:var(--tx3);font-size:16px;cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all var(--ease)}
   .m-close:hover{background:var(--hov);color:var(--tx)}
   .m-body{padding:20px}
   .m-foot{padding:16px 20px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end}
   .f-label{display:block;font-size:11px;color:var(--tx2);margin-bottom:8px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
-  .f-inp{
-    width:100%;background:var(--inp);border:1.5px solid var(--brd);
-    color:var(--tx);border-radius:var(--r);padding:9px 12px;font-size:13px;
-    font-family:var(--font);outline:none;transition:border-color var(--ease);
-  }
+  .f-inp{width:100%;background:var(--inp);border:1.5px solid var(--brd);color:var(--tx);border-radius:var(--r);padding:9px 12px;font-size:13px;font-family:var(--font);outline:none;transition:border-color var(--ease)}
   .f-inp:focus{border-color:var(--acc)}
 
-  /* Lista patrones */
   #saved-list{max-height:320px;overflow-y:auto}
-  .pat-item{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:11px 14px;background:var(--inp);border:1px solid var(--brd);
-    border-radius:var(--r);margin-bottom:6px;transition:all var(--ease);
-  }
+  .pat-item{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:6px;transition:all var(--ease)}
   .pat-item:hover{background:var(--hov);border-color:var(--brd2)}
   .pat-name{font-weight:600;font-size:13px;margin-bottom:2px}
   .pat-meta{font-size:11px;color:var(--tx3)}
   .pat-acts{display:flex;gap:6px}
-  .pat-acts button{
-    background:none;border:1px solid var(--brd);color:var(--tx2);
-    border-radius:6px;padding:4px 9px;font-size:13px;cursor:pointer;
-    transition:all var(--ease);
-  }
+  .pat-acts button{background:none;border:1px solid var(--brd);color:var(--tx2);border-radius:6px;padding:4px 9px;font-size:13px;cursor:pointer;transition:all var(--ease)}
   .pat-acts button:hover{background:var(--hov);color:var(--tx)}
 
-  /* ── Toasts ── */
-  #toasts{
-    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-    z-index:2000;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;
-  }
-  .toast{
-    background:var(--panel);border:1px solid var(--brd2);color:var(--tx);
-    padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;
-    box-shadow:0 4px 24px rgba(0,0,0,.5);display:flex;align-items:center;gap:8px;
-    animation:tin .22s ease,tout .22s ease 2.8s forwards;white-space:nowrap;
-  }
+  #toasts{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+  .toast{background:var(--panel);border:1px solid var(--brd2);color:var(--tx);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,.5);display:flex;align-items:center;gap:8px;animation:tin .22s ease,tout .22s ease 2.8s forwards;white-space:nowrap}
   .toast.success{border-color:var(--grn)}
   .toast.error{border-color:var(--red)}
   .toast.warning{border-color:var(--yel)}
   @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   @keyframes tout{from{opacity:1}to{opacity:0;transform:translateY(8px)}}
 
-  /* ── Monetización ── */
+  /* Monetización */
   .modal-upgrade{width:min(860px,95vw);max-height:90vh;overflow-y:auto;position:relative}
   .modal-paywall{width:min(380px,95vw);text-align:center}
   .tier-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}
   @media(max-width:640px){.tier-cards{grid-template-columns:1fr}}
-  .tier-card{
-    background:var(--inp);border:1px solid var(--brd);
-    border-radius:var(--r2);overflow:hidden;transition:transform var(--ease),box-shadow var(--ease);
-  }
+  .tier-card{background:var(--inp);border:1px solid var(--brd);border-radius:var(--r2);overflow:hidden;transition:transform var(--ease),box-shadow var(--ease)}
   .tier-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
   .tier-card.featured{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
   .tier-ch{padding:20px 16px 12px;text-align:center;border-bottom:1px solid var(--brd)}
@@ -363,47 +284,19 @@
   .tier-pop{background:var(--acc);color:#fff;font-size:10px;font-weight:700;text-align:center;padding:4px;letter-spacing:.5px}
   .tier-curr{margin:12px;text-align:center;font-size:11px;color:var(--tx3);padding:6px;background:var(--hov);border-radius:var(--r)}
 
-  /* Atelier panel */
-  .atelier-content{
-    position:relative;z-index:1;background:var(--panel);border:1px solid var(--brd2);
-    border-radius:var(--r2);width:min(860px,95vw);max-height:90vh;
-    display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.6);
-  }
-  .at-head{
-    display:flex;align-items:flex-start;justify-content:space-between;
-    padding:20px;border-bottom:1px solid var(--brd);flex-shrink:0;
-  }
+  .atelier-content{position:relative;z-index:1;background:var(--panel);border:1px solid var(--brd2);border-radius:var(--r2);width:min(860px,95vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+  .at-head{display:flex;align-items:flex-start;justify-content:space-between;padding:20px;border-bottom:1px solid var(--brd);flex-shrink:0}
   .at-clients{flex:1;overflow-y:auto;padding:12px 20px;display:flex;flex-direction:column;gap:8px}
-  .client-card{
-    display:flex;align-items:center;gap:14px;background:var(--inp);
-    border:1px solid var(--brd);border-radius:var(--r);padding:12px 14px;transition:all var(--ease);
-  }
+  .client-card{display:flex;align-items:center;gap:14px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--r);padding:12px 14px;transition:all var(--ease)}
   .client-card:hover{background:var(--hov);border-color:var(--brd2)}
-  .cli-av{
-    width:38px;height:38px;border-radius:50%;background:var(--accbg);
-    color:var(--acc2);display:flex;align-items:center;justify-content:center;
-    font-size:16px;font-weight:700;flex-shrink:0;
-  }
+  .cli-av{width:38px;height:38px;border-radius:50%;background:var(--accbg);color:var(--acc2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
   .at-stats{display:flex;gap:12px;padding:12px 20px;border-top:1px solid var(--brd);flex-shrink:0}
   .stat-i{text-align:center;flex:1}
   .stat-v{font-size:18px;font-weight:800;color:var(--acc2)}
   .stat-l{font-size:10px;color:var(--tx3);margin-top:2px}
-  .aff-banner{
-    position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
-    background:var(--panel);border:1px solid var(--grn);border-radius:20px;
-    padding:6px 16px;font-size:11px;font-weight:600;
-    display:flex;align-items:center;gap:8px;z-index:990;
-    color:var(--grn);box-shadow:0 2px 12px rgba(52,211,153,.2);white-space:nowrap;
-  }
-  #tier-badge{
-    position:fixed;top:10px;right:14px;z-index:999;
-    background:var(--panel);border:1px solid var(--brd2);
-    border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;
-    display:flex;align-items:center;gap:6px;cursor:pointer;
-    box-shadow:0 2px 12px rgba(0,0,0,.3);
-  }
+  .aff-banner{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--grn);border-radius:20px;padding:6px 16px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:990;color:var(--grn);box-shadow:0 2px 12px rgba(52,211,153,.2);white-space:nowrap}
+  #tier-badge{position:fixed;top:10px;right:14px;z-index:999;background:var(--panel);border:1px solid var(--brd2);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3)}
 
-  /* SVG styles */
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
@@ -423,7 +316,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  
 </head>
 <body>
 
@@ -431,8 +323,9 @@
 
   <!-- SIDEBAR -->
   <aside id="sidebar">
+
     <div class="sb-logo">
-      <div class="logo-mark">✂</div>
+      <div class="logo-mark" id="logo-mark">✂</div>
       <div class="logo-text">
         <span class="logo-name">PatrónAI</span>
         <span class="logo-tag">Pro</span>
@@ -483,7 +376,7 @@
         <div class="mgrp-title">Contornos</div>
         <div class="m-row"><label>Busto / Pecho</label><input type="number" data-measure="bust" value="88" min="50" max="200" step="0.5"></div>
         <div class="m-row"><label>Cintura</label><input type="number" data-measure="waist" value="68" min="40" max="180" step="0.5"></div>
-        <div class="m-row"><label>Cadera</label><input type="number" data-measure="hip" value="94" min="50" max="220" step="0.5"></div>
+        <div class="m-row"><label>Cadera</label><input type="number" data-measure="hip" value="50" min="50" max="220" step="0.5"></div>
         <div class="m-row"><label>Hombros</label><input type="number" data-measure="shoulder" value="38" min="25" max="60" step="0.5"></div>
         <div class="m-row"><label>Cuello</label><input type="number" data-measure="neck" value="36" min="28" max="60" step="0.5"></div>
         <div class="mgrp-title">Largos</div>
@@ -516,23 +409,37 @@
 
       <!-- Acciones -->
       <div class="sb-sec sb-actions">
+
+        <!-- BOTÓN TRAZADO MANUAL -->
+        <button class="btn-g" id="btn-drafter" style="border-color:var(--acc);color:var(--acc2)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          Trazado manual
+        </button>
+
         <button class="btn-p" id="btn-export-pdf">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
           Exportar PDF 1:1
         </button>
+
         <button class="btn-s" id="btn-save">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Guardar patrón
         </button>
+
         <button class="btn-g" id="btn-load">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           Cargar patrón
         </button>
+
         <button class="btn-g" id="btn-atelier-panel" style="position:relative">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Panel de Atelier
           <span class="chip-exp">EXPERT</span>
         </button>
+
       </div>
 
     </div><!-- /sb-body -->
@@ -646,7 +553,7 @@
 
 <div id="toasts"></div>
 
-<!-- Scripts -->
+<!-- Scripts en orden correcto -->
 <script src="js/constants.js"></script>
 <script src="js/svg-utils.js"></script>
 <script src="js/patterns/franela.js"></script>
@@ -663,7 +570,7 @@
 <script src="js/payment.js"></script>
 <script src="js/atelier-panel.js"></script>
 <script src="js/app.js"></script>
-  <script src="js/pattern-drafter.js"></script>
+<script src="js/pattern-drafter.js"></script>
 <script src="js/drafter-ui.js"></script>
 </body>
 </html>
