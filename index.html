@@ -3,337 +3,352 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PatrónAI Pro — Patronaje Paramétrico 3D</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🧵</text></svg>" />
+  <title>PatrónAI Pro</title>
   <link rel="stylesheet" href="css/styles.css" />
-
-  <!-- Three.js r134 (última versión estable con OrbitControls UMD) -->
+  <link rel="stylesheet" href="css/monetization.css" />
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
-
-  <!-- jsPDF 2.5.1 — unidad mm para escala 1:1 -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
-  <!-- Firebase 9 compat (compatible con scripts sin bundler) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 </head>
 <body>
-  <div id="app">
 
-    <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
-    <aside id="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <span class="logo-icon">🧵</span>
-          <span class="logo-text">PatrónAI<em>Pro</em></span>
-        </div>
-        <button id="sidebar-toggle" class="icon-btn" title="Contraer panel">‹</button>
+<div id="app">
+
+  <!-- ══════════════════════════════════════════
+       SIDEBAR
+  ══════════════════════════════════════════ -->
+  <aside id="sidebar">
+
+    <div class="sidebar-logo">
+      <div class="logo-mark">✂</div>
+      <div class="logo-info">
+        <span class="logo-name">PatrónAI</span>
+        <span class="logo-tag">Pro</span>
       </div>
+      <button id="sidebar-toggle" class="collapse-btn" title="Colapsar">‹</button>
+    </div>
 
-      <!-- Tipo de prenda -->
-      <section class="panel-section">
-        <h3 class="section-title">Tipo de Prenda</h3>
+    <div class="sidebar-body">
+
+      <!-- PRENDAS -->
+      <div class="sidebar-section">
+        <div class="section-header">Tipo de prenda</div>
         <div class="garment-grid">
           <button class="garment-btn active" data-garment="franela">
-            <span>👕</span><small>Franela</small>
+            <span class="garment-icon">👕</span>
+            <span class="garment-label">Franela</span>
           </button>
           <button class="garment-btn" data-garment="blusa">
-            <span>👚</span><small>Blusa</small>
+            <span class="garment-icon">👚</span>
+            <span class="garment-label">Blusa</span>
           </button>
           <button class="garment-btn" data-garment="camisa">
-            <span>👔</span><small>Camisa</small>
+            <span class="garment-icon">👔</span>
+            <span class="garment-label">Camisa</span>
           </button>
           <button class="garment-btn" data-garment="falda">
-            <span>👗</span><small>Falda</small>
+            <span class="garment-icon">👗</span>
+            <span class="garment-label">Falda</span>
           </button>
           <button class="garment-btn" data-garment="vestido">
-            <span>🥻</span><small>Vestido</small>
+            <span class="garment-icon">🥻</span>
+            <span class="garment-label">Vestido</span>
           </button>
         </div>
-      </section>
+      </div>
 
-      <!-- Opciones de camisa (condicional) -->
-      <section class="panel-section" id="shirt-options" style="display:none">
-        <h3 class="section-title">Opción de Camisa</h3>
-        <label class="radio-label">
-          <input type="radio" name="shirt-gender" value="dama" checked> Dama
-        </label>
-        <label class="radio-label">
-          <input type="radio" name="shirt-gender" value="caballero"> Caballero
-        </label>
-      </section>
+      <!-- GÉNERO CAMISA -->
+      <div class="sidebar-section" id="shirt-options" style="display:none">
+        <div class="section-header">Estilo de camisa</div>
+        <div class="radio-group">
+          <label class="radio-opt">
+            <input type="radio" name="shirt-gender" value="dama" checked>
+            <span>Dama</span>
+          </label>
+          <label class="radio-opt">
+            <input type="radio" name="shirt-gender" value="caballero">
+            <span>Caballero</span>
+          </label>
+        </div>
+      </div>
 
-      <!-- Medidas corporales -->
-      <section class="panel-section">
-        <h3 class="section-title">
-          Medidas
-          <span class="unit-badge">cm</span>
-        </h3>
-
-        <div class="measures-group" id="measures-upper">
-          <p class="group-label">Tronco Superior</p>
-          <div class="input-row">
-            <label for="m-bust">Busto/Pecho</label>
-            <input type="number" id="m-bust"   value="88"  min="50" max="200" step="0.5" data-measure="bust">
-          </div>
-          <div class="input-row">
-            <label for="m-waist">Cintura</label>
-            <input type="number" id="m-waist"  value="68"  min="40" max="180" step="0.5" data-measure="waist">
-          </div>
-          <div class="input-row">
-            <label for="m-hip">Cadera</label>
-            <input type="number" id="m-hip"    value="94"  min="50" max="220" step="0.5" data-measure="hip">
-          </div>
-          <div class="input-row">
-            <label for="m-shoulder">Hombros</label>
-            <input type="number" id="m-shoulder" value="38" min="25" max="60" step="0.5" data-measure="shoulder">
-          </div>
-          <div class="input-row">
-            <label for="m-neck">Cuello</label>
-            <input type="number" id="m-neck"   value="36"  min="28" max="60" step="0.5" data-measure="neck">
-          </div>
+      <!-- MEDIDAS -->
+      <div class="sidebar-section">
+        <div class="section-header">
+          Medidas corporales
+          <span class="badge-unit">cm</span>
         </div>
 
-        <div class="measures-group" id="measures-lengths">
-          <p class="group-label">Largos</p>
-          <div class="input-row">
-            <label for="m-back-length">Largo espalda</label>
-            <input type="number" id="m-back-length"  value="40" min="25" max="60" step="0.5" data-measure="backLength">
-          </div>
-          <div class="input-row">
-            <label for="m-front-length">Largo frente</label>
-            <input type="number" id="m-front-length" value="42" min="25" max="65" step="0.5" data-measure="frontLength">
-          </div>
-          <div class="input-row">
-            <label for="m-total-length">Largo total</label>
-            <input type="number" id="m-total-length" value="65" min="30" max="160" step="0.5" data-measure="totalLength">
-          </div>
-          <div class="input-row" id="row-sleeve-length">
-            <label for="m-sleeve-length">Largo manga</label>
-            <input type="number" id="m-sleeve-length" value="60" min="10" max="80" step="0.5" data-measure="sleeveLength">
-          </div>
-          <div class="input-row" id="row-wrist">
-            <label for="m-wrist">Muñeca</label>
-            <input type="number" id="m-wrist"   value="16"  min="12" max="30" step="0.5" data-measure="wrist">
-          </div>
-          <div class="input-row" id="row-skirt-length">
-            <label for="m-skirt-length">Largo falda</label>
-            <input type="number" id="m-skirt-length" value="60" min="25" max="120" step="0.5" data-measure="skirtLength">
-          </div>
-          <div class="input-row">
-            <label for="m-hip-depth">Prof. cadera</label>
-            <input type="number" id="m-hip-depth" value="20" min="14" max="30" step="0.5" data-measure="hipDepth">
-          </div>
+        <div class="measure-group-title">Contornos</div>
+        <div class="measure-row">
+          <label>Busto / Pecho</label>
+          <input type="number" data-measure="bust" value="88" min="50" max="200" step="0.5">
         </div>
-      </section>
+        <div class="measure-row">
+          <label>Cintura</label>
+          <input type="number" data-measure="waist" value="68" min="40" max="180" step="0.5">
+        </div>
+        <div class="measure-row">
+          <label>Cadera</label>
+          <input type="number" data-measure="hip" value="94" min="50" max="220" step="0.5">
+        </div>
+        <div class="measure-row">
+          <label>Hombros</label>
+          <input type="number" data-measure="shoulder" value="38" min="25" max="60" step="0.5">
+        </div>
+        <div class="measure-row">
+          <label>Cuello</label>
+          <input type="number" data-measure="neck" value="36" min="28" max="60" step="0.5">
+        </div>
 
-      <!-- Parámetros de costura -->
-      <section class="panel-section">
-        <h3 class="section-title">Parámetros</h3>
-        <div class="input-row">
-          <label for="p-seam">
+        <div class="measure-group-title">Largos</div>
+        <div class="measure-row">
+          <label>Largo espalda</label>
+          <input type="number" data-measure="backLength" value="40" min="25" max="60" step="0.5">
+        </div>
+        <div class="measure-row">
+          <label>Largo frente</label>
+          <input type="number" data-measure="frontLength" value="42" min="25" max="65" step="0.5">
+        </div>
+        <div class="measure-row">
+          <label>Largo total</label>
+          <input type="number" data-measure="totalLength" value="65" min="30" max="160" step="0.5">
+        </div>
+        <div class="measure-row" id="row-sleeve-length">
+          <label>Largo manga</label>
+          <input type="number" data-measure="sleeveLength" value="60" min="10" max="80" step="0.5">
+        </div>
+        <div class="measure-row" id="row-wrist">
+          <label>Muñeca</label>
+          <input type="number" data-measure="wrist" value="16" min="12" max="30" step="0.5">
+        </div>
+        <div class="measure-row" id="row-skirt-length">
+          <label>Largo falda</label>
+          <input type="number" data-measure="skirtLength" value="60" min="25" max="120" step="0.5">
+        </div>
+        <div class="measure-row">
+          <label>Prof. cadera</label>
+          <input type="number" data-measure="hipDepth" value="20" min="14" max="30" step="0.5">
+        </div>
+      </div>
+
+      <!-- PARÁMETROS -->
+      <div class="sidebar-section">
+        <div class="section-header">Parámetros</div>
+        <div class="measure-row">
+          <label>
             Margen costura
-            <span class="unit-badge">mm</span>
+            <span class="badge-unit">mm</span>
           </label>
-          <input type="number" id="p-seam"  value="10" min="5" max="25" step="1" data-param="seam">
+          <input type="number" id="p-seam" data-param="seam" value="10" min="5" max="25" step="1">
         </div>
-        <div class="input-row">
-          <label for="p-ease">
+        <div class="measure-row">
+          <label>
             Facilidad
-            <span class="unit-badge">cm</span>
+            <span class="badge-unit">cm</span>
           </label>
-          <input type="number" id="p-ease"  value="6"  min="0" max="20" step="0.5" data-param="ease">
+          <input type="number" data-param="ease" value="6" min="0" max="20" step="0.5">
         </div>
-        <div class="input-row">
-          <label for="p-paper">Tamaño papel</label>
-          <select id="p-paper" data-param="paper">
-            <option value="letter">Carta (8.5×11")</option>
-            <option value="a4">A4 (210×297mm)</option>
+        <div class="measure-row">
+          <label>Papel</label>
+          <select data-param="paper">
+            <option value="letter">Carta</option>
+            <option value="a4">A4</option>
           </select>
         </div>
-      </section>
+      </div>
 
-      <!-- Acciones -->
-      <section class="panel-section actions-section">
-        <button class="action-btn primary" id="btn-export-pdf">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          Exportar PDF tiled
+      <!-- CÓDIGO ATELIER -->
+      <div class="sidebar-section">
+        <div class="section-header">
+          Código atelier
+          <span class="badge-unit">% OFF</span>
+        </div>
+        <div class="affiliate-row">
+          <input type="text" id="sidebar-affiliate-input"
+                 placeholder="Ej: ATELIER10" autocomplete="off">
+          <button id="sidebar-apply-code">✓</button>
+        </div>
+        <div id="sidebar-affiliate-msg"></div>
+      </div>
+
+      <!-- ACCIONES -->
+      <div class="sidebar-section sidebar-actions">
+        <button class="btn-primary" id="btn-export-pdf">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+          Exportar PDF 1:1
         </button>
-        <button class="action-btn secondary" id="btn-save">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <button class="btn-secondary" id="btn-save">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Guardar patrón
         </button>
-        <button class="action-btn ghost" id="btn-load">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <button class="btn-ghost" id="btn-load">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           Cargar patrón
         </button>
-      </section>
-
-      <!-- Footer sidebar -->
-      <div class="sidebar-footer">
-        <div class="scale-indicator">
-          <span class="dot green"></span>
-          Escala 1:1 garantizada
-        </div>
+        <button class="btn-ghost btn-expert" id="btn-atelier-panel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Panel de Atelier
+          <span class="expert-chip">EXPERT</span>
+        </button>
       </div>
-    </aside>
 
-    <!-- ═══════════════════ ÁREA PRINCIPAL ═══════════════════ -->
-    <main id="main-area">
+    </div><!-- /sidebar-body -->
 
-      <!-- Barra superior -->
-      <header class="top-bar">
-        <div class="view-tabs">
-          <button class="view-tab active" data-view="pattern">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-            Patrón 2D
-          </button>
-          <button class="view-tab" data-view="viewer3d">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-            Vista 3D
-          </button>
-        </div>
+    <div class="sidebar-footer">
+      <div class="scale-dot"></div>
+      <span>Escala 1:1 garantizada</span>
+    </div>
 
-        <div class="top-bar-info">
-          <span id="pattern-info" class="info-chip">Franela Básica · Busto 88cm</span>
-          <span id="piece-count" class="info-chip">3 piezas</span>
-        </div>
+  </aside>
 
-        <div class="zoom-controls">
-          <button class="icon-btn" id="zoom-out">−</button>
-          <span id="zoom-label">100%</span>
-          <button class="icon-btn" id="zoom-in">+</button>
-          <button class="icon-btn" id="zoom-fit" title="Ajustar a pantalla">⊡</button>
-        </div>
-      </header>
+  <!-- ══════════════════════════════════════════
+       ÁREA PRINCIPAL
+  ══════════════════════════════════════════ -->
+  <main id="main">
 
-      <!-- Vista Patrón 2D -->
-      <div id="view-pattern" class="view active">
-        <div id="svg-wrapper">
-          <div id="svg-pan-container">
-            <svg id="pattern-svg"
-                 xmlns="http://www.w3.org/2000/svg"
-                 xmlns:xlink="http://www.w3.org/1999/xlink">
-              <!-- Generado dinámicamente por pattern-engine.js -->
-              <defs>
-                <pattern id="grid-pattern" width="100" height="100" patternUnits="userSpaceOnUse">
-                  <path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
-                </pattern>
-                <pattern id="grid-pattern-large" width="1000" height="1000" patternUnits="userSpaceOnUse">
-                  <rect width="1000" height="1000" fill="url(#grid-pattern)"/>
-                  <path d="M 1000 0 L 0 0 0 1000" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-                </pattern>
-                <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-                  <path d="M0,0 L0,8 L8,4 z" fill="#7c3aed"/>
-                </marker>
-                <marker id="arrow-rev" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
-                  <path d="M0,0 L0,8 L8,4 z" fill="#7c3aed"/>
-                </marker>
-              </defs>
-              <!-- Grid de fondo -->
-              <rect id="svg-bg" x="-5000" y="-5000" width="10000" height="10000" fill="url(#grid-pattern-large)"/>
-              <!-- Contenido del patrón se inserta aquí -->
-              <g id="pattern-content"></g>
-            </svg>
-          </div>
-        </div>
+    <!-- TOPBAR -->
+    <div id="topbar">
+      <div class="view-switcher">
+        <button class="view-btn active" data-view="pattern">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Patrón 2D
+        </button>
+        <button class="view-btn" data-view="viewer3d">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          Vista 3D
+        </button>
+      </div>
 
-        <!-- Cuadrado de calibración overlay (siempre visible) -->
-        <div id="calibration-box" title="Cuadrado de calibración 5×5cm">
-          <svg width="60" height="60" viewBox="0 0 50 50">
-            <rect x="0.5" y="0.5" width="49" height="49" fill="none" stroke="#7c3aed" stroke-width="1"/>
-            <line x1="25" y1="0" x2="25" y2="50" stroke="#7c3aed" stroke-width="0.5" stroke-dasharray="3,3"/>
-            <line x1="0" y1="25" x2="50" y2="25" stroke="#7c3aed" stroke-width="0.5" stroke-dasharray="3,3"/>
-            <text x="2" y="8" font-size="5" fill="#7c3aed">5cm</text>
+      <div class="topbar-info">
+        <span id="pattern-info" class="info-tag">Franela Básica · 88cm</span>
+        <span id="piece-count" class="info-tag">3 piezas</span>
+      </div>
+
+      <div class="zoom-bar">
+        <button class="zoom-btn" id="zoom-out">−</button>
+        <span id="zoom-label">100%</span>
+        <button class="zoom-btn" id="zoom-in">+</button>
+        <button class="zoom-btn" id="zoom-fit" title="Ajustar">⊡</button>
+      </div>
+    </div>
+
+    <!-- VISTA PATRÓN 2D -->
+    <div id="view-pattern" class="view-area active-view">
+      <div id="svg-wrapper">
+        <div id="svg-pan-container">
+          <svg id="pattern-svg"
+               xmlns="http://www.w3.org/2000/svg"
+               xmlns:xlink="http://www.w3.org/1999/xlink">
+            <defs>
+              <pattern id="grid-sm" width="50" height="50" patternUnits="userSpaceOnUse">
+                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
+              </pattern>
+              <pattern id="grid-lg" width="500" height="500" patternUnits="userSpaceOnUse">
+                <rect width="500" height="500" fill="url(#grid-sm)"/>
+                <path d="M 500 0 L 0 0 0 500" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+              </pattern>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                <path d="M0,0 L0,8 L8,4 z" fill="#7c3aed"/>
+              </marker>
+              <marker id="arrow-rev" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
+                <path d="M0,0 L0,8 L8,4 z" fill="#7c3aed"/>
+              </marker>
+            </defs>
+            <rect id="svg-bg" x="-9999" y="-9999" width="19998" height="19998" fill="url(#grid-lg)"/>
+            <g id="pattern-content"></g>
           </svg>
-          <span>Cal. 5×5cm</span>
-        </div>
-
-        <!-- Leyenda -->
-        <div id="legend">
-          <div class="legend-item"><span class="legend-line solid"></span> Línea de corte</div>
-          <div class="legend-item"><span class="legend-line dashed"></span> Línea de costura</div>
-          <div class="legend-item"><span class="legend-line grain"></span> Hilo recto</div>
-          <div class="legend-item"><span class="legend-line fold"></span> Doblar en tela</div>
         </div>
       </div>
 
-      <!-- Vista 3D -->
-      <div id="view-viewer3d" class="view" style="display:none">
-        <canvas id="three-canvas"></canvas>
-        <div class="viewer3d-controls">
-          <button class="icon-btn" id="btn-3d-reset" title="Reset vista">⌂</button>
-          <button class="icon-btn" id="btn-3d-wireframe" title="Wireframe">⬡</button>
-          <span class="viewer3d-hint">Arrastra para rotar · Scroll para zoom</span>
-        </div>
+      <!-- Leyenda flotante -->
+      <div id="legend">
+        <div class="legend-row"><span class="leg-line l-cut"></span>Línea de corte</div>
+        <div class="legend-row"><span class="leg-line l-seam"></span>Línea de costura</div>
+        <div class="legend-row"><span class="leg-line l-grain"></span>Hilo recto</div>
+        <div class="legend-row"><span class="leg-line l-fold"></span>Doblar en tela</div>
       </div>
 
-    </main>
-  </div>
-
-  <!-- Modal de guardado -->
-  <div id="modal-save" class="modal" style="display:none">
-    <div class="modal-backdrop"></div>
-    <div class="modal-content">
-      <h2>Guardar Patrón</h2>
-      <div class="input-row">
-        <label>Nombre del patrón</label>
-        <input type="text" id="save-name" placeholder="Ej: Mi franela talla M" />
-      </div>
-      <div class="modal-actions">
-        <button class="action-btn primary" id="confirm-save">Guardar</button>
-        <button class="action-btn ghost" id="cancel-save">Cancelar</button>
+      <!-- Calibración flotante -->
+      <div id="calibration-badge">
+        <svg width="44" height="44" viewBox="0 0 50 50">
+          <rect x="0.5" y="0.5" width="49" height="49" fill="none" stroke="#8b5cf6" stroke-width="1"/>
+          <line x1="25" y1="0" x2="25" y2="50" stroke="#8b5cf6" stroke-width="0.5" stroke-dasharray="3,3"/>
+          <line x1="0" y1="25" x2="50" y2="25" stroke="#8b5cf6" stroke-width="0.5" stroke-dasharray="3,3"/>
+        </svg>
+        <span>5×5 cm</span>
       </div>
     </div>
-  </div>
 
-  <!-- Modal de carga -->
-  <div id="modal-load" class="modal" style="display:none">
-    <div class="modal-backdrop"></div>
-    <div class="modal-content">
-      <h2>Patrones Guardados</h2>
+    <!-- VISTA 3D -->
+    <div id="view-viewer3d" class="view-area" style="display:none">
+      <canvas id="three-canvas"></canvas>
+      <div id="controls-3d">
+        <button class="ctrl-btn" id="btn-3d-reset" title="Resetear vista">⌂</button>
+        <button class="ctrl-btn" id="btn-3d-wireframe" title="Wireframe">⬡</button>
+        <span class="ctrl-hint">Arrastra · Scroll para zoom</span>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL GUARDAR -->
+<div id="modal-save" class="modal" style="display:none">
+  <div class="modal-overlay"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Guardar patrón</h3>
+      <button class="modal-close" id="cancel-save">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Nombre del patrón</label>
+      <input type="text" id="save-name" placeholder="Ej: Franela talla M" class="field-input">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" id="confirm-save">Guardar</button>
+      <button class="btn-ghost" id="cancel-save-2">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CARGAR -->
+<div id="modal-load" class="modal" style="display:none">
+  <div class="modal-overlay"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Patrones guardados</h3>
+      <button class="modal-close" id="cancel-load">✕</button>
+    </div>
+    <div class="modal-body">
       <div id="saved-patterns-list"></div>
-      <div class="modal-actions">
-        <button class="action-btn ghost" id="cancel-load">Cerrar</button>
-      </div>
     </div>
   </div>
+</div>
 
-  <!-- Toast notifications -->
-  <div id="toast-container"></div>
+<!-- TOASTS -->
+<div id="toast-container"></div>
 
-  <!-- Scripts en orden de dependencia -->
-  <script src="js/constants.js"></script>
-  <script src="js/svg-utils.js"></script>
-  <script src="js/patterns/franela.js"></script>
-  <script src="js/patterns/blusa.js"></script>
-  <script src="js/patterns/camisa.js"></script>
-  <script src="js/patterns/falda.js"></script>
-  <script src="js/patterns/vestido.js"></script>
-  <script src="js/pattern-engine.js"></script>
-  <script src="js/pdf-export.js"></script>
-  <script src="js/mannequin-3d.js"></script>
-  <script src="js/firebase-config.js"></script>
-  <script src="js/app.js"></script>
-  <!-- Agregar ANTES de </body> en index.html, después de los scripts actuales -->
-
-<!-- CSS de monetización -->
-<link rel="stylesheet" href="css/monetization.css" />
-
-<!-- Scripts de monetización (en orden) -->
+<!-- SCRIPTS -->
+<script src="js/constants.js"></script>
+<script src="js/svg-utils.js"></script>
+<script src="js/patterns/franela.js"></script>
+<script src="js/patterns/blusa.js"></script>
+<script src="js/patterns/camisa.js"></script>
+<script src="js/patterns/falda.js"></script>
+<script src="js/patterns/vestido.js"></script>
+<script src="js/pattern-engine.js"></script>
+<script src="js/pdf-export.js"></script>
+<script src="js/mannequin-3d.js"></script>
+<script src="js/firebase-config.js"></script>
 <script src="js/auth-tier.js"></script>
 <script src="js/affiliate.js"></script>
 <script src="js/payment.js"></script>
 <script src="js/atelier-panel.js"></script>
+<script src="js/app.js"></script>
 
-<!-- HOOK STRIPE (descomentar cuando tengas cuenta Stripe)
-<script src="https://js.stripe.com/v3/"></script>
--->
-
-<!-- HOOK PAYPAL (descomentar cuando tengas cuenta PayPal)
-<script src="https://www.paypal.com/sdk/js?client-id=TU_CLIENT_ID&currency=USD"></script>
--->
 </body>
 </html>
