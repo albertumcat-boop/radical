@@ -10,37 +10,63 @@ PAT.Mannequin3D = (function () {
   let _animId      = null;
   let _initialized = false;
 
-  // 1 cm → 0.01 unidades Three.js  (maniquí 170cm = 1.70 unidades)
-  const SC = 0.01;
+  // ── Proporciones fijas del maniquí (en unidades Three.js) ──────
+  // Maniquí total = 1.65 unidades de alto
+  // Las medidas del usuario solo afectan los radios (contornos)
+  const H = {
+    total:    1.65,
+    floor:    0.00,
+    ankle:    0.08,
+    knee:     0.40,
+    crotch:   0.50,   // inicio cadera
+    hip:      0.60,   // nivel máximo cadera
+    waist:    0.74,
+    underbust:0.82,
+    bust:     0.88,
+    shoulder: 0.97,
+    neckBot:  1.02,
+    neckTop:  1.09,
+    chin:     1.14,
+    headCtr:  1.24,
+    headTop:  1.37,
+  };
+
+  // ── Convertir medida (cm) a radio Three.js ─────────────────────
+  // circunferencia cm → radio = circ / (2π) / 100
+  function cmToRadius(circ_cm) {
+    return circ_cm / (2 * Math.PI * 100);
+  }
 
   // ─── INIT ──────────────────────────────────────────────────────
   function init(canvasEl) {
     if (_initialized || !canvasEl) return;
     _canvas = canvasEl;
 
+    const W = canvasEl.clientWidth  || 800;
+    const Ht = canvasEl.clientHeight || 600;
+
     renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(canvasEl.clientWidth || 800, canvasEl.clientHeight || 600);
+    renderer.setSize(W, Ht);
     renderer.setClearColor(0x06060e, 1);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
 
     scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x06060e, 8, 25);
+    scene.fog = new THREE.Fog(0x06060e, 6, 20);
 
-    const aspect = (canvasEl.clientWidth || 800) / (canvasEl.clientHeight || 600);
-    camera = new THREE.PerspectiveCamera(40, aspect, 0.01, 50);
-    camera.position.set(0, 0.95, 3.5);
+    camera = new THREE.PerspectiveCamera(38, W / Ht, 0.01, 40);
+    camera.position.set(0, 0.9, 3.0);
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
     controls.minDistance   = 0.5;
-    controls.maxDistance   = 7;
-    controls.target.set(0, 0.85, 0);
+    controls.maxDistance   = 6;
+    controls.target.set(0, 0.82, 0);
     controls.update();
 
-    _setupScene();
+    _buildScene();
 
     bodyGroup    = new THREE.Group();
     garmentGroup = new THREE.Group();
@@ -50,220 +76,252 @@ PAT.Mannequin3D = (function () {
     window.addEventListener('resize', _onResize);
     _animate();
     _initialized = true;
-    console.log('[3D] Inicializado');
+    console.log('[3D] Iniciado ✓');
   }
 
-  function _setupScene() {
+  function _buildScene() {
     // Suelo
     const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(3, 64),
-      new THREE.MeshStandardMaterial({ color: 0x0d0d1a, roughness: 0.95 })
+      new THREE.CircleGeometry(3, 48),
+      new THREE.MeshStandardMaterial({ color: 0x0c0c1a, roughness: 0.95 })
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Grid
-    const grid = new THREE.GridHelper(6, 30, 0x1a1a35, 0x111125);
-    grid.position.y = 0.001;
-    scene.add(grid);
+    // Grid sutil
+    scene.add(new THREE.GridHelper(6, 30, 0x1a1a35, 0x111125));
 
     // Luces
-    scene.add(new THREE.AmbientLight(0xeeeeff, 0.4));
+    scene.add(new THREE.AmbientLight(0xeeeeff, 0.45));
 
-    const key = new THREE.DirectionalLight(0xfff8f0, 1.1);
+    const key = new THREE.DirectionalLight(0xfff5ee, 1.1);
     key.position.set(2, 4, 3);
     key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.mapSize.set(1024, 1024);
     scene.add(key);
 
-    const rim = new THREE.DirectionalLight(0x7c3aed, 0.6);
-    rim.position.set(-2, 2, -2);
+    const rim = new THREE.DirectionalLight(0x7c3aed, 0.55);
+    rim.position.set(-2, 3, -2);
     scene.add(rim);
 
-    const fill = new THREE.DirectionalLight(0x60a5fa, 0.3);
+    const fill = new THREE.DirectionalLight(0x60a5fa, 0.25);
     fill.position.set(1, 0, 3);
     scene.add(fill);
 
     // Base de maniquí
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e1e35, metalness: 0.7, roughness: 0.3 });
-    const disc    = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.04, 40), baseMat);
-    disc.position.y = 0.02;
+    const baseMat = new THREE.MeshStandardMaterial({
+      color: 0x1a1a30, metalness: 0.7, roughness: 0.3
+    });
+    const disc = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.20, 0.25, 0.035, 40), baseMat
+    );
+    disc.position.y = 0.018;
     disc.receiveShadow = true;
     scene.add(disc);
 
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.55, 12), baseMat);
-    pole.position.y = 0.29;
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.016, 0.016, 0.50, 12), baseMat
+    );
+    pole.position.y = 0.285;
     scene.add(pole);
   }
 
-  // ─── MANIQUÍ PARAMÉTRICO ───────────────────────────────────────
+  // ─── CONSTRUIR CUERPO ──────────────────────────────────────────
+  // Retorna los radios usados para posicionar la prenda
   function _buildBody(m) {
+    // Limpiar
     while (bodyGroup.children.length) {
       const c = bodyGroup.children[0];
       if (c.geometry) c.geometry.dispose();
-      if (c.material) { if (Array.isArray(c.material)) c.material.forEach(x=>x.dispose()); else c.material.dispose(); }
+      if (c.material) c.material.dispose();
       bodyGroup.remove(c);
     }
 
-    // Radios reales desde perímetros
-    const rBust    = (m.bust    * SC) / (2 * Math.PI);
-    const rWaist   = (m.waist   * SC) / (2 * Math.PI);
-    const rHip     = (m.hip     * SC) / (2 * Math.PI);
-    const rNeck    = (m.neck    * SC) / (2 * Math.PI);
-    const rShoulder= (m.shoulder* SC) / 2;
+    // Radios desde medidas del usuario
+    const rBust    = cmToRadius(m.bust);
+    const rWaist   = cmToRadius(m.waist);
+    const rHip     = cmToRadius(m.hip);
+    const rNeck    = cmToRadius(m.neck);
+    const rShoulder= (m.shoulder / 100) / 2;  // ancho total / 2
 
-    // Alturas
-    const legH   = 0.88;   // piernas: fijo proporcional
-    const torsoH = (m.backLength * SC) * 1.6;  // tronco
-    const headR  = rNeck * 2.1;
-    const neckH  = torsoH * 0.07;
-
-    const skinMat = new THREE.MeshStandardMaterial({
-      color: 0xc8a882, roughness: 0.72, metalness: 0.04
+    const skin = new THREE.MeshStandardMaterial({
+      color: 0xc4956a, roughness: 0.68, metalness: 0.03
     });
 
-    // ── Torso (LatheGeometry perfil) ─────────────────────────
-    // Puntos de abajo (cadera) hacia arriba (cuello)
-    // X = radio, Y = altura relativa al torso
-    const tPts = [
-      new THREE.Vector2(rHip,            0),
-      new THREE.Vector2(rHip * 0.96,     torsoH * 0.04),
-      new THREE.Vector2(rHip * 0.88,     torsoH * 0.14),
-      new THREE.Vector2(rWaist * 1.08,   torsoH * 0.26),
-      new THREE.Vector2(rWaist,          torsoH * 0.34),
-      new THREE.Vector2(rWaist * 1.04,   torsoH * 0.42),
-      new THREE.Vector2(rBust  * 0.95,   torsoH * 0.56),
-      new THREE.Vector2(rBust,            torsoH * 0.65),
-      new THREE.Vector2(rBust  * 0.94,   torsoH * 0.76),
-      new THREE.Vector2(rShoulder * 0.88,torsoH * 0.88),
-      new THREE.Vector2(rNeck  * 1.35,   torsoH * 0.96),
-      new THREE.Vector2(rNeck  * 1.1,    torsoH),
-    ];
+    // Función auxiliar: añadir cilindro entre dos alturas Y
+    function addCyl(rTop, rBot, yBot, yTop, mat, castShadow) {
+      const h    = yTop - yBot;
+      const mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(rTop, rBot, h, 24, 1),
+        mat || skin
+      );
+      mesh.position.y = yBot + h / 2;
+      if (castShadow !== false) mesh.castShadow = true;
+      bodyGroup.add(mesh);
+      return mesh;
+    }
 
-    const torso = new THREE.Mesh(
-      new THREE.LatheGeometry(tPts, 52),
-      skinMat
+    function addSphere(r, y, mat) {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 28, 20), mat || skin);
+      mesh.position.y = y;
+      mesh.castShadow = true;
+      bodyGroup.add(mesh);
+      return mesh;
+    }
+
+    // ── Piernas ────────────────────────────────────────────────
+    const legLX = rHip * 0.55;  // separación lateral
+    [-legLX, legLX].forEach(lx => {
+      // Pie
+      const footGeo = new THREE.BoxGeometry(rHip * 0.5, H.ankle, rHip * 1.4);
+      const foot    = new THREE.Mesh(footGeo, skin);
+      foot.position.set(lx, H.ankle / 2, rHip * 0.3);
+      foot.castShadow = true;
+      bodyGroup.add(foot);
+
+      // Pantorrilla (tobillo → rodilla)
+      const calfT = rHip * 0.22;
+      const calfB = rHip * 0.19;
+      const calfH = H.knee - H.ankle;
+      const calf  = new THREE.Mesh(
+        new THREE.CylinderGeometry(calfT, calfB, calfH, 18), skin
+      );
+      calf.position.set(lx, H.ankle + calfH / 2, 0);
+      calf.castShadow = true;
+      bodyGroup.add(calf);
+
+      // Rodilla
+      addSphere(rHip * 0.24, H.knee, skin);
+
+      // Muslo (rodilla → entrepierna)
+      const thighH = H.crotch - H.knee;
+      const thigh  = new THREE.Mesh(
+        new THREE.CylinderGeometry(rHip * 0.40, rHip * 0.26, thighH, 20), skin
+      );
+      thigh.position.set(lx, H.knee + thighH / 2, 0);
+      thigh.castShadow = true;
+      bodyGroup.add(thigh);
+    });
+
+    // ── Pelvis / cadera ───────────────────────────────────────
+    // Cilindro de entrepierna a cintura con forma de cadera
+    const pelvPts = [
+      new THREE.Vector2(rHip * 0.90, 0),
+      new THREE.Vector2(rHip,         H.hip - H.crotch),
+      new THREE.Vector2(rHip * 0.98,  H.hip - H.crotch + 0.02),
+      new THREE.Vector2(rWaist * 1.05, H.waist - H.crotch - 0.02),
+      new THREE.Vector2(rWaist,        H.waist - H.crotch),
+    ];
+    const pelvis = new THREE.Mesh(
+      new THREE.LatheGeometry(pelvPts, 44), skin
     );
-    // Posicionar sobre las piernas
-    torso.position.y = legH;
+    pelvis.position.y = H.crotch;
+    pelvis.castShadow = true;
+    bodyGroup.add(pelvis);
+
+    // ── Torso (cintura → hombros) ─────────────────────────────
+    const torsoPts = [
+      new THREE.Vector2(rWaist,         0),
+      new THREE.Vector2(rWaist * 1.04,  0.03),
+      new THREE.Vector2(rBust  * 0.96,  H.underbust - H.waist),
+      new THREE.Vector2(rBust,           H.bust      - H.waist),
+      new THREE.Vector2(rBust  * 0.94,  H.bust      - H.waist + 0.03),
+      new THREE.Vector2(rShoulder * 0.88,H.shoulder  - H.waist - 0.01),
+      new THREE.Vector2(rShoulder * 0.75,H.shoulder  - H.waist),
+      new THREE.Vector2(rNeck * 1.4,    H.neckBot   - H.waist),
+    ];
+    const torso = new THREE.Mesh(
+      new THREE.LatheGeometry(torsoPts, 44), skin
+    );
+    torso.position.y = H.waist;
     torso.castShadow = true;
     bodyGroup.add(torso);
 
     // ── Cuello ────────────────────────────────────────────────
-    const neck = new THREE.Mesh(
-      new THREE.CylinderGeometry(rNeck, rNeck * 1.15, neckH, 22),
-      skinMat
+    const neckH = H.neckTop - H.neckBot;
+    const neck  = new THREE.Mesh(
+      new THREE.CylinderGeometry(rNeck, rNeck * 1.2, neckH, 20), skin
     );
-    neck.position.y = legH + torsoH + neckH * 0.4;
+    neck.position.y = H.neckBot + neckH / 2;
     neck.castShadow = true;
     bodyGroup.add(neck);
 
     // ── Cabeza ────────────────────────────────────────────────
-    const head = new THREE.Mesh(
-      new THREE.SphereGeometry(headR, 36, 28),
-      skinMat
-    );
-    head.position.y = legH + torsoH + neckH + headR * 0.9;
-    head.castShadow = true;
-    bodyGroup.add(head);
+    const headR = rNeck * 2.05;
+    addSphere(headR, H.headCtr, skin);
+
+    // Nariz (pequeño punto)
+    const noseGeo = new THREE.SphereGeometry(rNeck * 0.18, 10, 8);
+    const nose    = new THREE.Mesh(noseGeo, skin);
+    nose.position.set(0, H.headCtr, headR * 0.92);
+    bodyGroup.add(nose);
 
     // ── Brazos ────────────────────────────────────────────────
-    const aTopR = rBust * 0.26;
-    const aBotR = rBust * 0.17;
-    const armH  = torsoH * 0.48;
-    const foreH = torsoH * 0.42;
+    const aTopR = rBust * 0.27;
+    const aMidR = rBust * 0.20;
+    const aBotR = rBust * 0.15;
+    const upperArmH = 0.24;
+    const foreArmH  = 0.22;
+    const ang = 0.32; // radianes de apertura
 
     [-1, 1].forEach(side => {
-      // Punto de origen del hombro
-      const sx = side * (rShoulder + aTopR * 0.3);
-      const sy = legH + torsoH * 0.84;
-      const ang = side * Math.PI / 10;
+      const ax = side * rShoulder;
 
-      const upperArm = new THREE.Mesh(
-        new THREE.CylinderGeometry(aBotR, aTopR, armH, 16),
-        skinMat
+      // Hombro
+      addSphere(aTopR * 0.95, H.shoulder, skin);
+
+      // Brazo superior
+      const uArm = new THREE.Mesh(
+        new THREE.CylinderGeometry(aMidR, aTopR, upperArmH, 16), skin
       );
-      upperArm.position.set(
-        sx + Math.sin(ang) * armH * 0.5,
-        sy - Math.cos(ang) * armH * 0.5,
+      uArm.position.set(
+        ax + side * Math.sin(ang) * upperArmH * 0.5,
+        H.shoulder - Math.cos(ang) * upperArmH * 0.5,
         0
       );
-      upperArm.rotation.z = ang;
-      upperArm.castShadow = true;
-      bodyGroup.add(upperArm);
+      uArm.rotation.z = side * ang;
+      uArm.castShadow = true;
+      bodyGroup.add(uArm);
 
-      const foreArm = new THREE.Mesh(
-        new THREE.CylinderGeometry(aBotR * 0.72, aBotR, foreH, 16),
-        skinMat
+      // Codo
+      const elbowX = ax + side * Math.sin(ang) * upperArmH;
+      const elbowY = H.shoulder - Math.cos(ang) * upperArmH;
+      const elbowSph = new THREE.Mesh(
+        new THREE.SphereGeometry(aMidR * 1.05, 14, 10), skin
       );
-      const ux = sx + Math.sin(ang) * armH;
-      const uy = sy - Math.cos(ang) * armH;
-      const ang2 = side * Math.PI / 12;
-      foreArm.position.set(
-        ux + Math.sin(ang2) * foreH * 0.5,
-        uy - Math.cos(ang2) * foreH * 0.5,
+      elbowSph.position.set(elbowX, elbowY, 0);
+      bodyGroup.add(elbowSph);
+
+      // Antebrazo
+      const ang2 = side * 0.18;
+      const fArm = new THREE.Mesh(
+        new THREE.CylinderGeometry(aBotR, aMidR, foreArmH, 16), skin
+      );
+      fArm.position.set(
+        elbowX + side * Math.sin(Math.abs(ang2)) * foreArmH * 0.5,
+        elbowY - Math.cos(ang2) * foreArmH * 0.5,
         0
       );
-      foreArm.rotation.z = ang2;
-      foreArm.castShadow = true;
-      bodyGroup.add(foreArm);
+      fArm.rotation.z = ang2;
+      fArm.castShadow = true;
+      bodyGroup.add(fArm);
     });
 
-    // ── Pelvis / cadera redondeada ────────────────────────────
-    const pelvis = new THREE.Mesh(
-      new THREE.SphereGeometry(rHip * 0.8, 36, 20, 0, Math.PI * 2, 0, Math.PI * 0.5),
-      skinMat
-    );
-    pelvis.position.y = legH - rHip * 0.08;
-    pelvis.castShadow = true;
-    bodyGroup.add(pelvis);
-
-    // ── Piernas ───────────────────────────────────────────────
-    const lTopR = rHip * 0.44;
-    const lBotR = rHip * 0.22;
-    const thighH = legH * 0.52;
-    const calfH  = legH * 0.45;
-
-    [-0.42, 0.42].forEach(side => {
-      const lx = side * rHip * 0.56;
-
-      const thigh = new THREE.Mesh(
-        new THREE.CylinderGeometry(lBotR, lTopR, thighH, 18),
-        skinMat
-      );
-      thigh.position.set(lx, thighH * 0.5, 0);
-      thigh.castShadow = true;
-      bodyGroup.add(thigh);
-
-      const calf = new THREE.Mesh(
-        new THREE.CylinderGeometry(lBotR * 0.68, lBotR, calfH, 16),
-        skinMat
-      );
-      calf.position.set(lx, thighH + calfH * 0.5, 0);
-      calf.castShadow = true;
-      bodyGroup.add(calf);
-
-      // Pie simplificado
-      const foot = new THREE.Mesh(
-        new THREE.BoxGeometry(lBotR * 1.2, lBotR * 0.55, lBotR * 2.8),
-        skinMat
-      );
-      foot.position.set(lx, thighH + calfH + lBotR * 0.27, lBotR * 0.5);
-      foot.castShadow = true;
-      bodyGroup.add(foot);
-    });
-
-    // El bodyGroup queda con piernas en Y=0 → suelo
-    return { torsoH, legH, rBust, rWaist, rHip, rNeck, rShoulder };
+    return { rBust, rWaist, rHip, rNeck, rShoulder };
   }
 
-  // ─── PRENDA ────────────────────────────────────────────────────
+  // ─── PRENDA 3D ────────────────────────────────────────────────
   function updateGarment(garmentType, measures, params) {
-    const m = Object.assign({}, PAT.DEFAULT_MEASURES, measures);
+    // Usar defaults si faltan medidas
+    const m = Object.assign({}, {
+      bust: 88, waist: 68, hip: 94, shoulder: 38, neck: 36,
+      backLength: 40, frontLength: 42, totalLength: 65,
+      sleeveLength: 60, wrist: 16, skirtLength: 60, hipDepth: 20
+    }, measures);
 
-    // Reconstruir cuerpo con medidas actuales
-    const dims = _buildBody(m);
+    // Reconstruir cuerpo
+    const radii = _buildBody(m);
 
     // Limpiar prenda anterior
     while (garmentGroup.children.length) {
@@ -273,153 +331,183 @@ PAT.Mannequin3D = (function () {
       garmentGroup.remove(c);
     }
 
-    const { torsoH, legH, rBust, rWaist, rHip, rNeck, rShoulder } = dims;
+    // Radios de la prenda = radios del cuerpo + holgura
+    const EASE = 0.008; // holgura de tela ~8mm
+    const bR = radii.rBust    + EASE;
+    const wR = radii.rWaist   + EASE * 0.8;
+    const hR = radii.rHip     + EASE;
+    const nR = radii.rNeck    + EASE * 0.5;
+    const sR = radii.rShoulder;
 
-    // Offset del torso: empieza en legH
-    const yBase = legH;
-
-    // Radio con holgura para la prenda (encima del cuerpo)
-    const bR = rBust   + 0.009;
-    const wR = rWaist  + 0.007;
-    const hR = rHip    + 0.010;
-    const nR = rNeck   + 0.006;
-    const sR = rShoulder;
+    // Largo de manga en unidades Three.js
+    const sleeveLen = m.sleeveLength / 100;
 
     const gMat = new THREE.MeshStandardMaterial({
       color:       0x7c3aed,
-      roughness:   0.6,
-      metalness:   0.08,
+      roughness:   0.60,
+      metalness:   0.06,
       transparent: true,
-      opacity:     isWireframe ? 0.55 : 0.87,
+      opacity:     isWireframe ? 0.5 : 0.86,
       side:        THREE.DoubleSide,
       wireframe:   isWireframe,
     });
 
-    const seamMat = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b, roughness: 0.5, metalness: 0.1
-    });
-
     switch (garmentType) {
+
       case 'franela':
+        _garmentTorso(bR, wR, hR, nR, H.crotch, H.neckBot, gMat);
+        _garmentSleeves(bR, sR, H.shoulder, sleeveLen * 0.55, gMat);
+        break;
+
       case 'blusa':
-        _addTorsoGarment(gMat, bR, wR, hR, nR, torsoH, yBase, false);
-        _addSleeves(gMat, bR, sR, m.sleeveLength * SC, torsoH, yBase);
+        _garmentTorso(bR, wR, hR, nR, H.crotch, H.neckBot, gMat);
+        _garmentSleeves(bR, sR, H.shoulder, sleeveLen * 0.95, gMat);
         break;
 
       case 'camisa':
-        _addTorsoGarment(gMat, bR*1.03, wR*1.03, hR*1.03, nR*1.02, torsoH, yBase, true);
-        _addSleeves(gMat, bR*1.03, sR, m.sleeveLength*SC, torsoH, yBase);
-        _addCollar(gMat, nR, torsoH, yBase);
+        _garmentTorso(bR*1.02, wR*1.02, hR*1.02, nR, H.crotch, H.neckBot, gMat);
+        _garmentSleeves(bR*1.02, sR, H.shoulder, sleeveLen, gMat);
+        _garmentCollar(nR, H.neckBot, H.neckTop + 0.03, gMat);
+        _garmentCuffs(bR * 0.18, H.shoulder - sleeveLen - 0.01, gMat);
         break;
 
       case 'falda':
-        _addSkirt(gMat, wR, hR, m.skirtLength*SC, m.hipDepth*SC, yBase);
+        _garmentSkirt(wR, hR, H.waist, m.skirtLength / 100, m.hipDepth / 100, gMat);
+        _garmentWaistband(wR, H.waist, gMat);
         break;
 
       case 'vestido':
-        _addTorsoGarment(gMat, bR, wR, hR, nR, torsoH*0.98, yBase, false);
-        _addSkirt(gMat, wR, hR, m.skirtLength*SC, m.hipDepth*SC, yBase);
+        _garmentTorso(bR, wR, hR, nR, H.crotch, H.neckBot, gMat);
+        _garmentSkirt(hR, hR * 1.02, H.crotch, m.skirtLength / 100, 0.05, gMat);
         break;
-    }
-
-    // Costuras decorativas
-    if (!isWireframe) {
-      _addSeamLine(0,        yBase, torsoH, bR, seamMat);
-      _addSeamLine(Math.PI,  yBase, torsoH, bR, seamMat);
     }
   }
 
-  function _addTorsoGarment(mat, bR, wR, hR, nR, torsoH, yBase, withPlacket) {
+  // ── Torso de prenda (de hem inferior a escote) ─────────────────
+  function _garmentTorso(bR, wR, hR, nR, yBottom, yTop, mat) {
+    const h = yTop - yBottom;
     const pts = [
-      new THREE.Vector2(hR,           0),
-      new THREE.Vector2(hR * 0.95,    torsoH * 0.05),
-      new THREE.Vector2(wR * 1.06,    torsoH * 0.28),
-      new THREE.Vector2(wR,            torsoH * 0.36),
-      new THREE.Vector2(wR * 1.04,    torsoH * 0.44),
-      new THREE.Vector2(bR * 0.97,    torsoH * 0.60),
-      new THREE.Vector2(bR,            torsoH * 0.68),
-      new THREE.Vector2(bR * 0.93,    torsoH * 0.80),
-      new THREE.Vector2(nR * 1.55,    torsoH * 0.95),
-      new THREE.Vector2(nR * 1.15,    torsoH),
+      new THREE.Vector2(hR,          0),
+      new THREE.Vector2(hR * 0.96,   h * 0.08),
+      new THREE.Vector2(wR * 1.05,   h * 0.28),
+      new THREE.Vector2(wR,           h * 0.36),
+      new THREE.Vector2(wR * 1.04,   h * 0.44),
+      new THREE.Vector2(bR * 0.96,   h * 0.60),
+      new THREE.Vector2(bR,           h * 0.68),
+      new THREE.Vector2(bR * 0.92,   h * 0.82),
+      new THREE.Vector2(nR * 1.5,    h * 0.94),
+      new THREE.Vector2(nR * 1.1,    h),
     ];
     const mesh = new THREE.Mesh(new THREE.LatheGeometry(pts, 52), mat);
-    mesh.position.y = yBase;
+    mesh.position.y = yBottom;
     mesh.castShadow = true;
     garmentGroup.add(mesh);
   }
 
-  function _addSleeves(mat, bR, sR, sleeveLen, torsoH, yBase) {
-    const topR = bR * 0.50;
-    const botR = bR * 0.26;
+  // ── Mangas ─────────────────────────────────────────────────────
+  function _garmentSleeves(bR, sR, shoulderY, sleeveLen, mat) {
+    const topR = bR * 0.52;
+    const botR = bR * 0.24;
+    const ang  = 0.32;
 
     [-1, 1].forEach(side => {
+      // Cabeza de manga (tapón superior)
+      const capGeo = new THREE.SphereGeometry(topR, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.6);
+      const cap    = new THREE.Mesh(capGeo, mat);
+      cap.position.set(side * (sR + topR * 0.1), shoulderY, 0);
+      garmentGroup.add(cap);
+
+      // Tubo de manga
       const geo  = new THREE.CylinderGeometry(botR, topR, sleeveLen, 22, 1, true);
       const mesh = new THREE.Mesh(geo, mat);
-      const ang  = side * Math.PI / 9;
-      mesh.position.set(
-        side * (sR + topR * 0.4),
-        yBase + torsoH * 0.80 - sleeveLen * 0.5,
-        0
-      );
-      mesh.rotation.z = ang;
+      const cx   = side * (sR + topR * 0.15 + Math.sin(ang) * sleeveLen * 0.5);
+      const cy   = shoulderY - Math.cos(ang) * sleeveLen * 0.5;
+      mesh.position.set(cx, cy, 0);
+      mesh.rotation.z = side * ang;
       mesh.castShadow = true;
       garmentGroup.add(mesh);
     });
   }
 
-  function _addSkirt(mat, wR, hR, skirtLen, hipDepth, yBase) {
+  // ── Cuello camisero ────────────────────────────────────────────
+  function _garmentCollar(nR, yBot, yTop, mat) {
+    const h = yTop - yBot;
+    // Pie de cuello
+    const bandMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(nR * 1.02, nR * 1.08, h * 0.5, 24, 1, true), mat
+    );
+    bandMesh.position.y = yBot + h * 0.25;
+    garmentGroup.add(bandMesh);
+
+    // Pala de cuello (abierta al frente)
+    const collarPts = [
+      new THREE.Vector2(nR * 1.12, 0),
+      new THREE.Vector2(nR * 1.28, h * 0.3),
+      new THREE.Vector2(nR * 1.35, h * 0.5),
+      new THREE.Vector2(nR * 1.3,  h * 0.7),
+      new THREE.Vector2(nR * 1.15, h),
+    ];
+    const collarMesh = new THREE.Mesh(
+      new THREE.LatheGeometry(collarPts, 44, Math.PI * 0.1, Math.PI * 1.8), mat
+    );
+    collarMesh.position.y = yBot + h * 0.5;
+    garmentGroup.add(collarMesh);
+  }
+
+  // ── Puños ──────────────────────────────────────────────────────
+  function _garmentCuffs(r, y, mat) {
+    [-1, 1].forEach(side => {
+      const ang = side * 0.32;
+      const cx  = side * (0.19 + r * 0.5 + Math.sin(0.32) * 0.46 * 0.9);
+      const cy  = y;
+      const mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(r * 0.78, r * 0.82, 0.025, 18, 1, false), mat
+      );
+      mesh.position.set(cx, cy, 0);
+      mesh.rotation.z = ang;
+      garmentGroup.add(mesh);
+    });
+  }
+
+  // ── Falda ──────────────────────────────────────────────────────
+  function _garmentSkirt(wR, hR, yWaist, skirtLen, hipDepth, mat) {
     const pts = [];
-    const steps = 18;
+    const steps = 16;
     for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const r = t < (hipDepth / skirtLen)
+      const t   = i / steps;
+      const r   = t < (hipDepth / skirtLen)
         ? wR + (hR - wR) * (t / (hipDepth / skirtLen))
-        : hR * (1 + t * 0.03);
+        : hR + t * 0.012; // leve vuelo
       pts.push(new THREE.Vector2(r, -t * skirtLen));
     }
     const mesh = new THREE.Mesh(new THREE.LatheGeometry(pts, 52), mat);
-    mesh.position.y = yBase;
+    mesh.position.y = yWaist;
     mesh.castShadow = true;
     garmentGroup.add(mesh);
   }
 
-  function _addCollar(mat, nR, torsoH, yBase) {
+  // ── Pretina ────────────────────────────────────────────────────
+  function _garmentWaistband(wR, yWaist, mat) {
     const mesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(nR * 0.92, nR * 1.05, torsoH * 0.065, 24, 1, true),
-      mat
+      new THREE.CylinderGeometry(wR * 1.01, wR * 1.02, 0.03, 36), mat
     );
-    mesh.position.y = yBase + torsoH + torsoH * 0.01;
+    mesh.position.y = yWaist + 0.015;
     garmentGroup.add(mesh);
-  }
-
-  function _addSeamLine(angle, yBase, torsoH, bR, mat) {
-    const pts = [];
-    for (let i = 0; i <= 20; i++) {
-      const t = i / 20;
-      pts.push(new THREE.Vector3(
-        Math.cos(angle) * bR * 0.96,
-        yBase + t * torsoH * 0.92,
-        Math.sin(angle) * bR * 0.96
-      ));
-    }
-    const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 20, 0.0028, 6, false);
-    garmentGroup.add(new THREE.Mesh(geo, mat));
   }
 
   // ─── CONTROLES ────────────────────────────────────────────────
   function toggleWireframe() {
     isWireframe = !isWireframe;
     garmentGroup.traverse(c => {
-      if (c.isMesh && c.material) {
-        c.material.wireframe = isWireframe;
-        c.material.opacity   = isWireframe ? 0.55 : 0.87;
-      }
+      if (!c.isMesh) return;
+      c.material.wireframe = isWireframe;
+      c.material.opacity   = isWireframe ? 0.5 : 0.86;
     });
   }
 
   function resetCamera() {
-    camera.position.set(0, 0.95, 3.5);
-    controls.target.set(0, 0.85, 0);
+    camera.position.set(0, 0.9, 3.0);
+    controls.target.set(0, 0.82, 0);
     controls.update();
   }
 
