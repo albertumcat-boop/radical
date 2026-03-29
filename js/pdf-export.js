@@ -1,17 +1,6 @@
 /**
- * pdf-export.js
- * Sistema de exportación PDF "tiled" con escala 1:1.
- *
- * CRÍTICO: jsPDF se inicializa con unit:'mm', por lo que
- * todas las coordenadas son en mm. El SVG ya está en mm.
- * Esto garantiza impresión 1:1 sin conversiones.
- *
- * Proceso:
- *  1. Parsear el SVG a comandos jsPDF (SVG → jsPDF drawing API)
- *  2. Dividir en páginas según tamaño de papel seleccionado
- *  3. Agregar marcas de registro en cada esquina de página
- *  4. Numerar páginas con grid (A1, A2, B1, ...)
- *  5. Incluir cuadrado de calibración 5×5cm en página 1
+ * REEMPLAZAR el contenido actual de js/pdf-export.js con este bloque completo.
+ * Agrega: marca de agua DEMO para tier free + espacio de branding en PDF.
  */
 
 'use strict';
@@ -21,57 +10,42 @@ PAT.PDFExport = (function() {
 
   const { jsPDF } = window.jspdf;
 
-  /**
-   * Exportar el patrón actual como PDF tiled.
-   * @param {Object} patternData - objeto de PAT.PatternEngine.getCurrentData()
-   * @param {Object} params - {paper:'letter'|'a4', patternName}
-   */
   function exportTiledPDF(patternData, params) {
     if (!patternData) {
       PAT.App.toast('No hay patrón generado aún', 'error');
       return;
     }
 
-    const paper    = PAT.PAPER[params.paper || 'letter'];
-    const margin   = PAT.MARGIN;
-    const overlap  = PAT.TILE_OVERLAP;  // 10mm solapamiento entre páginas
+    // ── VERIFICACIÓN DE TIER ────────────────────────────────────
+    const tierId    = PAT.AuthTier.getTierId();
+    const needsMark = PAT.AuthTier.needsWatermark();
+    const affiliate = PAT.Affiliate.getActiveAffiliate();
 
-    // Área imprimible por página (mm)
+    const paper   = PAT.PAPER[params.paper || 'letter'];
+    const margin  = PAT.MARGIN;
+    const overlap = PAT.TILE_OVERLAP;
+
     const printW = paper.w - margin.left - margin.right;
     const printH = paper.h - margin.top  - margin.bottom;
+    const tileW  = printW - overlap;
+    const tileH  = printH - overlap;
 
-    // Área útil por tile (restando solapamiento en bordes internos)
-    const tileW = printW - overlap;
-    const tileH = printH - overlap;
-
-    // Dimensiones del patrón completo
-    const patW = patternData.bounds.w;
-    const patH = patternData.bounds.h;
-
-    // Número de tiles en X e Y
-    const cols = Math.ceil(patW / tileW);
-    const rows = Math.ceil(patH / tileH);
+    const patW   = patternData.bounds.w;
+    const patH   = patternData.bounds.h;
+    const cols   = Math.ceil(patW / tileW);
+    const rows   = Math.ceil(patH / tileH);
     const totalPages = cols * rows;
 
-    // Crear jsPDF
     const pdf = new jsPDF({
       orientation: patW > patH ? 'landscape' : 'portrait',
       unit: 'mm',
       format: params.paper || 'letter',
     });
 
-    const svgEl = patternData.svgEl;
+    const svgEl   = patternData.svgEl;
     const vbParts = svgEl.getAttribute('viewBox').split(' ').map(Number);
-    const svgViewW = vbParts[2];
-    const svgViewH = vbParts[3];
-
-    // Escala SVG → mm (el SVG está en mm, así que debería ser 1:1)
-    // Pero el viewBox puede ser diferente al tamaño físico si hubo zoom
-    // Usamos el atributo width/height para obtener el tamaño real en mm
-    const svgPhysW = parseFloat(svgEl.getAttribute('width')) || svgViewW;
-    const svgPhysH = parseFloat(svgEl.getAttribute('height')) || svgViewH;
-    const scaleX = svgPhysW / svgViewW;
-    const scaleY = svgPhysH / svgViewH;
+    const svgPhysW = parseFloat(svgEl.getAttribute('width'))  || vbParts[2];
+    const svgPhysH = parseFloat(svgEl.getAttribute('height')) || vbParts[3];
 
     let pageNum = 0;
 
@@ -80,200 +54,186 @@ PAT.PDFExport = (function() {
         pageNum++;
         if (pageNum > 1) pdf.addPage();
 
-        // Coordenadas de este tile en el espacio del patrón
         const tilePatX = col * tileW;
         const tilePatY = row * tileH;
 
-        // ── Fondo blanco ─────────────────────────────────────────
+        // Fondo blanco
         pdf.setFillColor(255, 255, 255);
         pdf.rect(0, 0, paper.w, paper.h, 'F');
 
-        // ── Área imprimible (borde fino) ─────────────────────────
+        // Borde área imprimible
         pdf.setDrawColor(200, 200, 200);
         pdf.setLineWidth(0.2);
         pdf.rect(margin.left, margin.top, printW, printH);
 
-        // ── Marcas de registro (en las 4 esquinas) ───────────────
+        // Marcas de registro
         drawRegistrationMarks(pdf, margin, printW, printH);
 
-        // ── Dibujar el fragmento del SVG en este tile ─────────────
-        // Usamos canvas intermediario para rasterizar el fragmento SVG
-        drawSVGTile(pdf, svgEl, {
-          tilePatX, tilePatY,
-          tileW, tileH,
-          printW, printH,
-          margin, overlap,
-          scaleX, scaleY,
-          svgViewW, svgViewH,
-          svgPhysW, svgPhysH,
+        // Contenido del patrón
+        drawSVGTileDirect(pdf, svgEl, {
+          tilePatX, tilePatY, tileW, tileH,
+          margin, svgPhysW, svgPhysH,
+          svgViewW: vbParts[2], svgViewH: vbParts[3],
         });
 
-        // ── Información de tile ───────────────────────────────────
-        const rowLabel = String.fromCharCode(65 + row);  // A, B, C...
-        const colLabel = col + 1;
-        const tileLabel = `${rowLabel}${colLabel}`;
+        // ── MARCA DE AGUA DEMO (tier free) ─────────────────────
+        if (needsMark) {
+          drawDemoWatermark(pdf, printW, printH, margin);
+        }
 
-        pdf.setFontSize(8);
+        // ── BANDA DE BRANDING (todas las páginas) ─────────────
+        drawBrandingBand(pdf, paper, margin, affiliate, params, tierId);
+
+        // Info de tile
+        const rowLabel = String.fromCharCode(65 + row);
+        const tileLabel = `${rowLabel}${col + 1}`;
+        pdf.setFontSize(7);
         pdf.setTextColor(100, 100, 200);
         pdf.text(
-          `PatrónAI Pro  |  ${params.patternName || 'Patrón'}  |  Página ${pageNum}/${totalPages}  |  Tile ${tileLabel} (${rowLabel}${colLabel})  |  Escala 1:1`,
+          `PatrónAI Pro  ·  ${params.patternName || 'Patrón'}  ·  Pág. ${pageNum}/${totalPages}  ·  Tile ${tileLabel}  ·  Escala 1:1`,
           margin.left,
           margin.top - 3
         );
 
-        // Grid indicator (esquina inferior derecha)
-        pdf.setFontSize(7);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text(
-          `↑ ARRIBA  |  Unir con: ${getPrevTiles(tileLabel, cols)}`,
-          margin.left,
-          margin.top + printH + 5
-        );
-
-        // ── Cuadrado de calibración en página 1 ─────────────────
+        // Cuadrado de calibración en pág. 1
         if (pageNum === 1) {
           drawCalibrationSquare(pdf, margin.left + printW - 65, margin.top + printH - 65);
         }
 
-        // ── Solapamiento: líneas de guía (overlap zone) ──────────
+        // Líneas de solapamiento
         pdf.setDrawColor(120, 120, 255);
         pdf.setLineWidth(0.3);
         pdf.setLineDashPattern([3, 3], 0);
         if (col < cols - 1) {
-          // Borde derecho (zona de solapamiento)
-          const overlapX = margin.left + printW - overlap;
-          pdf.line(overlapX, margin.top, overlapX, margin.top + printH);
-          pdf.setFontSize(6);
-          pdf.setTextColor(120, 120, 255);
-          pdf.text('← solapar 10mm', overlapX - 20, margin.top + 10);
+          const ox = margin.left + printW - overlap;
+          pdf.line(ox, margin.top, ox, margin.top + printH);
         }
         if (row < rows - 1) {
-          const overlapY = margin.top + printH - overlap;
-          pdf.line(margin.left, overlapY, margin.left + printW, overlapY);
-          pdf.setFontSize(6);
-          pdf.text('solapar 10mm ↑', margin.left + 5, overlapY - 2);
+          const oy = margin.top + printH - overlap;
+          pdf.line(margin.left, oy, margin.left + printW, oy);
         }
         pdf.setLineDashPattern([], 0);
       }
     }
 
-    // ── Guardar PDF ───────────────────────────────────────────────
-    const filename = `${(params.patternName || 'patron').replace(/\s+/g, '_')}_${paper.name.split(' ')[0]}_${totalPages}paginas.pdf`;
+    const filename = `${(params.patternName || 'patron').replace(/\s+/g, '_')}_${paper.name.split(' ')[0]}_${totalPages}pags${needsMark ? '_DEMO' : ''}.pdf`;
     pdf.save(filename);
 
-    PAT.App.toast(`✅ PDF exportado: ${totalPages} páginas (${rows}×${cols} tiles)`, 'success');
+    PAT.App.toast(`✅ PDF exportado: ${totalPages} páginas${needsMark ? ' (DEMO)' : ''}`, 'success');
   }
 
-  /** Dibuja el fragmento SVG correspondiente al tile actual en el PDF */
-  function drawSVGTile(pdf, svgEl, opts) {
-    const { tilePatX, tilePatY, tileW, tileH, margin, scaleX, scaleY,
-            svgViewW, svgViewH, svgPhysW, svgPhysH } = opts;
+  // ── MARCA DE AGUA DEMO ──────────────────────────────────────────
+  function drawDemoWatermark(pdf, printW, printH, margin) {
+    pdf.saveGraphicsState();
+    pdf.setGState(new pdf.GState({ opacity: 0.12 }));
+    pdf.setFontSize(52);
+    pdf.setTextColor(120, 0, 200);
 
-    // Clonar SVG y aplicar clip al área del tile
-    // La escala del SVG (mm → puntos de papel) es 1:1 porque jsPDF usa mm
-    // Solo necesitamos desplazar el origen
+    const cx = margin.left + printW / 2;
+    const cy = margin.top  + printH / 2;
 
-    // Método: renderizar el SVG recortado en un canvas
-    // y luego insertar como imagen en el PDF
-    const canvas = document.createElement('canvas');
-
-    // DPI para exportación: 150 DPI (buena calidad sin ser enorme)
-    const DPI = 150;
-    const MM_PER_INCH = 25.4;
-    const PX_PER_MM = DPI / MM_PER_INCH;
-
-    const canvasW = Math.round(tileW * PX_PER_MM);
-    const canvasH = Math.round(tileH * PX_PER_MM);
-    canvas.width  = canvasW;
-    canvas.height = canvasH;
-
-    const ctx = canvas.getContext('2d');
-
-    // Fondo blanco
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvasW, canvasH);
-
-    // Serializar SVG completo a imagen
-    const svgStr = new XMLSerializer().serializeToString(svgEl);
-    const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    const img = new Image();
-    img.onload = function() {
-      // Escala para convertir mm del SVG a px del canvas
-      const scaleToCanvas = PX_PER_MM * (svgPhysW / svgViewW);
-
-      // Dibujar el SVG desplazado para mostrar solo el tile
-      ctx.drawImage(
-        img,
-        -tilePatX * PX_PER_MM,  // recorte X en px
-        -tilePatY * PX_PER_MM,  // recorte Y en px
-        svgPhysW * PX_PER_MM,   // ancho total en px
-        svgPhysH * PX_PER_MM    // alto total en px
-      );
-
-      URL.revokeObjectURL(url);
-
-      // Agregar imagen al PDF (posición en mm dentro de la página)
-      const dataURL = canvas.toDataURL('image/png', 0.95);
-      pdf.addImage(
-        dataURL, 'PNG',
-        opts.margin.left,     // X en mm en la página PDF
-        opts.margin.top,      // Y en mm en la página PDF
-        opts.tileW,           // ancho en mm
-        opts.tileH            // alto en mm
-      );
-    };
-    img.src = url;
-    // Nota: drawImage es síncrono cuando la imagen ya está cargada en el canvas
-    // pero para SVG puede necesitar un enfoque diferente. Usamos SVG directo:
-    return drawSVGTileDirect(pdf, svgEl, opts);
+    // Diagonal
+    pdf.text('DEMO — NO PARA CORTE', cx, cy, {
+      align: 'center', angle: 45,
+    });
+    // Segunda instancia
+    pdf.setFontSize(22);
+    pdf.text('PatrónAI FREE · Actualiza para PDF limpio', cx, cy + 28, {
+      align: 'center', angle: 45,
+    });
+    pdf.restoreGraphicsState();
   }
 
-  /** Alternativa directa: insertar SVG como imagen vectorial en jsPDF */
-  function drawSVGTileDirect(pdf, svgEl, opts) {
-    const { tilePatX, tilePatY, tileW, tileH, margin } = opts;
+  // ── BANDA DE BRANDING ──────────────────────────────────────────
+  function drawBrandingBand(pdf, paper, margin, affiliate, params, tierId) {
+    // Banda inferior de 12mm antes del margen
+    const bandY  = paper.h - margin.bottom - 12;
+    const bandH  = 11;
+    const bandX  = margin.left;
+    const bandW  = paper.w - margin.left - margin.right;
 
-    // Crear SVG clonado con viewBox recortado al tile
-    const clone = svgEl.cloneNode(true);
-    clone.setAttribute('viewBox', `${tilePatX} ${tilePatY} ${tileW} ${tileH}`);
-    clone.setAttribute('width', `${tileW}mm`);
-    clone.setAttribute('height', `${tileH}mm`);
+    // Fondo de la banda
+    pdf.setFillColor(245, 243, 255);
+    pdf.rect(bandX, bandY, bandW, bandH, 'F');
+    pdf.setDrawColor(180, 160, 240);
+    pdf.setLineWidth(0.2);
+    pdf.rect(bandX, bandY, bandW, bandH, 'S');
 
-    // Limpiar estilos de fondo (el SVG tiene un rect de fondo oscuro)
-    const bg = clone.querySelector('#svg-bg');
-    if (bg) {
-      bg.setAttribute('fill', '#ffffff');
-      // Cambiar grid para que sea visible en papel blanco
-      const gridPat = clone.querySelector('#grid-pattern path');
-      if (gridPat) gridPat.setAttribute('stroke', 'rgba(0,0,0,0.06)');
-      const gridLargePat = clone.querySelector('#grid-pattern-large path');
-      if (gridLargePat) gridLargePat.setAttribute('stroke', 'rgba(0,0,0,0.1)');
+    // Logo/marca
+    pdf.setFontSize(8);
+    pdf.setTextColor(90, 40, 180);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('🧵 PatrónAI Pro', bandX + 3, bandY + 7);
+
+    // Web/CTA
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(120, 90, 180);
+    pdf.text('patronai.pro  ·  Patronaje paramétrico a escala 1:1', bandX + 3, bandY + 10.5);
+
+    // Si hay afiliado: mostrar nombre del atelier
+    if (affiliate) {
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(16, 185, 129);
+      const atelierText = `✂️ Realizado con el auspicio de: ${affiliate.atelierName}`;
+      pdf.text(atelierText, bandX + bandW / 2, bandY + 7, { align: 'center' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(6);
+      pdf.setTextColor(100, 140, 120);
+      pdf.text(
+        `Código ${PAT.Affiliate.getActiveCode()} · ${affiliate.discount}% OFF para tus clientes`,
+        bandX + bandW / 2, bandY + 10.5, { align: 'center' }
+      );
+    } else {
+      // CTA para ateliers sin afiliado
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(140, 120, 180);
+      pdf.text(
+        '¿Tienes un atelier? Conviértete en Partner y gana comisiones →  patronai.pro/partners',
+        bandX + bandW / 2, bandY + 9, { align: 'center' }
+      );
     }
 
-    // Actualizar colores del patrón para impresión en papel blanco
-    clone.querySelectorAll('[fill="rgba(255,255,255,0.025)"]').forEach(el => {
-      el.setAttribute('fill', 'none');
-    });
-    // Texto de labels: oscuro para impresión
-    clone.querySelectorAll('text').forEach(el => {
-      const fill = el.getAttribute('fill');
-      if (fill && (fill.includes('rgba(255') || fill.startsWith('#e') || fill.startsWith('#9'))) {
-        el.setAttribute('fill', '#222222');
+    // Tier badge (derecha)
+    const tierColors = { free: [100,100,100], pro: [124,58,237], expert: [245,158,11] };
+    const tColor = tierColors[tierId] || tierColors.free;
+    pdf.setFillColor(...tColor);
+    pdf.roundedRect(bandX + bandW - 26, bandY + 2, 23, 7.5, 2, 2, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(255, 255, 255);
+    const tierLabel = { free: 'FREE', pro: '⭐ PRO', expert: '👑 EXPERT' };
+    pdf.text(tierLabel[tierId] || 'FREE', bandX + bandW - 14.5, bandY + 7, { align: 'center' });
+  }
+
+  // ── SVG a PDF ──────────────────────────────────────────────────
+  function drawSVGTileDirect(pdf, svgEl, opts) {
+    const { tilePatX, tilePatY, tileW, tileH, margin, svgViewW, svgViewH, svgPhysW, svgPhysH } = opts;
+
+    const clone = svgEl.cloneNode(true);
+    clone.setAttribute('viewBox', `${tilePatX} ${tilePatY} ${tileW} ${tileH}`);
+    clone.setAttribute('width',  `${tileW}mm`);
+    clone.setAttribute('height', `${tileH}mm`);
+
+    const bg = clone.querySelector('#svg-bg');
+    if (bg) bg.setAttribute('fill', '#ffffff');
+
+    // Adaptar colores para impresión en blanco
+    clone.querySelectorAll('[fill="rgba(255,255,255,0.025)"]').forEach(e => e.setAttribute('fill','none'));
+    clone.querySelectorAll('path[stroke="#e2e8f0"],line[stroke="#e2e8f0"],polyline[stroke="#e2e8f0"]').forEach(e => e.setAttribute('stroke','#111111'));
+    clone.querySelectorAll('text').forEach(e => {
+      const f = e.getAttribute('fill') || '';
+      if (f.startsWith('#9') || f.startsWith('#6') || f.startsWith('#e2')) {
+        e.setAttribute('fill','#333333');
       }
     });
-    // Líneas de corte: negras para impresión
-    clone.querySelectorAll('path[stroke="#e2e8f0"], line[stroke="#e2e8f0"]').forEach(el => {
-      el.setAttribute('stroke', '#111111');
-    });
 
-    const svgString = new XMLSerializer().serializeToString(clone);
+    const svgString  = new XMLSerializer().serializeToString(clone);
     const svgDataURL = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
-
     pdf.addImage(svgDataURL, 'SVG', margin.left, margin.top, tileW, tileH);
   }
 
-  /** Dibuja marcas de registro (cruz + círculo) en las 4 esquinas */
   function drawRegistrationMarks(pdf, margin, printW, printH) {
     const corners = [
       [margin.left, margin.top],
@@ -281,40 +241,27 @@ PAT.PDFExport = (function() {
       [margin.left, margin.top + printH],
       [margin.left + printW, margin.top + printH],
     ];
-
-    pdf.setDrawColor(0, 0, 0);
-    pdf.setLineWidth(0.3);
-
+    pdf.setDrawColor(0); pdf.setLineWidth(0.3);
     corners.forEach(([cx, cy]) => {
-      const size = 5;  // 5mm marca de registro
-      // Cruz horizontal
+      const size = 5;
       pdf.line(cx - size, cy, cx + size, cy);
-      // Cruz vertical
       pdf.line(cx, cy - size, cx, cy + size);
-      // Círculo
       pdf.circle(cx, cy, size * 0.6, 'S');
     });
   }
 
-  /** Dibuja cuadrado de calibración 5×5cm en el PDF */
   function drawCalibrationSquare(pdf, x, y) {
-    const s = 50;  // 50mm = 5cm
-    pdf.setDrawColor(100, 60, 200);
-    pdf.setLineWidth(0.5);
+    const s = 50;
+    pdf.setDrawColor(100, 60, 200); pdf.setLineWidth(0.5);
     pdf.rect(x, y, s, s, 'S');
-    // Líneas de división
-    pdf.setLineWidth(0.2);
-    pdf.setLineDashPattern([2, 2], 0);
-    pdf.line(x + s/2, y, x + s/2, y + s);
-    pdf.line(x, y + s/2, x + s, y + s/2);
-    pdf.setLineDashPattern([], 0);
-    // Etiqueta
-    pdf.setFontSize(6);
-    pdf.setTextColor(100, 60, 200);
-    pdf.text('5 cm', x + s/2, y + s + 4, { align: 'center' });
-    pdf.text('▣ VERIFICAR ESCALA', x + s/2, y - 2, { align: 'center' });
+    pdf.setLineWidth(0.2); pdf.setLineDashPattern([2,2],0);
+    pdf.line(x+s/2, y, x+s/2, y+s);
+    pdf.line(x, y+s/2, x+s, y+s/2);
+    pdf.setLineDashPattern([],0);
+    pdf.setFontSize(6); pdf.setTextColor(100,60,200);
+    pdf.text('◄── 5 cm ──►', x+s/2, y+s+4, { align:'center' });
+    pdf.text('▣ VERIFICAR ESCALA ANTES DE IMPRIMIR', x+s/2, y-2, { align:'center' });
   }
 
-  /** Ayuda a indicar qué tiles debe unir el usuario */
-  function getPrevTiles(tileLabel, cols) {
-    const row = tile
+  return { exportTiledPDF };
+})();
