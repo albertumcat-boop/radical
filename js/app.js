@@ -1,12 +1,5 @@
 /**
- * app.js
- * Controlador principal de la aplicación.
- * Versión: 2.0 — incluye sistema de monetización completo.
- *
- * Módulos requeridos (en orden de carga):
- *  constants.js → auth-tier.js → affiliate.js → payment.js
- *  → atelier-panel.js → pattern-engine.js → pdf-export.js
- *  → mannequin-3d.js → firebase-config.js → app.js
+ * app.js v3.0 — Versión limpia con monetización y botones funcionando.
  */
 
 'use strict';
@@ -14,11 +7,9 @@ window.PAT = window.PAT || {};
 
 PAT.App = (function () {
 
-  // ─────────────────────────────────────────────────────────────────
-  // ESTADO GLOBAL
-  // ─────────────────────────────────────────────────────────────────
+  // ─── Estado ───────────────────────────────────────────────────────
   let state = {
-    garment:     PAT.DEFAULTS.garment,
+    garment:     'franela',
     shirtGender: 'dama',
     measures:    { ...PAT.DEFAULT_MEASURES },
     params: {
@@ -29,64 +20,58 @@ PAT.App = (function () {
     zoom:       1.0,
     panX:       0,
     panY:       0,
-    view:       'pattern',   // 'pattern' | 'viewer3d'
+    view:       'pattern',
     isDragging: false,
     lastMouseX: 0,
     lastMouseY: 0,
   };
 
-  // ─────────────────────────────────────────────────────────────────
-  // REFERENCIAS DOM
-  // ─────────────────────────────────────────────────────────────────
   const dom = {};
+  let _genTimer = null;
 
-  // ─────────────────────────────────────────────────────────────────
-  // DEBOUNCE
-  // ─────────────────────────────────────────────────────────────────
-  let _genDebounceTimer = null;
-  function scheduleGenerate(delay = 120) {
-    clearTimeout(_genDebounceTimer);
-    _genDebounceTimer = setTimeout(generateAndRender, delay);
+  function scheduleGenerate(delay = 150) {
+    clearTimeout(_genTimer);
+    _genTimer = setTimeout(generateAndRender, delay);
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // INIT — punto de entrada principal
-  // ─────────────────────────────────────────────────────────────────
+  // ─── INIT ─────────────────────────────────────────────────────────
   function init() {
     cacheDOM();
 
-    // 1. Monetización primero (necesita el DOM pero no el patrón)
-    PAT.AuthTier.init();
-    PAT.Affiliate.init();
-    PAT.AtelierPanel.init();
+    // Inicializar módulos de monetización
+    if (PAT.AuthTier)    PAT.AuthTier.init();
+    if (PAT.Affiliate)   PAT.Affiliate.init();
+    if (PAT.AtelierPanel) PAT.AtelierPanel.init();
 
-    // 2. Motores
+    // Motores
     initPatternEngine();
-    initMannequin();
 
-    // 3. Eventos UI base + monetización
-    bindEvents();
+    // Eventos
+    bindGarmentButtons();
+    bindMeasureInputs();
+    bindParamInputs();
+    bindViewTabs();
+    bindZoomControls();
+    bindPanControls();
+    bindModalControls();
     bindMonetizationEvents();
 
-    // 4. Inyectar UI de monetización en el sidebar
+    // Inyectar UI extra de monetización en el sidebar
     injectMonetizationUI();
 
-    // 5. Ajustar visibilidad de inputs y reflejar tier
+    // UI inicial
     showHideConditionalInputs();
-    updateTierUI();
+    if (PAT.AuthTier) updateTierUI();
 
-    // 6. Renderizado inicial
+    // Renderizar
     generateAndRender();
 
-    // 7. Ajustar zoom al tamaño de pantalla
-    setTimeout(fitToScreen, 200);
+    // Ajustar zoom al tamaño de pantalla después de renderizar
+    setTimeout(fitToScreen, 300);
 
-    console.log('[PatrónAI] App v2.0 inicializada ✓');
+    console.log('[PatrónAI] App v3.0 lista ✓');
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // CACHE DOM
-  // ─────────────────────────────────────────────────────────────────
   function cacheDOM() {
     dom.svg             = document.getElementById('pattern-svg');
     dom.svgWrapper      = document.getElementById('svg-wrapper');
@@ -99,31 +84,41 @@ PAT.App = (function () {
     dom.modalLoad       = document.getElementById('modal-load');
     dom.saveNameInput   = document.getElementById('save-name');
     dom.patternsList    = document.getElementById('saved-patterns-list');
-    dom.shirtOptions    = document.getElementById('shirt-options');
     dom.sidebar         = document.getElementById('sidebar');
-    dom._mannequinReady = false;
+    dom.mannequinReady  = false;
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // EVENTOS BASE (sin monetización)
-  // ─────────────────────────────────────────────────────────────────
-  function bindEvents() {
-
-    // ── Tipo de prenda ──────────────────────────────────────────
-    // NOTA: los listeners de garment-btn se gestionan en updateTierUI()
-    // para poder aplicar el bloqueo de tier dinámicamente.
-    // Aquí solo registramos el listener inicial.
-    _bindGarmentButtons();
-
-    // ── Género de camisa ────────────────────────────────────────
-    document.querySelectorAll('input[name="shirt-gender"]').forEach(radio => {
-      radio.addEventListener('change', () => {
-        state.shirtGender = radio.value;
-        scheduleGenerate(80);
-      });
+  // ─── BOTONES DE PRENDA ────────────────────────────────────────────
+  // Separado y simple — sin clonar nada
+  function bindGarmentButtons() {
+    document.querySelectorAll('.garment-btn').forEach(btn => {
+      btn.addEventListener('click', onGarmentClick);
     });
+  }
 
-    // ── Medidas ─────────────────────────────────────────────────
+  function onGarmentClick(e) {
+    const btn     = e.currentTarget;
+    const garment = btn.dataset.garment;
+
+    // Verificar tier
+    if (PAT.AuthTier && !PAT.AuthTier.canUseGarment(garment)) {
+      PAT.PaymentUI.showUpgradeModal();
+      return;
+    }
+
+    // Cambiar estado activo visualmente
+    document.querySelectorAll('.garment-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Actualizar estado
+    state.garment = garment;
+    showHideConditionalInputs();
+    updateTopBarInfo();
+    scheduleGenerate(80);
+  }
+
+  // ─── INPUTS DE MEDIDAS ────────────────────────────────────────────
+  function bindMeasureInputs() {
     document.querySelectorAll('input[data-measure]').forEach(input => {
       input.addEventListener('input', () => {
         const key = input.dataset.measure;
@@ -134,43 +129,65 @@ PAT.App = (function () {
         }
       });
     });
+  }
 
-    // ── Parámetros de costura ───────────────────────────────────
+  // ─── PARÁMETROS ───────────────────────────────────────────────────
+  function bindParamInputs() {
     document.querySelectorAll('input[data-param], select[data-param]').forEach(el => {
       el.addEventListener('input', () => {
         const key = el.dataset.param;
         const val = el.tagName === 'SELECT' ? el.value : parseFloat(el.value);
-        if (key === 'seam' || key === 'ease') {
-          if (!isNaN(val) && val > 0) state.params[key] = val;
-        } else {
-          state.params[key] = val;
+        if ((key === 'seam' || key === 'ease') && (isNaN(val) || val <= 0)) return;
+
+        // Verificar si el tier permite cambiar el margen
+        if (key === 'seam' && PAT.AuthTier && !PAT.AuthTier.hasCustomSeam()) {
+          toast('🔒 Ajuste de margen disponible en Plan Pro', 'warning');
+          el.value = state.params.seam;
+          return;
         }
+
+        state.params[key] = val;
         scheduleGenerate();
       });
     });
 
-    // ── Tabs de vista ───────────────────────────────────────────
+    // Radio de género de camisa
+    document.querySelectorAll('input[name="shirt-gender"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        state.shirtGender = radio.value;
+        scheduleGenerate(80);
+      });
+    });
+  }
+
+  // ─── TABS DE VISTA ────────────────────────────────────────────────
+  function bindViewTabs() {
     document.querySelectorAll('.view-tab').forEach(tab => {
       tab.addEventListener('click', () => switchView(tab.dataset.view));
     });
+  }
 
-    // ── Zoom ────────────────────────────────────────────────────
-    document.getElementById('zoom-in') .addEventListener('click', () => applyZoom(state.zoom * 1.25));
-    document.getElementById('zoom-out').addEventListener('click', () => applyZoom(state.zoom * 0.8));
-    document.getElementById('zoom-fit').addEventListener('click', fitToScreen);
+  // ─── ZOOM ─────────────────────────────────────────────────────────
+  function bindZoomControls() {
+    document.getElementById('zoom-in') ?.addEventListener('click', () => applyZoom(state.zoom * 1.25));
+    document.getElementById('zoom-out')?.addEventListener('click', () => applyZoom(state.zoom * 0.8));
+    document.getElementById('zoom-fit')?.addEventListener('click', fitToScreen);
 
-    dom.svgWrapper.addEventListener('wheel', (e) => {
+    dom.svgWrapper?.addEventListener('wheel', (e) => {
       e.preventDefault();
-      applyZoom(state.zoom * (e.deltaY < 0 ? 1.1 : 0.9));
+      applyZoom(state.zoom * (e.deltaY < 0 ? 1.12 : 0.9));
     }, { passive: false });
+  }
 
-    // ── Pan con ratón ───────────────────────────────────────────
+  // ─── PAN ──────────────────────────────────────────────────────────
+  function bindPanControls() {
+    if (!dom.svgWrapper) return;
+
     dom.svgWrapper.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
       state.isDragging = true;
       state.lastMouseX = e.clientX;
       state.lastMouseY = e.clientY;
-      dom.svgWrapper.style.cursor = 'grabbing';
     });
     window.addEventListener('mousemove', (e) => {
       if (!state.isDragging) return;
@@ -180,308 +197,212 @@ PAT.App = (function () {
       state.lastMouseY = e.clientY;
       applyTransform();
     });
-    window.addEventListener('mouseup', () => {
-      state.isDragging = false;
-      dom.svgWrapper.style.cursor = 'grab';
-    });
+    window.addEventListener('mouseup', () => { state.isDragging = false; });
 
-    // ── Pan / pinch táctil ──────────────────────────────────────
-    let lastTouchX = 0, lastTouchY = 0, lastTouchDist = 0;
+    // Touch
+    let tx = 0, ty = 0, td = 0;
     dom.svgWrapper.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
-        lastTouchX = e.touches[0].clientX;
-        lastTouchY = e.touches[0].clientY;
+        tx = e.touches[0].clientX;
+        ty = e.touches[0].clientY;
         state.isDragging = true;
       } else if (e.touches.length === 2) {
-        lastTouchDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
+        td = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       }
     }, { passive: true });
     dom.svgWrapper.addEventListener('touchmove', (e) => {
       if (e.touches.length === 1 && state.isDragging) {
-        state.panX += e.touches[0].clientX - lastTouchX;
-        state.panY += e.touches[0].clientY - lastTouchY;
-        lastTouchX = e.touches[0].clientX;
-        lastTouchY = e.touches[0].clientY;
+        state.panX += e.touches[0].clientX - tx;
+        state.panY += e.touches[0].clientY - ty;
+        tx = e.touches[0].clientX;
+        ty = e.touches[0].clientY;
         applyTransform();
       } else if (e.touches.length === 2) {
-        const dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        applyZoom(state.zoom * (dist / lastTouchDist));
-        lastTouchDist = dist;
+        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        applyZoom(state.zoom * (d / td));
+        td = d;
       }
     }, { passive: true });
     dom.svgWrapper.addEventListener('touchend', () => { state.isDragging = false; });
+  }
 
-    // ── Guardar patrón (Firebase) ───────────────────────────────
-    document.getElementById('btn-save').addEventListener('click', () => {
-      dom.saveNameInput.value = `${state.garment} busto ${state.measures.bust}cm`;
-      dom.modalSave.style.display = 'flex';
+  // ─── MODALES ──────────────────────────────────────────────────────
+  function bindModalControls() {
+    // Sidebar toggle
+    document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
+      dom.sidebar?.classList.toggle('collapsed');
+      const btn = document.getElementById('sidebar-toggle');
+      if (btn) btn.textContent = dom.sidebar?.classList.contains('collapsed') ? '›' : '‹';
     });
-    document.getElementById('confirm-save').addEventListener('click', async () => {
-      const name = dom.saveNameInput.value.trim() || 'Patrón sin nombre';
-      // Verificar límite de patrones según tier
-      const maxPatterns = PAT.AuthTier.getTier().maxSavedPatterns;
+
+    // Guardar
+    document.getElementById('btn-save')?.addEventListener('click', () => {
+      if (dom.saveNameInput) {
+        dom.saveNameInput.value = `${state.garment} busto ${state.measures.bust}cm`;
+      }
+      if (dom.modalSave) dom.modalSave.style.display = 'flex';
+    });
+    document.getElementById('confirm-save')?.addEventListener('click', async () => {
+      const name = dom.saveNameInput?.value.trim() || 'Patrón sin nombre';
       try {
         await PAT.Firebase.savePattern(name, {
-          garment:  state.garment,
-          measures: state.measures,
-          params:   state.params,
+          garment: state.garment, measures: state.measures, params: state.params,
         });
-        dom.modalSave.style.display = 'none';
+        if (dom.modalSave) dom.modalSave.style.display = 'none';
         toast(`✅ "${name}" guardado`, 'success');
-      } catch (e) {
-        toast('Error al guardar', 'error');
-      }
+      } catch (e) { toast('Error al guardar', 'error'); }
     });
-    document.getElementById('cancel-save').addEventListener('click', () => {
-      dom.modalSave.style.display = 'none';
+    document.getElementById('cancel-save')?.addEventListener('click', () => {
+      if (dom.modalSave) dom.modalSave.style.display = 'none';
     });
 
-    // ── Cargar patrón (Firebase) ────────────────────────────────
-    document.getElementById('btn-load').addEventListener('click', async () => {
-      dom.patternsList.innerHTML = '<p style="color:#64748b;padding:8px">Cargando…</p>';
-      dom.modalLoad.style.display = 'flex';
+    // Cargar
+    document.getElementById('btn-load')?.addEventListener('click', async () => {
+      if (dom.patternsList) dom.patternsList.innerHTML = '<p style="color:#64748b;padding:12px;text-align:center">Cargando…</p>';
+      if (dom.modalLoad) dom.modalLoad.style.display = 'flex';
       try {
         const patterns = await PAT.Firebase.loadPatterns();
         renderPatternsList(patterns);
       } catch (e) {
-        dom.patternsList.innerHTML = '<p style="color:#ef4444;padding:8px">Error al cargar</p>';
+        if (dom.patternsList) dom.patternsList.innerHTML = '<p style="color:#f87171;padding:12px">Error al cargar</p>';
       }
     });
-    document.getElementById('cancel-load').addEventListener('click', () => {
-      dom.modalLoad.style.display = 'none';
+    document.getElementById('cancel-load')?.addEventListener('click', () => {
+      if (dom.modalLoad) dom.modalLoad.style.display = 'none';
     });
 
-    // Cerrar modales al hacer click en el backdrop
-    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
-      backdrop.addEventListener('click', () => {
-        dom.modalSave.style.display = 'none';
-        dom.modalLoad.style.display = 'none';
+    // Cerrar modales al click en backdrop
+    document.querySelectorAll('.modal-backdrop').forEach(b => {
+      b.addEventListener('click', () => {
+        if (dom.modalSave) dom.modalSave.style.display = 'none';
+        if (dom.modalLoad) dom.modalLoad.style.display = 'none';
       });
     });
 
-    // ── Sidebar toggle ──────────────────────────────────────────
-    document.getElementById('sidebar-toggle').addEventListener('click', () => {
-      dom.sidebar.classList.toggle('collapsed');
-      document.getElementById('sidebar-toggle').textContent =
-        dom.sidebar.classList.contains('collapsed') ? '›' : '‹';
-    });
+    // Controles 3D
+    document.getElementById('btn-3d-reset')    ?.addEventListener('click', () => PAT.Mannequin3D?.resetCamera());
+    document.getElementById('btn-3d-wireframe')?.addEventListener('click', () => PAT.Mannequin3D?.toggleWireframe());
 
-    // ── Controles 3D ────────────────────────────────────────────
-    const btn3DReset = document.getElementById('btn-3d-reset');
-    const btn3DWire  = document.getElementById('btn-3d-wireframe');
-    if (btn3DReset) btn3DReset.addEventListener('click', () => PAT.Mannequin3D.resetCamera());
-    if (btn3DWire)  btn3DWire.addEventListener('click',  () => PAT.Mannequin3D.toggleWireframe());
+    // PDF
+    document.getElementById('btn-export-pdf')?.addEventListener('click', handlePDFExport);
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // BOTONES DE PRENDA (separado para poder re-bindear tras cambio de tier)
-  // ─────────────────────────────────────────────────────────────────
-  function _bindGarmentButtons() {
-    document.querySelectorAll('.garment-btn').forEach(btn => {
-      // Clonar para eliminar listeners anteriores
-      const newBtn = btn.cloneNode(true);
-      btn.parentNode.replaceChild(newBtn, btn);
-
-      newBtn.addEventListener('click', () => {
-        const garment = newBtn.dataset.garment;
-
-        // Verificar si el tier permite esta prenda
-        if (!PAT.AuthTier.canUseGarment(garment)) {
-          PAT.PaymentUI.showUpgradeModal();
-          return;
-        }
-
-        document.querySelectorAll('.garment-btn').forEach(b => b.classList.remove('active'));
-        newBtn.classList.add('active');
-        state.garment = garment;
-        showHideConditionalInputs();
-        scheduleGenerate(80);
-      });
-    });
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  // EVENTOS DE MONETIZACIÓN
-  // ─────────────────────────────────────────────────────────────────
+  // ─── MONETIZACIÓN ────────────────────────────────────────────────
   function bindMonetizationEvents() {
-
-    // ── Botón PDF — reemplazado con lógica de paywall ───────────
-    const pdfBtn = document.getElementById('btn-export-pdf');
-    if (pdfBtn) {
-      const newPdfBtn = pdfBtn.cloneNode(true);
-      pdfBtn.parentNode.replaceChild(newPdfBtn, pdfBtn);
-      newPdfBtn.addEventListener('click', handlePDFExport);
-    }
-
-    // ── Código de afiliado (delegación de eventos) ──────────────
+    // Código de afiliado
     document.addEventListener('click', (e) => {
-      if (e.target.id !== 'sidebar-apply-code') return;
+      if (e.target?.id !== 'sidebar-apply-code') return;
       const input = document.getElementById('sidebar-affiliate-input');
       const msg   = document.getElementById('sidebar-affiliate-msg');
-      if (!input) return;
-      const code = input.value.trim().toUpperCase();
+      if (!input || !PAT.Affiliate) return;
 
-      PAT.Affiliate.applyCode(code).then(result => {
+      PAT.Affiliate.applyCode(input.value.trim().toUpperCase()).then(result => {
         if (msg) {
           msg.textContent = result.message;
           msg.style.color = result.valid ? 'var(--green)' : 'var(--red)';
         }
-        if (result.valid) {
-          toast(`🏷️ Código ${code} activo — ${result.discount}% OFF`, 'success');
-        }
+        if (result.valid) toast(`🏷️ ${result.discount}% OFF activo`, 'success');
       });
     });
 
-    // ── Panel de Atelier ────────────────────────────────────────
+    // Panel Atelier
     document.addEventListener('click', (e) => {
-      if (e.target.closest('#btn-atelier-panel')) {
-        PAT.AtelierPanel.openPanel();
+      if (e.target?.closest?.('#btn-atelier-panel')) {
+        PAT.AtelierPanel?.openPanel();
       }
     });
 
-    // ── Cambio de tier → re-renderizar toda la UI ───────────────
-    document.addEventListener('pat:tierChanged', (e) => {
-      const { tier } = e.detail;
+    // Cambio de tier
+    document.addEventListener('pat:tierChanged', () => {
       updateTierUI();
       generateAndRender();
-      console.log(`[App] Tier cambiado a: ${tier}`);
     });
 
-    // ── Cargar medidas de cliente desde Panel Atelier ───────────
+    // Cargar medidas de cliente
     document.addEventListener('pat:loadClientMeasures', (e) => {
-      const { measures, clientName } = e.detail;
+      const { measures, clientName } = e.detail || {};
       if (!measures) return;
-
       state.measures = { ...state.measures, ...measures };
-
-      // Actualizar todos los inputs del sidebar
       document.querySelectorAll('input[data-measure]').forEach(input => {
         const key = input.dataset.measure;
-        if (state.measures[key] !== undefined) {
-          input.value = state.measures[key];
-        }
+        if (state.measures[key] !== undefined) input.value = state.measures[key];
       });
-
       generateAndRender();
       toast(`↩ Medidas de "${clientName}" aplicadas`, 'success');
     });
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // INYECTAR UI DE MONETIZACIÓN EN EL SIDEBAR
-  // ─────────────────────────────────────────────────────────────────
+  // ─── UI DE MONETIZACIÓN EN SIDEBAR ───────────────────────────────
   function injectMonetizationUI() {
     const actionsSection = document.querySelector('.actions-section');
-    if (!actionsSection) return;
+    if (!actionsSection || document.getElementById('affiliate-code-row')) return;
 
-    // ── Campo de código de atelier ─────────────────────────────
-    if (!document.getElementById('affiliate-code-row')) {
-      const affiliateRow = document.createElement('div');
-      affiliateRow.id = 'affiliate-code-row';
-      affiliateRow.innerHTML = `
-        <div class="section-title" style="margin-top:10px">
-          Código Atelier
-          <span class="unit-badge">%OFF</span>
-        </div>
-        <div style="display:flex;gap:6px;margin-bottom:4px">
-          <input
-            type="text"
-            id="sidebar-affiliate-input"
-            placeholder="Ej: ATELIER10"
-            autocomplete="off"
-            spellcheck="false"
-            style="
-              flex:1;
-              background:var(--bg-input);
-              border:1px solid var(--border);
-              color:var(--text-primary);
-              border-radius:var(--radius);
-              padding:5px 8px;
-              font-size:11px;
-              font-family:var(--font-mono);
-              text-transform:uppercase;
-              outline:none;
-            "
-          />
-          <button
-            id="sidebar-apply-code"
-            class="icon-btn"
-            title="Aplicar código"
-            style="padding:5px 10px;font-size:12px;font-weight:700"
-          >✓</button>
-        </div>
-        <div
-          id="sidebar-affiliate-msg"
-          style="font-size:10px;min-height:14px;color:var(--text-dim);margin-bottom:6px"
-        ></div>
-      `;
-      actionsSection.insertBefore(affiliateRow, actionsSection.firstChild);
-    }
+    // Campo de código
+    const affiliateRow = document.createElement('div');
+    affiliateRow.id = 'affiliate-code-row';
+    affiliateRow.style.cssText = 'margin-bottom:8px';
+    affiliateRow.innerHTML = `
+      <div class="section-title" style="margin-bottom:8px">
+        Código Atelier
+        <span class="unit-badge">% OFF</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:4px">
+        <input type="text" id="sidebar-affiliate-input"
+               placeholder="Ej: ATELIER10" autocomplete="off"
+               style="flex:1;background:var(--bg-input);border:1.5px solid var(--border);
+                      color:var(--text-primary);border-radius:var(--radius-sm);
+                      padding:6px 10px;font-size:11px;font-family:var(--font-mono);
+                      text-transform:uppercase;outline:none;transition:border-color .18s" />
+        <button id="sidebar-apply-code" class="icon-btn"
+                style="padding:6px 12px;font-weight:700;font-size:12px">✓</button>
+      </div>
+      <div id="sidebar-affiliate-msg"
+           style="font-size:10px;min-height:14px;color:var(--text-dim)"></div>
+    `;
+    actionsSection.insertBefore(affiliateRow, actionsSection.firstChild);
 
-    // ── Botón Panel Atelier ─────────────────────────────────────
+    // Botón Panel Atelier
     if (!document.getElementById('btn-atelier-panel')) {
       const atelierBtn = document.createElement('button');
       atelierBtn.id        = 'btn-atelier-panel';
       atelierBtn.className = 'action-btn ghost';
-      atelierBtn.style.position = 'relative';
-      atelierBtn.innerHTML = `
-        <span class="expert-badge">EXPERT</span>
-        👑 Panel de Atelier
-      `;
+      atelierBtn.style.cssText = 'position:relative;margin-top:4px';
+      atelierBtn.innerHTML = `<span class="expert-badge">EXPERT</span>👑 Panel de Atelier`;
       actionsSection.appendChild(atelierBtn);
     }
 
-    // Si hay un código de afiliado guardado, mostrarlo
-    const savedCode = PAT.Affiliate.getActiveCode();
+    // Restaurar código guardado
+    const savedCode = PAT.Affiliate?.getActiveCode?.();
     if (savedCode) {
       const input = document.getElementById('sidebar-affiliate-input');
       const msg   = document.getElementById('sidebar-affiliate-msg');
+      const aff   = PAT.Affiliate?.getActiveAffiliate?.();
       if (input) input.value = savedCode;
-      if (msg) {
-        const aff = PAT.Affiliate.getActiveAffiliate();
-        msg.textContent = aff
-          ? `✅ ${aff.discount}% OFF — ${aff.atelierName}`
-          : `✅ Código ${savedCode} activo`;
+      if (msg && aff) {
+        msg.textContent = `✅ ${aff.discount}% OFF — ${aff.atelierName}`;
         msg.style.color = 'var(--green)';
       }
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // EXPORTACIÓN PDF CON VERIFICACIÓN DE TIER
-  // ─────────────────────────────────────────────────────────────────
+  // ─── EXPORTAR PDF ─────────────────────────────────────────────────
   function handlePDFExport() {
-    const garment    = state.garment;
-    const canExport  = PAT.AuthTier.canExportPDF(garment);
+    const garment   = state.garment;
+    const canExport = PAT.AuthTier ? PAT.AuthTier.canExportPDF(garment) : true;
 
     if (!canExport) {
-      // El usuario no tiene acceso gratuito a este PDF: mostrar paywall
-      PAT.PaymentUI.showPatternPaywall(garment, () => {
-        // Callback ejecutado tras pago exitoso
-        _doExportPDF();
-      });
+      PAT.PaymentUI?.showPatternPaywall(garment, () => _doExportPDF());
       return;
     }
-
-    // Tiene acceso (tier Pro/Expert o ya compró el patrón)
     _doExportPDF();
   }
 
   function _doExportPDF() {
     const data = PAT.PatternEngine.getCurrentData();
-    if (!data) {
-      toast('Genera un patrón primero', 'error');
-      return;
-    }
+    if (!data) { toast('Genera un patrón primero', 'error'); return; }
 
-    const tierLabel = PAT.AuthTier.needsWatermark() ? ' (DEMO — con marca de agua)' : '';
-    toast(`⏳ Generando PDF${tierLabel}…`);
+    const hasWatermark = PAT.AuthTier ? PAT.AuthTier.needsWatermark() : false;
+    toast(`⏳ Generando PDF${hasWatermark ? ' (DEMO)' : ''}…`);
 
     setTimeout(() => {
       PAT.PDFExport.exportTiledPDF(data, {
@@ -491,170 +412,133 @@ PAT.App = (function () {
     }, 120);
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // ACTUALIZAR UI SEGÚN EL TIER ACTIVO
-  // ─────────────────────────────────────────────────────────────────
+  // ─── ACTUALIZAR UI SEGÚN TIER ─────────────────────────────────────
   function updateTierUI() {
-    const tier   = PAT.AuthTier.getTier();
-    const tierId = PAT.AuthTier.getTierId();
+    if (!PAT.AuthTier) return;
+    const tier = PAT.AuthTier.getTier();
 
-    // ── 1. Bloquear/desbloquear botones de prenda ───────────────
-    _bindGarmentButtons();   // re-bindear con el check de tier actualizado
-
+    // Marcar botones bloqueados
     document.querySelectorAll('.garment-btn').forEach(btn => {
       const allowed = PAT.AuthTier.canUseGarment(btn.dataset.garment);
       btn.classList.toggle('locked', !allowed);
     });
 
-    // ── 2. Control de margen de costura (solo Pro/Expert) ────────
+    // Input de margen
     const seamInput = document.getElementById('p-seam');
     if (seamInput) {
-      const seamRow = seamInput.closest('.input-row');
-      if (seamRow) {
-        seamRow.style.opacity = tier.customSeam ? '1' : '0.45';
-        seamRow.title = tier.customSeam
-          ? ''
-          : '🔒 Disponible en Plan Pro — ajuste de margen personalizado';
-      }
-      seamInput.disabled = !tier.customSeam;
+      const row = seamInput.closest('.input-row');
+      if (row) row.style.opacity = tier.customSeam ? '1' : '0.4';
+      seamInput.title = tier.customSeam ? '' : '🔒 Disponible en Plan Pro';
     }
 
-    // ── 3. Botón de Panel Atelier ─────────────────────────────
+    // Botón Atelier
     const atelierBtn = document.getElementById('btn-atelier-panel');
     if (atelierBtn) {
-      atelierBtn.style.opacity = tier.atelierPanel ? '1' : '0.55';
-      atelierBtn.title = tier.atelierPanel
-        ? 'Abrir Panel de Atelier'
-        : '🔒 Disponible en Plan Expert';
+      atelierBtn.style.opacity = tier.atelierPanel ? '1' : '0.5';
+      atelierBtn.title = tier.atelierPanel ? '' : '🔒 Disponible en Plan Expert';
     }
 
-    // ── 4. Si la prenda activa ya no está permitida: downgrade ───
+    // Si la prenda activa ya no está permitida
     if (!PAT.AuthTier.canUseGarment(state.garment)) {
       const firstAllowed = tier.allowedGarments[0] || 'franela';
       state.garment = firstAllowed;
-
       document.querySelectorAll('.garment-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.garment === firstAllowed);
       });
-
       showHideConditionalInputs();
-      toast(`Prenda cambiada a ${firstAllowed} (plan ${tier.name})`, 'info');
     }
 
-    // ── 5. Actualizar topbar con indicador de tier ───────────────
     updateTopBarInfo();
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // MOTORES
-  // ─────────────────────────────────────────────────────────────────
+  // ─── MOTOR DE PATRONES ────────────────────────────────────────────
   function initPatternEngine() {
-    PAT.PatternEngine.init(document.getElementById('pattern-svg'));
+    const svgEl = document.getElementById('pattern-svg');
+    if (svgEl) PAT.PatternEngine.init(svgEl);
   }
 
-  function initMannequin() {
-    // Three.js se inicializa de forma lazy (solo cuando se abre la vista 3D)
-    dom._mannequinReady = false;
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  // GENERAR Y RENDERIZAR PATRÓN
-  // ─────────────────────────────────────────────────────────────────
   function generateAndRender() {
-    // Guardia: si el garment actual no está permitido, usar el primero disponible
-    if (!PAT.AuthTier.canUseGarment(state.garment)) {
-      const allowed = PAT.AuthTier.getTier().allowedGarments;
-      state.garment = allowed[0] || 'franela';
+    // Guardia de tier
+    if (PAT.AuthTier && !PAT.AuthTier.canUseGarment(state.garment)) {
+      const tier = PAT.AuthTier.getTier();
+      state.garment = tier.allowedGarments[0] || 'franela';
     }
 
-    PAT.PatternEngine.generate(state.garment, state.measures, {
-      seam:        state.params.seam,
-      ease:        state.params.ease,
-      shirtGender: state.shirtGender,
-    });
+    try {
+      PAT.PatternEngine.generate(state.garment, state.measures, {
+        seam:        state.params.seam,
+        ease:        state.params.ease,
+        shirtGender: state.shirtGender,
+      });
+    } catch (err) {
+      console.error('[App] Error generando patrón:', err);
+      toast('Error al generar el patrón', 'error');
+      return;
+    }
 
     updateTopBarInfo();
 
-    // Actualizar maniquí 3D si la vista está activa
-    if (state.view === 'viewer3d' && dom._mannequinReady) {
-      PAT.Mannequin3D.updateGarment(state.garment, state.measures, state.params);
+    if (state.view === 'viewer3d' && dom.mannequinReady) {
+      PAT.Mannequin3D?.updateGarment(state.garment, state.measures, state.params);
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // TOPBAR INFO
-  // ─────────────────────────────────────────────────────────────────
+  // ─── TOPBAR ───────────────────────────────────────────────────────
   function updateTopBarInfo() {
-    const garmentNames = {
-      franela: 'Franela Básica',
-      blusa:   'Blusa con Pinzas',
+    const names = {
+      franela: 'Franela Básica', blusa: 'Blusa con Pinzas',
       camisa:  `Camisa ${state.shirtGender === 'dama' ? 'Dama' : 'Caballero'}`,
-      falda:   'Falda Recta',
-      vestido: 'Vestido Básico',
+      falda:   'Falda Recta', vestido: 'Vestido Básico',
     };
-    const pieceCounts = {
-      franela: 3, blusa: 3, camisa: 7, falda: 3, vestido: 2,
-    };
+    const counts = { franela: 3, blusa: 3, camisa: 7, falda: 3, vestido: 2 };
+    const demoBadge = (PAT.AuthTier?.needsWatermark?.())
+      ? ' <span style="background:rgba(248,113,113,0.15);color:#f87171;padding:1px 7px;border-radius:10px;font-size:10px;border:1px solid rgba(248,113,113,0.3)">DEMO</span>'
+      : '';
 
     if (dom.patternInfo) {
-      const tierBadge = PAT.AuthTier.needsWatermark()
-        ? ' <span style="background:#ef444422;color:#ef4444;padding:1px 6px;border-radius:10px;font-size:10px">DEMO</span>'
-        : '';
-      dom.patternInfo.innerHTML =
-        `${garmentNames[state.garment] || state.garment} · Busto/Pecho ${state.measures.bust}cm${tierBadge}`;
+      dom.patternInfo.innerHTML = `${names[state.garment] || state.garment} · ${state.measures.bust}cm${demoBadge}`;
     }
     if (dom.pieceCount) {
-      dom.pieceCount.textContent = `${pieceCounts[state.garment] || '?'} piezas`;
+      dom.pieceCount.textContent = `${counts[state.garment] || '?'} piezas`;
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // ZOOM Y PAN
-  // ─────────────────────────────────────────────────────────────────
+  // ─── ZOOM Y PAN ───────────────────────────────────────────────────
   function applyZoom(newZoom) {
-    state.zoom = Math.max(0.05, Math.min(5, newZoom));
+    state.zoom = Math.max(0.04, Math.min(6, newZoom));
     applyTransform();
-    if (dom.zoomLabel) {
-      dom.zoomLabel.textContent = Math.round(state.zoom * 100) + '%';
-    }
+    if (dom.zoomLabel) dom.zoomLabel.textContent = Math.round(state.zoom * 100) + '%';
   }
 
   function applyTransform() {
     if (dom.svgPanContainer) {
       dom.svgPanContainer.style.transform =
-        `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+        `translate(${Math.round(state.panX)}px, ${Math.round(state.panY)}px) scale(${state.zoom})`;
     }
   }
 
   function fitToScreen() {
     if (!dom.svgWrapper || !dom.svg) return;
-
-    const wrapperRect = dom.svgWrapper.getBoundingClientRect();
-    const vb = dom.svg.getAttribute('viewBox');
+    const rect = dom.svgWrapper.getBoundingClientRect();
+    const vb   = dom.svg.getAttribute('viewBox');
     if (!vb) return;
 
     const [, , vbW, vbH] = vb.split(' ').map(Number);
-    const MM_TO_PX = 3.78;   // 1mm ≈ 3.78px a 96dpi
+    const MM_TO_PX = 3.78;
     const svgPxW   = vbW * MM_TO_PX;
     const svgPxH   = vbH * MM_TO_PX;
 
-    const scaleX  = (wrapperRect.width  - 60) / svgPxW;
-    const scaleY  = (wrapperRect.height - 60) / svgPxH;
-    const newZoom = Math.min(scaleX, scaleY, 2);   // máx 200% en fit
+    const scaleX = (rect.width  - 80) / svgPxW;
+    const scaleY = (rect.height - 80) / svgPxH;
+    state.zoom   = Math.max(0.04, Math.min(scaleX, scaleY, 2));
+    state.panX   = (rect.width  - svgPxW * state.zoom) / 2;
+    state.panY   = 40;
 
-    state.zoom = Math.max(0.05, newZoom);
-    state.panX = (wrapperRect.width  - svgPxW * state.zoom) / 2;
-    state.panY = 30;
     applyTransform();
-
-    if (dom.zoomLabel) {
-      dom.zoomLabel.textContent = Math.round(state.zoom * 100) + '%';
-    }
+    if (dom.zoomLabel) dom.zoomLabel.textContent = Math.round(state.zoom * 100) + '%';
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // CAMBIO DE VISTA (2D ↔ 3D)
-  // ─────────────────────────────────────────────────────────────────
+  // ─── CAMBIO DE VISTA ──────────────────────────────────────────────
   function switchView(viewName) {
     state.view = viewName;
 
@@ -672,86 +556,63 @@ PAT.App = (function () {
       if (viewPattern)  viewPattern.style.display  = 'none';
       if (viewViewer3D) viewViewer3D.style.display = '';
 
-      // Inicialización lazy de Three.js
-      if (!dom._mannequinReady) {
+      if (!dom.mannequinReady) {
         const canvas = document.getElementById('three-canvas');
-        if (canvas) {
+        if (canvas && PAT.Mannequin3D) {
           PAT.Mannequin3D.init(canvas);
-          dom._mannequinReady = true;
+          dom.mannequinReady = true;
         }
       }
-      PAT.Mannequin3D.updateGarment(state.garment, state.measures, state.params);
+      PAT.Mannequin3D?.updateGarment(state.garment, state.measures, state.params);
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // INPUTS CONDICIONALES (mostrar/ocultar según prenda)
-  // ─────────────────────────────────────────────────────────────────
+  // ─── INPUTS CONDICIONALES ─────────────────────────────────────────
   function showHideConditionalInputs() {
-    const g         = state.garment;
-    const hasSleeve = ['franela', 'blusa', 'camisa'].includes(g);
-    const hasSkirt  = ['falda', 'vestido'].includes(g);
-    const isCamisa  = g === 'camisa';
-
+    const g = state.garment;
     const show = (id, visible) => {
       const el = document.getElementById(id);
       if (el) el.style.display = visible ? '' : 'none';
     };
-
-    show('row-sleeve-length', hasSleeve);
-    show('row-wrist',         g === 'camisa' || g === 'blusa');
-    show('row-skirt-length',  hasSkirt);
-    show('shirt-options',     isCamisa);
+    show('row-sleeve-length', ['franela', 'blusa', 'camisa'].includes(g));
+    show('row-wrist',         ['camisa', 'blusa'].includes(g));
+    show('row-skirt-length',  ['falda', 'vestido'].includes(g));
+    show('shirt-options',     g === 'camisa');
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // LISTA DE PATRONES GUARDADOS (modal de carga)
-  // ─────────────────────────────────────────────────────────────────
+  // ─── LISTA DE PATRONES GUARDADOS ──────────────────────────────────
   function renderPatternsList(patterns) {
-    if (!patterns || patterns.length === 0) {
-      dom.patternsList.innerHTML =
-        '<p style="color:#64748b;padding:16px;text-align:center">No hay patrones guardados aún.</p>';
+    if (!dom.patternsList) return;
+    if (!patterns?.length) {
+      dom.patternsList.innerHTML = '<p style="color:#5f5c78;padding:16px;text-align:center">No hay patrones guardados aún.</p>';
       return;
     }
-
     dom.patternsList.innerHTML = '';
     patterns.forEach(p => {
       const item = document.createElement('div');
       item.className = 'saved-pattern-item';
-
-      const createdStr = p.createdAt
+      const dateStr = p.createdAt
         ? (typeof p.createdAt.toDate === 'function'
             ? p.createdAt.toDate().toLocaleDateString('es')
             : new Date(p.createdAt).toLocaleDateString('es'))
         : '—';
-
       item.innerHTML = `
         <div>
           <div class="pattern-name">${p.name || 'Sin nombre'}</div>
-          <div class="pattern-meta">
-            ${p.garment || '?'} · Busto ${p.measures?.bust || '?'}cm · ${createdStr}
-          </div>
+          <div class="pattern-meta">${p.garment || '?'} · Busto ${p.measures?.bust || '?'}cm · ${dateStr}</div>
         </div>
         <div style="display:flex;gap:6px">
-          <button class="icon-btn" data-action="load"   data-id="${p.id}" title="Cargar">↩</button>
-          <button class="icon-btn" data-action="delete" data-id="${p.id}"
-                  title="Eliminar" style="color:#ef4444">✕</button>
-        </div>
-      `;
-
-      item.querySelector('[data-action="load"]').addEventListener('click', (e) => {
+          <button class="icon-btn load-btn" title="Cargar">↩</button>
+          <button class="icon-btn del-btn" title="Eliminar" style="color:var(--red)">✕</button>
+        </div>`;
+      item.querySelector('.load-btn').addEventListener('click', (e) => { e.stopPropagation(); loadPattern(p); });
+      item.querySelector('.del-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
-        loadPattern(p);
+        if (!confirm(`¿Eliminar "${p.name}"?`)) return;
+        await PAT.Firebase.deletePattern(p.id);
+        toast(`"${p.name}" eliminado`, 'success');
+        item.remove();
       });
-      item.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (confirm(`¿Eliminar "${p.name}"?`)) {
-          await PAT.Firebase.deletePattern(p.id);
-          toast(`"${p.name}" eliminado`, 'success');
-          item.remove();
-        }
-      });
-
       dom.patternsList.appendChild(item);
     });
   }
@@ -761,63 +622,45 @@ PAT.App = (function () {
     if (p.measures) state.measures = { ...PAT.DEFAULT_MEASURES, ...p.measures };
     if (p.params)   state.params   = { ...PAT.DEFAULTS,         ...p.params   };
 
-    // Verificar si el garment del patrón está disponible en el tier actual
-    if (!PAT.AuthTier.canUseGarment(state.garment)) {
-      toast(`El plan ${PAT.AuthTier.getTier().name} no incluye "${p.garment}". Actualiza tu plan.`, 'error');
+    if (PAT.AuthTier && !PAT.AuthTier.canUseGarment(state.garment)) {
+      toast(`Plan actual no incluye "${state.garment}"`, 'error');
       state.garment = PAT.AuthTier.getTier().allowedGarments[0];
     }
 
-    // Sincronizar todos los inputs
-    document.querySelectorAll('input[data-measure]').forEach(input => {
-      const key = input.dataset.measure;
-      if (state.measures[key] !== undefined) input.value = state.measures[key];
+    document.querySelectorAll('input[data-measure]').forEach(i => {
+      if (state.measures[i.dataset.measure] !== undefined) i.value = state.measures[i.dataset.measure];
     });
     document.querySelectorAll('input[data-param], select[data-param]').forEach(el => {
-      const key = el.dataset.param;
-      if (state.params[key] !== undefined) el.value = state.params[key];
+      if (state.params[el.dataset.param] !== undefined) el.value = state.params[el.dataset.param];
     });
-    document.querySelectorAll('.garment-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.garment === state.garment);
+    document.querySelectorAll('.garment-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.garment === state.garment);
     });
 
     showHideConditionalInputs();
     generateAndRender();
-    dom.modalLoad.style.display = 'none';
-    toast(`✅ Patrón "${p.name}" cargado`, 'success');
+    if (dom.modalLoad) dom.modalLoad.style.display = 'none';
+    toast(`✅ "${p.name}" cargado`, 'success');
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // TOAST NOTIFICATIONS
-  // ─────────────────────────────────────────────────────────────────
+  // ─── TOAST ────────────────────────────────────────────────────────
   function toast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
-
     const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
     const t = document.createElement('div');
     t.className = `toast ${type}`;
-    t.innerHTML = `<span>${icons[type] || 'ℹ️'}</span> ${message}`;
+    t.innerHTML = `<span>${icons[type] || 'ℹ️'}</span>${message}`;
     container.appendChild(t);
-
-    // Autodestruir después de 3.2s (coincide con la animación CSS)
-    setTimeout(() => { if (t.parentNode) t.remove(); }, 3200);
+    setTimeout(() => t.remove(), 3200);
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // ARRANQUE
-  // ─────────────────────────────────────────────────────────────────
+  // ─── ARRANQUE ─────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', init);
 
-  // ─────────────────────────────────────────────────────────────────
-  // API PÚBLICA
-  // ─────────────────────────────────────────────────────────────────
   return {
-    toast,
-    getState:  () => ({ ...state }),
-    fitToScreen,
-    applyZoom,
-    updateTierUI,
-    generateAndRender,
+    toast, getState: () => ({ ...state }),
+    fitToScreen, applyZoom, generateAndRender, updateTierUI,
   };
 
 })();
