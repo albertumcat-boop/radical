@@ -23,10 +23,15 @@ PAT.App = (function () {
     _timer = setTimeout(fn, ms);
   }
 
+  // Abrir/cerrar modales con clase .open
+  function openModal(id)  { const m=$(id); if(m) m.classList.add('open'); }
+  function closeModal(id) { const m=$(id); if(m) m.classList.remove('open'); }
+  function closeAllModals(){ $$('.modal').forEach(m => m.classList.remove('open')); }
+
   // ─── INIT ──────────────────────────────────────────────────────
   function init() {
-    if (PAT.AuthTier)    PAT.AuthTier.init();
-    if (PAT.Affiliate)   PAT.Affiliate.init();
+    if (PAT.AuthTier)     PAT.AuthTier.init();
+    if (PAT.Affiliate)    PAT.Affiliate.init();
     if (PAT.AtelierPanel) PAT.AtelierPanel.init();
 
     PAT.PatternEngine.init($('pattern-svg'));
@@ -50,14 +55,12 @@ PAT.App = (function () {
   // ─── BOTONES DE PRENDA ─────────────────────────────────────────
   function setupGarmentButtons() {
     $$('.garment-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
+      btn.addEventListener('click', function () {
         const g = this.dataset.garment;
-
         if (PAT.AuthTier && !PAT.AuthTier.canUseGarment(g)) {
           if (PAT.PaymentUI) PAT.PaymentUI.showUpgradeModal();
           return;
         }
-
         $$('.garment-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
         state.garment = g;
@@ -69,17 +72,15 @@ PAT.App = (function () {
 
   // ─── INPUTS ────────────────────────────────────────────────────
   function setupInputs() {
-    // Medidas
     $$('input[data-measure]').forEach(inp => {
-      inp.addEventListener('input', function() {
+      inp.addEventListener('input', function () {
         const v = parseFloat(this.value);
         if (!isNaN(v) && v > 0) { state.measures[this.dataset.measure] = v; generate(); }
       });
     });
 
-    // Parámetros
     $$('input[data-param], select[data-param]').forEach(el => {
-      el.addEventListener('input', function() {
+      el.addEventListener('input', function () {
         const k = this.dataset.param;
         const v = this.tagName === 'SELECT' ? this.value : parseFloat(this.value);
         if ((k === 'seam' || k === 'ease') && (isNaN(v) || v <= 0)) return;
@@ -93,27 +94,30 @@ PAT.App = (function () {
       });
     });
 
-    // Radio género camisa
     $$('input[name="shirt-gender"]').forEach(r => {
-      r.addEventListener('change', function() { state.shirtGender = this.value; generate(80); });
+      r.addEventListener('change', function () { state.shirtGender = this.value; generate(80); });
     });
   }
 
-  // ─── TABS DE VISTA ─────────────────────────────────────────────
+  // ─── VISTA ─────────────────────────────────────────────────────
   function setupViewSwitcher() {
     $$('.view-btn').forEach(btn => {
-      btn.addEventListener('click', function() { switchView(this.dataset.view); });
+      btn.addEventListener('click', function () { switchView(this.dataset.view); });
     });
   }
 
   function switchView(v) {
     state.view = v;
     $$('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
-    const p = $('view-pattern'), t = $('view-viewer3d');
+
+    // IDs nuevos: view-pattern y view-3d
+    const p = $('view-pattern'), t = $('view-3d');
     if (v === 'pattern') {
-      p.style.display = ''; t.style.display = 'none';
+      if (p) { p.classList.add('on'); }
+      if (t) { t.classList.remove('on'); }
     } else {
-      p.style.display = 'none'; t.style.display = '';
+      if (p) { p.classList.remove('on'); }
+      if (t) { t.classList.add('on'); }
       if (!state.mannequinReady && PAT.Mannequin3D) {
         PAT.Mannequin3D.init($('three-canvas'));
         state.mannequinReady = true;
@@ -143,7 +147,8 @@ PAT.App = (function () {
   }
 
   function applyTransform() {
-    const el = $('svg-pan-container');
+    // ID nuevo: svg-pan (antes era svg-pan-container)
+    const el = $('svg-pan');
     if (el) el.style.transform =
       `translate(${Math.round(state.panX)}px,${Math.round(state.panY)}px) scale(${state.zoom})`;
   }
@@ -153,12 +158,12 @@ PAT.App = (function () {
     if (!wrap || !svg) return;
     const vb = svg.getAttribute('viewBox');
     if (!vb) return;
-    const [,,w,h] = vb.split(' ').map(Number);
+    const [, , w, h] = vb.split(' ').map(Number);
     const r = wrap.getBoundingClientRect();
     const PX = 3.78;
     const z = Math.min((r.width - 80) / (w * PX), (r.height - 80) / (h * PX), 2);
     state.zoom = Math.max(.04, z);
-    state.panX = (r.width  - w * PX * state.zoom) / 2;
+    state.panX = (r.width - w * PX * state.zoom) / 2;
     state.panY = 40;
     applyTransform();
     const el = $('zoom-label');
@@ -169,6 +174,7 @@ PAT.App = (function () {
   function setupPan() {
     const wrap = $('svg-wrapper');
     if (!wrap) return;
+
     wrap.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
       state.dragging = true; state.mx = e.clientX; state.my = e.clientY;
@@ -181,25 +187,26 @@ PAT.App = (function () {
     });
     window.addEventListener('mouseup', () => { state.dragging = false; });
 
-    let tx=0,ty=0,td=0;
+    let tx = 0, ty = 0, td = 0;
     wrap.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) { tx=e.touches[0].clientX; ty=e.touches[0].clientY; state.dragging=true; }
-      else if (e.touches.length === 2) td = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-    },{passive:true});
+      if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; state.dragging = true; }
+      else if (e.touches.length === 2) td = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }, { passive: true });
     wrap.addEventListener('touchmove', e => {
-      if (e.touches.length===1 && state.dragging) {
-        state.panX+=e.touches[0].clientX-tx; state.panY+=e.touches[0].clientY-ty;
-        tx=e.touches[0].clientX; ty=e.touches[0].clientY; applyTransform();
-      } else if (e.touches.length===2) {
-        const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-        setZoom(state.zoom*(d/td)); td=d;
+      if (e.touches.length === 1 && state.dragging) {
+        state.panX += e.touches[0].clientX - tx; state.panY += e.touches[0].clientY - ty;
+        tx = e.touches[0].clientX; ty = e.touches[0].clientY; applyTransform();
+      } else if (e.touches.length === 2) {
+        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        setZoom(state.zoom * (d / td)); td = d;
       }
-    },{passive:true});
-    wrap.addEventListener('touchend', ()=>{ state.dragging=false; });
+    }, { passive: true });
+    wrap.addEventListener('touchend', () => { state.dragging = false; });
   }
 
   // ─── MODALES ───────────────────────────────────────────────────
   function setupModals() {
+
     // Sidebar toggle
     $('sidebar-toggle')?.addEventListener('click', () => {
       const sb = $('sidebar');
@@ -211,39 +218,41 @@ PAT.App = (function () {
     // PDF
     $('btn-export-pdf')?.addEventListener('click', doPDFExport);
 
-    // Guardar
+    // ── Guardar ────────────────────────────────────────────────
     $('btn-save')?.addEventListener('click', () => {
       const inp = $('save-name');
       if (inp) inp.value = `${state.garment} busto ${state.measures.bust}cm`;
-      const m = $('modal-save'); if (m) m.style.display='flex';
+      openModal('modal-save');
     });
     $('confirm-save')?.addEventListener('click', async () => {
       const name = $('save-name')?.value.trim() || 'Patrón sin nombre';
       try {
-        await PAT.Firebase.savePattern(name, { garment:state.garment, measures:state.measures, params:state.params });
-        const m=$('modal-save'); if(m) m.style.display='none';
+        await PAT.Firebase.savePattern(name, {
+          garment: state.garment, measures: state.measures, params: state.params,
+        });
+        closeModal('modal-save');
         toast(`✅ "${name}" guardado`, 'success');
-      } catch(e) { toast('Error al guardar','error'); }
+      } catch (e) { toast('Error al guardar', 'error'); }
     });
-    ['cancel-save','cancel-save-2'].forEach(id => {
-      $(id)?.addEventListener('click', () => { const m=$('modal-save'); if(m) m.style.display='none'; });
+    // IDs nuevos: cancel-save y cancel-save2
+    ['cancel-save', 'cancel-save2'].forEach(id => {
+      $(id)?.addEventListener('click', () => closeModal('modal-save'));
     });
 
-    // Cargar
+    // ── Cargar ────────────────────────────────────────────────
     $('btn-load')?.addEventListener('click', async () => {
-      const list=$('saved-patterns-list');
-      if(list) list.innerHTML='<p style="color:#5a5678;padding:16px;text-align:center">Cargando…</p>';
-      const m=$('modal-load'); if(m) m.style.display='flex';
+      // ID nuevo: saved-list
+      const list = $('saved-list');
+      if (list) list.innerHTML = '<p style="color:#5a5678;padding:16px;text-align:center">Cargando…</p>';
+      openModal('modal-load');
       try { renderPatterns(await PAT.Firebase.loadPatterns()); }
-      catch(e) { if(list) list.innerHTML='<p style="color:#f87171;padding:16px">Error al cargar</p>'; }
+      catch (e) { if (list) list.innerHTML = '<p style="color:#f87171;padding:16px">Error al cargar</p>'; }
     });
-    $('cancel-load')?.addEventListener('click', () => { const m=$('modal-load'); if(m) m.style.display='none'; });
+    $('cancel-load')?.addEventListener('click', () => closeModal('modal-load'));
 
-    // Cerrar modales al click en overlay
-    $$('.modal-overlay').forEach(o => {
-      o.addEventListener('click', () => {
-        $$('.modal').forEach(m => m.style.display='none');
-      });
+    // Cerrar con click en overlay (.m-ov en el nuevo HTML)
+    $$('.m-ov').forEach(o => {
+      o.addEventListener('click', closeAllModals);
     });
 
     // Controles 3D
@@ -251,29 +260,37 @@ PAT.App = (function () {
     $('btn-3d-wireframe')?.addEventListener('click', () => PAT.Mannequin3D?.toggleWireframe());
   }
 
-  // ─── AFILIADO UI ───────────────────────────────────────────────
+  // ─── AFILIADO ──────────────────────────────────────────────────
   function setupAffiliateUI() {
-    $('sidebar-apply-code')?.addEventListener('click', () => {
-      const inp = $('sidebar-affiliate-input');
-      const msg = $('sidebar-affiliate-msg');
+    // IDs nuevos: aff-apply, aff-input, aff-msg
+    $('aff-apply')?.addEventListener('click', () => {
+      const inp = $('aff-input');
+      const msg = $('aff-msg');
       if (!inp || !PAT.Affiliate) return;
       PAT.Affiliate.applyCode(inp.value.trim().toUpperCase()).then(r => {
-        if (msg) { msg.textContent = r.message; msg.style.color = r.valid ? 'var(--c-green)' : 'var(--c-red)'; }
+        if (msg) {
+          msg.textContent = r.message;
+          msg.style.color = r.valid ? 'var(--grn)' : 'var(--red)';
+        }
         if (r.valid) toast(`🏷️ ${r.discount}% OFF activo`, 'success');
       });
     });
 
+    // Restaurar código guardado
     const savedCode = PAT.Affiliate?.getActiveCode?.();
     if (savedCode) {
-      const inp = $('sidebar-affiliate-input');
-      const msg = $('sidebar-affiliate-msg');
+      const inp = $('aff-input');
+      const msg = $('aff-msg');
       const aff = PAT.Affiliate?.getActiveAffiliate?.();
       if (inp) inp.value = savedCode;
-      if (msg && aff) { msg.textContent=`✅ ${aff.discount}% OFF — ${aff.atelierName}`; msg.style.color='var(--c-green)'; }
+      if (msg && aff) {
+        msg.textContent = `✅ ${aff.discount}% OFF — ${aff.atelierName}`;
+        msg.style.color = 'var(--grn)';
+      }
     }
   }
 
-  // ─── EVENTOS DE MONETIZACIÓN ───────────────────────────────────
+  // ─── MONETIZACIÓN ──────────────────────────────────────────────
   function setupMonetizationEvents() {
     $('btn-atelier-panel')?.addEventListener('click', () => PAT.AtelierPanel?.openPanel());
 
@@ -284,14 +301,15 @@ PAT.App = (function () {
       if (!measures) return;
       state.measures = { ...state.measures, ...measures };
       $$('input[data-measure]').forEach(inp => {
-        if (state.measures[inp.dataset.measure] !== undefined) inp.value = state.measures[inp.dataset.measure];
+        if (state.measures[inp.dataset.measure] !== undefined)
+          inp.value = state.measures[inp.dataset.measure];
       });
       generate();
       toast(`↩ Medidas de "${clientName}" cargadas`, 'success');
     });
   }
 
-  // ─── PDF EXPORT ────────────────────────────────────────────────
+  // ─── PDF ───────────────────────────────────────────────────────
   function doPDFExport() {
     const canExport = PAT.AuthTier ? PAT.AuthTier.canExportPDF(state.garment) : true;
     if (!canExport) {
@@ -303,7 +321,7 @@ PAT.App = (function () {
 
   function doActualExport() {
     const data = PAT.PatternEngine.getCurrentData();
-    if (!data) { toast('Genera un patrón primero','error'); return; }
+    if (!data) { toast('Genera un patrón primero', 'error'); return; }
     const wm = PAT.AuthTier?.needsWatermark?.() ? ' (DEMO)' : '';
     toast(`⏳ Generando PDF${wm}…`);
     setTimeout(() => {
@@ -323,15 +341,18 @@ PAT.App = (function () {
       btn.classList.toggle('locked', !PAT.AuthTier.canUseGarment(btn.dataset.garment));
     });
 
-    const seamRow = $('p-seam')?.closest('.measure-row');
-    if (seamRow) { seamRow.style.opacity = tier.customSeam ? '1' : '.4'; }
+    // Clase nueva: .m-row en lugar de .measure-row
+    const seamRow = $('p-seam')?.closest('.m-row');
+    if (seamRow) seamRow.style.opacity = tier.customSeam ? '1' : '.4';
 
     const atelierBtn = $('btn-atelier-panel');
     if (atelierBtn) atelierBtn.style.opacity = tier.atelierPanel ? '1' : '.5';
 
     if (!PAT.AuthTier.canUseGarment(state.garment)) {
       state.garment = tier.allowedGarments[0] || 'franela';
-      $$('.garment-btn').forEach(b => b.classList.toggle('active', b.dataset.garment === state.garment));
+      $$('.garment-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.garment === state.garment)
+      );
       showHideRows();
     }
     updateTopbar();
@@ -351,7 +372,7 @@ PAT.App = (function () {
         if (state.view === 'viewer3d' && state.mannequinReady) {
           PAT.Mannequin3D?.updateGarment(state.garment, state.measures, state.params);
         }
-      } catch(err) {
+      } catch (err) {
         console.error('[App] Error al generar:', err);
         toast('Error al generar el patrón', 'error');
       }
@@ -360,54 +381,63 @@ PAT.App = (function () {
 
   function updateTopbar() {
     const names = {
-      franela:'Franela Básica', blusa:'Blusa con Pinzas',
-      camisa:`Camisa ${state.shirtGender==='dama'?'Dama':'Caballero'}`,
-      falda:'Falda Recta', vestido:'Vestido Básico',
+      franela: 'Franela Básica', blusa: 'Blusa con Pinzas',
+      camisa: `Camisa ${state.shirtGender === 'dama' ? 'Dama' : 'Caballero'}`,
+      falda: 'Falda Recta', vestido: 'Vestido Básico',
     };
-    const counts = { franela:3, blusa:3, camisa:7, falda:3, vestido:2 };
+    const counts = { franela: 3, blusa: 3, camisa: 7, falda: 3, vestido: 2 };
     const demo = PAT.AuthTier?.needsWatermark?.()
-      ? ' <span style="background:rgba(248,113,113,.12);color:#f87171;padding:1px 8px;border-radius:20px;font-size:10px;border:1px solid rgba(248,113,113,.25)">DEMO</span>' : '';
+      ? ' <span style="background:rgba(248,113,113,.12);color:#f87171;padding:1px 8px;border-radius:20px;font-size:10px;border:1px solid rgba(248,113,113,.25)">DEMO</span>'
+      : '';
     const pi = $('pattern-info');
-    if (pi) pi.innerHTML = `${names[state.garment]||state.garment} · ${state.measures.bust}cm${demo}`;
+    if (pi) pi.innerHTML = `${names[state.garment] || state.garment} · ${state.measures.bust}cm${demo}`;
     const pc = $('piece-count');
-    if (pc) pc.textContent = `${counts[state.garment]||'?'} piezas`;
+    if (pc) pc.textContent = `${counts[state.garment] || '?'} piezas`;
   }
 
-  // ─── VISIBILIDAD DE FILAS ──────────────────────────────────────
+  // ─── FILAS CONDICIONALES ────────────────────────────────────────
   function showHideRows() {
     const g = state.garment;
-    const show = (id, v) => { const e=$(id); if(e) e.style.display=v?'':'none'; };
-    show('row-sleeve-length', ['franela','blusa','camisa'].includes(g));
-    show('row-wrist',         ['camisa','blusa'].includes(g));
-    show('row-skirt-length',  ['falda','vestido'].includes(g));
-    show('shirt-options',     g==='camisa');
+    const show = (id, v) => { const e = $(id); if (e) e.style.display = v ? '' : 'none'; };
+    show('row-sleeve-length', ['franela', 'blusa', 'camisa'].includes(g));
+    show('row-wrist',         ['camisa', 'blusa'].includes(g));
+    show('row-skirt-length',  ['falda', 'vestido'].includes(g));
+    show('shirt-options',     g === 'camisa');
   }
 
-  // ─── PATRONES GUARDADOS ────────────────────────────────────────
+  // ─── LISTA DE PATRONES ─────────────────────────────────────────
   function renderPatterns(list) {
-    const el = $('saved-patterns-list');
+    // ID nuevo: saved-list
+    const el = $('saved-list');
     if (!el) return;
-    if (!list?.length) { el.innerHTML='<p style="color:#5a5678;padding:16px;text-align:center">No hay patrones guardados.</p>'; return; }
-    el.innerHTML='';
+    if (!list?.length) {
+      el.innerHTML = '<p style="color:#5a5678;padding:16px;text-align:center">No hay patrones guardados.</p>';
+      return;
+    }
+    el.innerHTML = '';
     list.forEach(p => {
       const d = document.createElement('div');
       d.className = 'pat-item';
-      const ds = p.createdAt ? (typeof p.createdAt.toDate==='function' ? p.createdAt.toDate().toLocaleDateString('es') : new Date(p.createdAt).toLocaleDateString('es')) : '—';
+      const ds = p.createdAt
+        ? (typeof p.createdAt.toDate === 'function'
+          ? p.createdAt.toDate().toLocaleDateString('es')
+          : new Date(p.createdAt).toLocaleDateString('es'))
+        : '—';
       d.innerHTML = `
         <div>
-          <div class="pat-name">${p.name||'Sin nombre'}</div>
-          <div class="pat-meta">${p.garment||'?'} · ${p.measures?.bust||'?'}cm · ${ds}</div>
+          <div class="pat-name">${p.name || 'Sin nombre'}</div>
+          <div class="pat-meta">${p.garment || '?'} · ${p.measures?.bust || '?'}cm · ${ds}</div>
         </div>
-        <div class="pat-actions">
+        <div class="pat-acts">
           <button class="load-p" title="Cargar">↩</button>
-          <button class="del-p" title="Eliminar" style="color:var(--c-red)">✕</button>
+          <button class="del-p" title="Eliminar" style="color:var(--red)">✕</button>
         </div>`;
       d.querySelector('.load-p').addEventListener('click', e => { e.stopPropagation(); loadPat(p); });
       d.querySelector('.del-p').addEventListener('click', async e => {
         e.stopPropagation();
         if (!confirm(`¿Eliminar "${p.name}"?`)) return;
         await PAT.Firebase.deletePattern(p.id);
-        toast(`"${p.name}" eliminado`,'success');
+        toast(`"${p.name}" eliminado`, 'success');
         d.remove();
       });
       el.appendChild(d);
@@ -421,28 +451,37 @@ PAT.App = (function () {
     if (PAT.AuthTier && !PAT.AuthTier.canUseGarment(state.garment)) {
       state.garment = PAT.AuthTier.getTier().allowedGarments[0];
     }
-    $$('input[data-measure]').forEach(i => { if(state.measures[i.dataset.measure]!==undefined) i.value=state.measures[i.dataset.measure]; });
-    $$('input[data-param], select[data-param]').forEach(e => { if(state.params[e.dataset.param]!==undefined) e.value=state.params[e.dataset.param]; });
-    $$('.garment-btn').forEach(b => b.classList.toggle('active', b.dataset.garment===state.garment));
-    showHideRows(); generate();
-    const m=$('modal-load'); if(m) m.style.display='none';
-    toast(`✅ "${p.name}" cargado`,'success');
+    $$('input[data-measure]').forEach(i => {
+      if (state.measures[i.dataset.measure] !== undefined) i.value = state.measures[i.dataset.measure];
+    });
+    $$('input[data-param], select[data-param]').forEach(e => {
+      if (state.params[e.dataset.param] !== undefined) e.value = state.params[e.dataset.param];
+    });
+    $$('.garment-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.garment === state.garment)
+    );
+    showHideRows();
+    generate();
+    closeModal('modal-load');
+    toast(`✅ "${p.name}" cargado`, 'success');
   }
 
   // ─── TOAST ─────────────────────────────────────────────────────
-  function toast(msg, type='info') {
-    const c=$('toast-container'); if(!c) return;
-    const icons={success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
-    const t=document.createElement('div');
-    t.className=`toast ${type}`;
-    t.innerHTML=`<span>${icons[type]||'ℹ️'}</span>${msg}`;
+  function toast(msg, type = 'info') {
+    // ID nuevo: toasts
+    const c = $('toasts');
+    if (!c) return;
+    const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.innerHTML = `<span>${icons[type] || 'ℹ️'}</span>${msg}`;
     c.appendChild(t);
-    setTimeout(()=>{ if(t.parentNode) t.remove(); },3200);
+    setTimeout(() => { if (t.parentNode) t.remove(); }, 3200);
   }
 
   // ─── ARRANQUE ──────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', init);
 
-  return { toast, fitScreen, setZoom, generate, applyTierUI, getState:()=>({...state}) };
+  return { toast, fitScreen, setZoom, generate, applyTierUI, getState: () => ({ ...state }) };
 
 })();
