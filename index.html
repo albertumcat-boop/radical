@@ -4,8 +4,403 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PatrónAI Pro</title>
-  <link rel="stylesheet" href="css/styles.css" />
-  <link rel="stylesheet" href="css/monetization.css" />
+
+  <style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d0d14;--surface:#141420;--panel:#1c1c2a;--inp:#232333;
+    --hov:#2a2a3e;--brd:#2e2e45;--brd2:#3d3d58;
+    --acc:#8b5cf6;--acc2:#a78bfa;--accbg:rgba(139,92,246,.12);
+    --grn:#34d399;--red:#f87171;--yel:#fbbf24;
+    --tx:#ede9fe;--tx2:#9490b0;--tx3:#5a5678;
+    --sw:300px;--th:52px;
+    --font:'Segoe UI',system-ui,sans-serif;
+    --mono:'Cascadia Code','Fira Code',monospace;
+    --r:8px;--r2:12px;--ease:.16s cubic-bezier(.4,0,.2,1);
+  }
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px;-webkit-font-smoothing:antialiased}
+
+  /* ── Layout ── */
+  #app{display:flex;height:100vh;width:100vw;overflow:hidden}
+
+  /* ── Sidebar ── */
+  #sidebar{
+    width:var(--sw);min-width:var(--sw);
+    background:var(--surface);border-right:1px solid var(--brd);
+    display:flex;flex-direction:column;
+    transition:width var(--ease),min-width var(--ease);
+    overflow:hidden;z-index:20;flex-shrink:0;
+  }
+  #sidebar.collapsed{width:52px;min-width:52px}
+  #sidebar.collapsed .sb-body,
+  #sidebar.collapsed .sb-foot{opacity:0;pointer-events:none}
+
+  .sb-logo{
+    display:flex;align-items:center;gap:10px;padding:14px;
+    border-bottom:1px solid var(--brd);flex-shrink:0;
+    background:linear-gradient(135deg,rgba(139,92,246,.07) 0%,transparent 100%);
+  }
+  .logo-mark{
+    width:34px;height:34px;border-radius:var(--r);
+    background:var(--acc);display:flex;align-items:center;justify-content:center;
+    font-size:17px;color:#fff;flex-shrink:0;
+    box-shadow:0 2px 12px rgba(139,92,246,.4);
+  }
+  .logo-text{display:flex;flex-direction:column;min-width:0}
+  .logo-name{font-size:15px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+  .logo-tag{font-size:9px;font-weight:700;color:var(--acc2);text-transform:uppercase;letter-spacing:1px}
+  .collapse-btn{
+    margin-left:auto;background:none;border:1px solid var(--brd);
+    color:var(--tx3);border-radius:var(--r);width:26px;height:26px;
+    cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
+    transition:all var(--ease);flex-shrink:0;
+  }
+  .collapse-btn:hover{background:var(--hov);color:var(--tx);border-color:var(--brd2)}
+
+  .sb-body{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--brd) transparent}
+  .sb-body::-webkit-scrollbar{width:3px}
+  .sb-body::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
+
+  .sb-sec{padding:14px;border-bottom:1px solid var(--brd)}
+  .sec-title{
+    display:flex;align-items:center;gap:6px;
+    font-size:10px;font-weight:700;letter-spacing:1.2px;
+    text-transform:uppercase;color:var(--tx3);margin-bottom:12px;
+  }
+  .badge-u{
+    background:var(--accbg);color:var(--acc2);
+    border:1px solid rgba(139,92,246,.25);
+    padding:1px 6px;border-radius:20px;
+    font-size:9px;font-weight:700;letter-spacing:0;text-transform:lowercase;
+  }
+
+  /* Prendas */
+  .garment-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .garment-btn{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:10px 4px 8px;background:var(--inp);
+    border:1.5px solid var(--brd);border-radius:var(--r);
+    cursor:pointer;color:var(--tx2);font-family:var(--font);
+    transition:all var(--ease);position:relative;user-select:none;
+  }
+  .g-icon{font-size:20px;line-height:1}
+  .g-label{font-size:9px;font-weight:600;white-space:nowrap}
+  .garment-btn:hover{background:var(--hov);border-color:var(--brd2);color:var(--tx);transform:translateY(-2px)}
+  .garment-btn:active{transform:translateY(0)}
+  .garment-btn.active{
+    background:var(--accbg);border-color:var(--acc);color:var(--acc2);
+    box-shadow:0 0 0 1px rgba(139,92,246,.2),0 2px 8px rgba(139,92,246,.15);
+  }
+  .garment-btn.locked{opacity:.4}
+  .garment-btn.locked::after{content:'🔒';position:absolute;top:2px;right:3px;font-size:8px}
+
+  /* Radio */
+  .radio-grp{display:flex;gap:6px}
+  .radio-opt{
+    display:flex;align-items:center;gap:6px;padding:7px 12px;
+    background:var(--inp);border:1.5px solid var(--brd);border-radius:var(--r);
+    cursor:pointer;font-size:12px;color:var(--tx2);flex:1;transition:all var(--ease);
+  }
+  .radio-opt:hover{background:var(--hov);color:var(--tx)}
+  .radio-opt input{accent-color:var(--acc)}
+
+  /* Medidas */
+  .mgrp-title{
+    font-size:10px;font-weight:700;color:var(--tx3);
+    text-transform:uppercase;letter-spacing:.8px;
+    margin:10px 0 8px;display:flex;align-items:center;gap:8px;
+  }
+  .mgrp-title::after{content:'';flex:1;height:1px;background:var(--brd)}
+  .m-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:8px}
+  .m-row label{color:var(--tx2);font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+  .m-row input[type="number"],.m-row select{
+    width:76px;background:var(--inp);border:1.5px solid var(--brd);
+    color:var(--tx);border-radius:var(--r);padding:5px 8px;
+    font-size:12px;font-family:var(--mono);text-align:right;outline:none;
+    transition:border-color var(--ease),box-shadow var(--ease);
+    -moz-appearance:textfield;
+  }
+  .m-row input::-webkit-inner-spin-button{opacity:.4}
+  .m-row input:focus,.m-row select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(139,92,246,.15)}
+  .m-row select{width:92px;text-align:left;cursor:pointer}
+
+  /* Afiliado */
+  .aff-row{display:flex;gap:6px;margin-bottom:5px}
+  .aff-row input{
+    flex:1;background:var(--inp);border:1.5px solid var(--brd);
+    color:var(--tx);border-radius:var(--r);padding:6px 10px;
+    font-size:11px;font-family:var(--mono);text-transform:uppercase;outline:none;
+    transition:border-color var(--ease);
+  }
+  .aff-row input:focus{border-color:var(--acc)}
+  .aff-row button{
+    background:var(--inp);border:1.5px solid var(--brd);color:var(--tx2);
+    border-radius:var(--r);padding:6px 12px;font-size:14px;font-weight:700;
+    cursor:pointer;transition:all var(--ease);
+  }
+  .aff-row button:hover{background:var(--hov);color:var(--grn);border-color:var(--grn)}
+  #aff-msg{font-size:10px;min-height:14px;color:var(--tx3)}
+
+  /* Botones acción */
+  .sb-actions{display:flex;flex-direction:column;gap:8px}
+  .btn-p,.btn-s,.btn-g{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:10px 14px;border-radius:var(--r);border:none;
+    font-size:12px;font-weight:600;font-family:var(--font);
+    cursor:pointer;transition:all var(--ease);letter-spacing:.2px;
+  }
+  .btn-p{background:var(--acc);color:#fff;box-shadow:0 2px 12px rgba(139,92,246,.35)}
+  .btn-p:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 20px rgba(139,92,246,.5)}
+  .btn-p:active{transform:translateY(0)}
+  .btn-s{background:var(--inp);color:var(--tx);border:1.5px solid var(--brd2)}
+  .btn-s:hover{background:var(--hov);border-color:rgba(139,92,246,.4)}
+  .btn-g{background:transparent;color:var(--tx2);border:1.5px solid var(--brd)}
+  .btn-g:hover{background:var(--inp);color:var(--tx);border-color:var(--brd2)}
+  .chip-exp{
+    background:var(--yel);color:#000;font-size:8px;font-weight:800;
+    padding:1px 5px;border-radius:6px;letter-spacing:.5px;
+  }
+
+  .sb-foot{
+    padding:11px 14px;border-top:1px solid var(--brd);
+    display:flex;align-items:center;gap:8px;
+    font-size:11px;color:var(--tx3);flex-shrink:0;
+  }
+  .scale-dot{
+    width:7px;height:7px;border-radius:50%;background:var(--grn);
+    box-shadow:0 0 6px var(--grn);animation:blink 2.5s infinite;flex-shrink:0;
+  }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* ── Main ── */
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+  #topbar{
+    height:var(--th);background:var(--surface);
+    border-bottom:1px solid var(--brd);
+    display:flex;align-items:center;gap:12px;
+    padding:0 16px;flex-shrink:0;
+  }
+  .view-sw{
+    display:flex;gap:2px;background:var(--inp);
+    border:1px solid var(--brd);border-radius:var(--r);padding:3px;
+  }
+  .view-btn{
+    display:flex;align-items:center;gap:6px;padding:5px 14px;
+    border-radius:6px;border:none;background:transparent;
+    color:var(--tx2);cursor:pointer;font-size:12px;font-weight:600;
+    font-family:var(--font);transition:all var(--ease);white-space:nowrap;
+  }
+  .view-btn:hover{color:var(--tx);background:rgba(255,255,255,.04)}
+  .view-btn.active{background:var(--acc);color:#fff;box-shadow:0 1px 8px rgba(139,92,246,.35)}
+  .tb-info{flex:1;display:flex;gap:8px;overflow:hidden}
+  .info-tag{
+    background:var(--inp);border:1px solid var(--brd);color:var(--tx2);
+    padding:3px 12px;border-radius:20px;font-size:11px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .zoom-bar{
+    display:flex;align-items:center;gap:4px;
+    background:var(--inp);border:1px solid var(--brd);
+    border-radius:var(--r);padding:3px 6px;
+  }
+  .zoom-btn{
+    background:none;border:none;color:var(--tx2);cursor:pointer;
+    width:26px;height:26px;border-radius:5px;font-size:16px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;transition:all var(--ease);
+  }
+  .zoom-btn:hover{background:var(--hov);color:var(--tx)}
+  #zoom-label{font-size:11px;color:var(--tx2);min-width:42px;text-align:center;font-family:var(--mono);font-weight:700}
+
+  /* ── Vistas ── */
+  .view-area{flex:1;position:relative;overflow:hidden;display:none}
+  .view-area.on{display:flex}
+  #view-pattern{
+    background:
+      radial-gradient(ellipse at 15% 50%,rgba(139,92,246,.05) 0%,transparent 55%),
+      radial-gradient(ellipse at 85% 20%,rgba(96,165,250,.04) 0%,transparent 45%),
+      #0a0a12;
+  }
+  #svg-wrapper{width:100%;height:100%;overflow:hidden;cursor:grab;position:relative}
+  #svg-wrapper:active{cursor:grabbing}
+  #svg-pan{transform-origin:0 0;will-change:transform}
+  #pattern-svg{display:block;overflow:visible}
+
+  #legend{
+    position:absolute;bottom:16px;left:16px;
+    background:rgba(18,18,30,.93);border:1px solid var(--brd2);
+    border-radius:var(--r);padding:12px 14px;
+    display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(10px);
+  }
+  .leg-row{display:flex;align-items:center;gap:10px;font-size:10px;color:var(--tx2)}
+  .leg-ln{display:inline-block;width:26px;height:2px;border-radius:1px;flex-shrink:0}
+  .lc{background:#e2e8f0}
+  .ls{background:repeating-linear-gradient(90deg,#666 0,#666 4px,transparent 4px,transparent 8px)}
+  .lg{background:#60a5fa}
+  .lf{background:repeating-linear-gradient(90deg,#f87171 0,#f87171 6px,transparent 6px,transparent 10px)}
+
+  #cal-badge{
+    position:absolute;bottom:16px;right:16px;
+    background:rgba(18,18,30,.93);border:1px solid var(--brd2);
+    border-radius:var(--r);padding:10px 12px;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    font-size:10px;color:var(--tx3);backdrop-filter:blur(10px);
+  }
+
+  #view-3d{background:#06060e}
+  #three-canvas{width:100%;height:100%;display:block}
+  #ctrl-3d{
+    position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:8px;
+    background:rgba(18,18,30,.93);border:1px solid var(--brd2);
+    border-radius:24px;padding:7px 16px;backdrop-filter:blur(10px);
+  }
+  .c3-btn{
+    background:none;border:1px solid var(--brd);color:var(--tx2);
+    border-radius:var(--r);padding:5px 10px;cursor:pointer;
+    font-size:14px;transition:all var(--ease);
+  }
+  .c3-btn:hover{background:var(--hov);color:var(--tx)}
+  .c3-hint{font-size:11px;color:var(--tx3)}
+
+  /* ── Modales ── */
+  .modal{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center}
+  .modal.open{display:flex}
+  .m-ov{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px)}
+  .m-box{
+    position:relative;z-index:1;background:var(--panel);
+    border:1px solid var(--brd2);border-radius:var(--r2);
+    width:min(420px,92vw);box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden;
+  }
+  .m-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 20px;border-bottom:1px solid var(--brd);
+  }
+  .m-head h3{font-size:15px;font-weight:700}
+  .m-close{
+    background:none;border:none;color:var(--tx3);font-size:16px;cursor:pointer;
+    width:28px;height:28px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;transition:all var(--ease);
+  }
+  .m-close:hover{background:var(--hov);color:var(--tx)}
+  .m-body{padding:20px}
+  .m-foot{padding:16px 20px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end}
+  .f-label{display:block;font-size:11px;color:var(--tx2);margin-bottom:8px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+  .f-inp{
+    width:100%;background:var(--inp);border:1.5px solid var(--brd);
+    color:var(--tx);border-radius:var(--r);padding:9px 12px;font-size:13px;
+    font-family:var(--font);outline:none;transition:border-color var(--ease);
+  }
+  .f-inp:focus{border-color:var(--acc)}
+
+  /* Lista patrones */
+  #saved-list{max-height:320px;overflow-y:auto}
+  .pat-item{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:11px 14px;background:var(--inp);border:1px solid var(--brd);
+    border-radius:var(--r);margin-bottom:6px;transition:all var(--ease);
+  }
+  .pat-item:hover{background:var(--hov);border-color:var(--brd2)}
+  .pat-name{font-weight:600;font-size:13px;margin-bottom:2px}
+  .pat-meta{font-size:11px;color:var(--tx3)}
+  .pat-acts{display:flex;gap:6px}
+  .pat-acts button{
+    background:none;border:1px solid var(--brd);color:var(--tx2);
+    border-radius:6px;padding:4px 9px;font-size:13px;cursor:pointer;
+    transition:all var(--ease);
+  }
+  .pat-acts button:hover{background:var(--hov);color:var(--tx)}
+
+  /* ── Toasts ── */
+  #toasts{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    z-index:2000;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;
+  }
+  .toast{
+    background:var(--panel);border:1px solid var(--brd2);color:var(--tx);
+    padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;
+    box-shadow:0 4px 24px rgba(0,0,0,.5);display:flex;align-items:center;gap:8px;
+    animation:tin .22s ease,tout .22s ease 2.8s forwards;white-space:nowrap;
+  }
+  .toast.success{border-color:var(--grn)}
+  .toast.error{border-color:var(--red)}
+  .toast.warning{border-color:var(--yel)}
+  @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes tout{from{opacity:1}to{opacity:0;transform:translateY(8px)}}
+
+  /* ── Monetización ── */
+  .modal-upgrade{width:min(860px,95vw);max-height:90vh;overflow-y:auto;position:relative}
+  .modal-paywall{width:min(380px,95vw);text-align:center}
+  .tier-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}
+  @media(max-width:640px){.tier-cards{grid-template-columns:1fr}}
+  .tier-card{
+    background:var(--inp);border:1px solid var(--brd);
+    border-radius:var(--r2);overflow:hidden;transition:transform var(--ease),box-shadow var(--ease);
+  }
+  .tier-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+  .tier-card.featured{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+  .tier-ch{padding:20px 16px 12px;text-align:center;border-bottom:1px solid var(--brd)}
+  .tier-emoji{font-size:28px;display:block;margin-bottom:6px}
+  .tier-price{font-size:26px;font-weight:800}
+  .tier-psub{font-size:11px;color:var(--tx3);margin-top:2px}
+  .tier-feats{list-style:none;padding:14px 16px;font-size:12px;color:var(--tx2);display:flex;flex-direction:column;gap:6px}
+  .tier-pop{background:var(--acc);color:#fff;font-size:10px;font-weight:700;text-align:center;padding:4px;letter-spacing:.5px}
+  .tier-curr{margin:12px;text-align:center;font-size:11px;color:var(--tx3);padding:6px;background:var(--hov);border-radius:var(--r)}
+
+  /* Atelier panel */
+  .atelier-content{
+    position:relative;z-index:1;background:var(--panel);border:1px solid var(--brd2);
+    border-radius:var(--r2);width:min(860px,95vw);max-height:90vh;
+    display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.6);
+  }
+  .at-head{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    padding:20px;border-bottom:1px solid var(--brd);flex-shrink:0;
+  }
+  .at-clients{flex:1;overflow-y:auto;padding:12px 20px;display:flex;flex-direction:column;gap:8px}
+  .client-card{
+    display:flex;align-items:center;gap:14px;background:var(--inp);
+    border:1px solid var(--brd);border-radius:var(--r);padding:12px 14px;transition:all var(--ease);
+  }
+  .client-card:hover{background:var(--hov);border-color:var(--brd2)}
+  .cli-av{
+    width:38px;height:38px;border-radius:50%;background:var(--accbg);
+    color:var(--acc2);display:flex;align-items:center;justify-content:center;
+    font-size:16px;font-weight:700;flex-shrink:0;
+  }
+  .at-stats{display:flex;gap:12px;padding:12px 20px;border-top:1px solid var(--brd);flex-shrink:0}
+  .stat-i{text-align:center;flex:1}
+  .stat-v{font-size:18px;font-weight:800;color:var(--acc2)}
+  .stat-l{font-size:10px;color:var(--tx3);margin-top:2px}
+  .aff-banner{
+    position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
+    background:var(--panel);border:1px solid var(--grn);border-radius:20px;
+    padding:6px 16px;font-size:11px;font-weight:600;
+    display:flex;align-items:center;gap:8px;z-index:990;
+    color:var(--grn);box-shadow:0 2px 12px rgba(52,211,153,.2);white-space:nowrap;
+  }
+  #tier-badge{
+    position:fixed;top:10px;right:14px;z-index:999;
+    background:var(--panel);border:1px solid var(--brd2);
+    border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;
+    display:flex;align-items:center;gap:6px;cursor:pointer;
+    box-shadow:0 2px 12px rgba(0,0,0,.3);
+  }
+
+  /* SVG styles */
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
+
+  @media(max-width:640px){
+    :root{--sw:100vw}
+    #app{flex-direction:column}
+    #sidebar{width:100%!important;min-width:100%!important;height:auto;max-height:52vh}
+    #main{height:48vh}
+    .tb-info{display:none}
+  }
+  </style>
+
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -17,202 +412,124 @@
 
 <div id="app">
 
-  <!-- ══════════════════════════════════════════
-       SIDEBAR
-  ══════════════════════════════════════════ -->
+  <!-- SIDEBAR -->
   <aside id="sidebar">
-
-    <div class="sidebar-logo">
+    <div class="sb-logo">
       <div class="logo-mark">✂</div>
-      <div class="logo-info">
+      <div class="logo-text">
         <span class="logo-name">PatrónAI</span>
         <span class="logo-tag">Pro</span>
       </div>
-      <button id="sidebar-toggle" class="collapse-btn" title="Colapsar">‹</button>
+      <button id="sidebar-toggle" class="collapse-btn">‹</button>
     </div>
 
-    <div class="sidebar-body">
+    <div class="sb-body">
 
-      <!-- PRENDAS -->
-      <div class="sidebar-section">
-        <div class="section-header">Tipo de prenda</div>
+      <!-- Prendas -->
+      <div class="sb-sec">
+        <div class="sec-title">Tipo de prenda</div>
         <div class="garment-grid">
           <button class="garment-btn active" data-garment="franela">
-            <span class="garment-icon">👕</span>
-            <span class="garment-label">Franela</span>
+            <span class="g-icon">👕</span><span class="g-label">Franela</span>
           </button>
           <button class="garment-btn" data-garment="blusa">
-            <span class="garment-icon">👚</span>
-            <span class="garment-label">Blusa</span>
+            <span class="g-icon">👚</span><span class="g-label">Blusa</span>
           </button>
           <button class="garment-btn" data-garment="camisa">
-            <span class="garment-icon">👔</span>
-            <span class="garment-label">Camisa</span>
+            <span class="g-icon">👔</span><span class="g-label">Camisa</span>
           </button>
           <button class="garment-btn" data-garment="falda">
-            <span class="garment-icon">👗</span>
-            <span class="garment-label">Falda</span>
+            <span class="g-icon">👗</span><span class="g-label">Falda</span>
           </button>
           <button class="garment-btn" data-garment="vestido">
-            <span class="garment-icon">🥻</span>
-            <span class="garment-label">Vestido</span>
+            <span class="g-icon">🥻</span><span class="g-label">Vestido</span>
           </button>
         </div>
       </div>
 
-      <!-- GÉNERO CAMISA -->
-      <div class="sidebar-section" id="shirt-options" style="display:none">
-        <div class="section-header">Estilo de camisa</div>
-        <div class="radio-group">
+      <!-- Camisa género -->
+      <div class="sb-sec" id="shirt-options" style="display:none">
+        <div class="sec-title">Estilo</div>
+        <div class="radio-grp">
           <label class="radio-opt">
-            <input type="radio" name="shirt-gender" value="dama" checked>
-            <span>Dama</span>
+            <input type="radio" name="shirt-gender" value="dama" checked><span>Dama</span>
           </label>
           <label class="radio-opt">
-            <input type="radio" name="shirt-gender" value="caballero">
-            <span>Caballero</span>
+            <input type="radio" name="shirt-gender" value="caballero"><span>Caballero</span>
           </label>
         </div>
       </div>
 
-      <!-- MEDIDAS -->
-      <div class="sidebar-section">
-        <div class="section-header">
-          Medidas corporales
-          <span class="badge-unit">cm</span>
-        </div>
-
-        <div class="measure-group-title">Contornos</div>
-        <div class="measure-row">
-          <label>Busto / Pecho</label>
-          <input type="number" data-measure="bust" value="88" min="50" max="200" step="0.5">
-        </div>
-        <div class="measure-row">
-          <label>Cintura</label>
-          <input type="number" data-measure="waist" value="68" min="40" max="180" step="0.5">
-        </div>
-        <div class="measure-row">
-          <label>Cadera</label>
-          <input type="number" data-measure="hip" value="94" min="50" max="220" step="0.5">
-        </div>
-        <div class="measure-row">
-          <label>Hombros</label>
-          <input type="number" data-measure="shoulder" value="38" min="25" max="60" step="0.5">
-        </div>
-        <div class="measure-row">
-          <label>Cuello</label>
-          <input type="number" data-measure="neck" value="36" min="28" max="60" step="0.5">
-        </div>
-
-        <div class="measure-group-title">Largos</div>
-        <div class="measure-row">
-          <label>Largo espalda</label>
-          <input type="number" data-measure="backLength" value="40" min="25" max="60" step="0.5">
-        </div>
-        <div class="measure-row">
-          <label>Largo frente</label>
-          <input type="number" data-measure="frontLength" value="42" min="25" max="65" step="0.5">
-        </div>
-        <div class="measure-row">
-          <label>Largo total</label>
-          <input type="number" data-measure="totalLength" value="65" min="30" max="160" step="0.5">
-        </div>
-        <div class="measure-row" id="row-sleeve-length">
-          <label>Largo manga</label>
-          <input type="number" data-measure="sleeveLength" value="60" min="10" max="80" step="0.5">
-        </div>
-        <div class="measure-row" id="row-wrist">
-          <label>Muñeca</label>
-          <input type="number" data-measure="wrist" value="16" min="12" max="30" step="0.5">
-        </div>
-        <div class="measure-row" id="row-skirt-length">
-          <label>Largo falda</label>
-          <input type="number" data-measure="skirtLength" value="60" min="25" max="120" step="0.5">
-        </div>
-        <div class="measure-row">
-          <label>Prof. cadera</label>
-          <input type="number" data-measure="hipDepth" value="20" min="14" max="30" step="0.5">
-        </div>
+      <!-- Medidas -->
+      <div class="sb-sec">
+        <div class="sec-title">Medidas <span class="badge-u">cm</span></div>
+        <div class="mgrp-title">Contornos</div>
+        <div class="m-row"><label>Busto / Pecho</label><input type="number" data-measure="bust" value="88" min="50" max="200" step="0.5"></div>
+        <div class="m-row"><label>Cintura</label><input type="number" data-measure="waist" value="68" min="40" max="180" step="0.5"></div>
+        <div class="m-row"><label>Cadera</label><input type="number" data-measure="hip" value="94" min="50" max="220" step="0.5"></div>
+        <div class="m-row"><label>Hombros</label><input type="number" data-measure="shoulder" value="38" min="25" max="60" step="0.5"></div>
+        <div class="m-row"><label>Cuello</label><input type="number" data-measure="neck" value="36" min="28" max="60" step="0.5"></div>
+        <div class="mgrp-title">Largos</div>
+        <div class="m-row"><label>Largo espalda</label><input type="number" data-measure="backLength" value="40" min="25" max="60" step="0.5"></div>
+        <div class="m-row"><label>Largo frente</label><input type="number" data-measure="frontLength" value="42" min="25" max="65" step="0.5"></div>
+        <div class="m-row"><label>Largo total</label><input type="number" data-measure="totalLength" value="65" min="30" max="160" step="0.5"></div>
+        <div class="m-row" id="row-sleeve-length"><label>Largo manga</label><input type="number" data-measure="sleeveLength" value="60" min="10" max="80" step="0.5"></div>
+        <div class="m-row" id="row-wrist"><label>Muñeca</label><input type="number" data-measure="wrist" value="16" min="12" max="30" step="0.5"></div>
+        <div class="m-row" id="row-skirt-length"><label>Largo falda</label><input type="number" data-measure="skirtLength" value="60" min="25" max="120" step="0.5"></div>
+        <div class="m-row"><label>Prof. cadera</label><input type="number" data-measure="hipDepth" value="20" min="14" max="30" step="0.5"></div>
       </div>
 
-      <!-- PARÁMETROS -->
-      <div class="sidebar-section">
-        <div class="section-header">Parámetros</div>
-        <div class="measure-row">
-          <label>
-            Margen costura
-            <span class="badge-unit">mm</span>
-          </label>
-          <input type="number" id="p-seam" data-param="seam" value="10" min="5" max="25" step="1">
-        </div>
-        <div class="measure-row">
-          <label>
-            Facilidad
-            <span class="badge-unit">cm</span>
-          </label>
-          <input type="number" data-param="ease" value="6" min="0" max="20" step="0.5">
-        </div>
-        <div class="measure-row">
-          <label>Papel</label>
-          <select data-param="paper">
-            <option value="letter">Carta</option>
-            <option value="a4">A4</option>
-          </select>
-        </div>
+      <!-- Parámetros -->
+      <div class="sb-sec">
+        <div class="sec-title">Parámetros</div>
+        <div class="m-row"><label>Margen <span class="badge-u">mm</span></label><input type="number" id="p-seam" data-param="seam" value="10" min="5" max="25" step="1"></div>
+        <div class="m-row"><label>Facilidad <span class="badge-u">cm</span></label><input type="number" data-param="ease" value="6" min="0" max="20" step="0.5"></div>
+        <div class="m-row"><label>Papel</label><select data-param="paper"><option value="letter">Carta</option><option value="a4">A4</option></select></div>
       </div>
 
-      <!-- CÓDIGO ATELIER -->
-      <div class="sidebar-section">
-        <div class="section-header">
-          Código atelier
-          <span class="badge-unit">% OFF</span>
+      <!-- Código atelier -->
+      <div class="sb-sec">
+        <div class="sec-title">Código atelier <span class="badge-u">% OFF</span></div>
+        <div class="aff-row">
+          <input type="text" id="aff-input" placeholder="Ej: ATELIER10" autocomplete="off">
+          <button id="aff-apply">✓</button>
         </div>
-        <div class="affiliate-row">
-          <input type="text" id="sidebar-affiliate-input"
-                 placeholder="Ej: ATELIER10" autocomplete="off">
-          <button id="sidebar-apply-code">✓</button>
-        </div>
-        <div id="sidebar-affiliate-msg"></div>
+        <div id="aff-msg"></div>
       </div>
 
-      <!-- ACCIONES -->
-      <div class="sidebar-section sidebar-actions">
-        <button class="btn-primary" id="btn-export-pdf">
+      <!-- Acciones -->
+      <div class="sb-sec sb-actions">
+        <button class="btn-p" id="btn-export-pdf">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
           Exportar PDF 1:1
         </button>
-        <button class="btn-secondary" id="btn-save">
+        <button class="btn-s" id="btn-save">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Guardar patrón
         </button>
-        <button class="btn-ghost" id="btn-load">
+        <button class="btn-g" id="btn-load">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           Cargar patrón
         </button>
-        <button class="btn-ghost btn-expert" id="btn-atelier-panel">
+        <button class="btn-g" id="btn-atelier-panel" style="position:relative">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Panel de Atelier
-          <span class="expert-chip">EXPERT</span>
+          <span class="chip-exp">EXPERT</span>
         </button>
       </div>
 
-    </div><!-- /sidebar-body -->
+    </div><!-- /sb-body -->
 
-    <div class="sidebar-footer">
+    <div class="sb-foot">
       <div class="scale-dot"></div>
       <span>Escala 1:1 garantizada</span>
     </div>
-
   </aside>
 
-  <!-- ══════════════════════════════════════════
-       ÁREA PRINCIPAL
-  ══════════════════════════════════════════ -->
+  <!-- MAIN -->
   <main id="main">
-
-    <!-- TOPBAR -->
     <div id="topbar">
-      <div class="view-switcher">
+      <div class="view-sw">
         <button class="view-btn active" data-view="pattern">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
           Patrón 2D
@@ -222,12 +539,10 @@
           Vista 3D
         </button>
       </div>
-
-      <div class="topbar-info">
+      <div class="tb-info">
         <span id="pattern-info" class="info-tag">Franela Básica · 88cm</span>
         <span id="piece-count" class="info-tag">3 piezas</span>
       </div>
-
       <div class="zoom-bar">
         <button class="zoom-btn" id="zoom-out">−</button>
         <span id="zoom-label">100%</span>
@@ -236,103 +551,85 @@
       </div>
     </div>
 
-    <!-- VISTA PATRÓN 2D -->
-    <div id="view-pattern" class="view-area active-view">
+    <div id="view-pattern" class="view-area on">
       <div id="svg-wrapper">
-        <div id="svg-pan-container">
-          <svg id="pattern-svg"
-               xmlns="http://www.w3.org/2000/svg"
-               xmlns:xlink="http://www.w3.org/1999/xlink">
+        <div id="svg-pan">
+          <svg id="pattern-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
             <defs>
-              <pattern id="grid-sm" width="50" height="50" patternUnits="userSpaceOnUse">
-                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
+              <pattern id="gs" width="50" height="50" patternUnits="userSpaceOnUse">
+                <path d="M50 0L0 0 0 50" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
               </pattern>
-              <pattern id="grid-lg" width="500" height="500" patternUnits="userSpaceOnUse">
-                <rect width="500" height="500" fill="url(#grid-sm)"/>
-                <path d="M 500 0 L 0 0 0 500" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+              <pattern id="gl" width="500" height="500" patternUnits="userSpaceOnUse">
+                <rect width="500" height="500" fill="url(#gs)"/>
+                <path d="M500 0L0 0 0 500" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
               </pattern>
               <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-                <path d="M0,0 L0,8 L8,4 z" fill="#7c3aed"/>
+                <path d="M0,0 L0,8 L8,4 z" fill="#8b5cf6"/>
               </marker>
               <marker id="arrow-rev" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
-                <path d="M0,0 L0,8 L8,4 z" fill="#7c3aed"/>
+                <path d="M0,0 L0,8 L8,4 z" fill="#8b5cf6"/>
               </marker>
             </defs>
-            <rect id="svg-bg" x="-9999" y="-9999" width="19998" height="19998" fill="url(#grid-lg)"/>
+            <rect id="svg-bg" x="-9999" y="-9999" width="19998" height="19998" fill="url(#gl)"/>
             <g id="pattern-content"></g>
           </svg>
         </div>
       </div>
-
-      <!-- Leyenda flotante -->
       <div id="legend">
-        <div class="legend-row"><span class="leg-line l-cut"></span>Línea de corte</div>
-        <div class="legend-row"><span class="leg-line l-seam"></span>Línea de costura</div>
-        <div class="legend-row"><span class="leg-line l-grain"></span>Hilo recto</div>
-        <div class="legend-row"><span class="leg-line l-fold"></span>Doblar en tela</div>
+        <div class="leg-row"><span class="leg-ln lc"></span>Línea de corte</div>
+        <div class="leg-row"><span class="leg-ln ls"></span>Costura</div>
+        <div class="leg-row"><span class="leg-ln lg"></span>Hilo recto</div>
+        <div class="leg-row"><span class="leg-ln lf"></span>Doblar</div>
       </div>
-
-      <!-- Calibración flotante -->
-      <div id="calibration-badge">
+      <div id="cal-badge">
         <svg width="44" height="44" viewBox="0 0 50 50">
-          <rect x="0.5" y="0.5" width="49" height="49" fill="none" stroke="#8b5cf6" stroke-width="1"/>
-          <line x1="25" y1="0" x2="25" y2="50" stroke="#8b5cf6" stroke-width="0.5" stroke-dasharray="3,3"/>
-          <line x1="0" y1="25" x2="50" y2="25" stroke="#8b5cf6" stroke-width="0.5" stroke-dasharray="3,3"/>
+          <rect x=".5" y=".5" width="49" height="49" fill="none" stroke="#8b5cf6" stroke-width="1"/>
+          <line x1="25" y1="0" x2="25" y2="50" stroke="#8b5cf6" stroke-width=".5" stroke-dasharray="3,3"/>
+          <line x1="0" y1="25" x2="50" y2="25" stroke="#8b5cf6" stroke-width=".5" stroke-dasharray="3,3"/>
         </svg>
         <span>5×5 cm</span>
       </div>
     </div>
 
-    <!-- VISTA 3D -->
-    <div id="view-viewer3d" class="view-area" style="display:none">
+    <div id="view-3d" class="view-area">
       <canvas id="three-canvas"></canvas>
-      <div id="controls-3d">
-        <button class="ctrl-btn" id="btn-3d-reset" title="Resetear vista">⌂</button>
-        <button class="ctrl-btn" id="btn-3d-wireframe" title="Wireframe">⬡</button>
-        <span class="ctrl-hint">Arrastra · Scroll para zoom</span>
+      <div id="ctrl-3d">
+        <button class="c3-btn" id="btn-3d-reset">⌂</button>
+        <button class="c3-btn" id="btn-3d-wireframe">⬡</button>
+        <span class="c3-hint">Arrastra · Scroll para zoom</span>
       </div>
     </div>
-
   </main>
 </div>
 
-<!-- MODAL GUARDAR -->
-<div id="modal-save" class="modal" style="display:none">
-  <div class="modal-overlay"></div>
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3>Guardar patrón</h3>
-      <button class="modal-close" id="cancel-save">✕</button>
+<!-- Modal Guardar -->
+<div id="modal-save" class="modal">
+  <div class="m-ov"></div>
+  <div class="m-box">
+    <div class="m-head"><h3>Guardar patrón</h3><button class="m-close" id="cancel-save">✕</button></div>
+    <div class="m-body">
+      <label class="f-label">Nombre</label>
+      <input type="text" id="save-name" class="f-inp" placeholder="Ej: Franela talla M">
     </div>
-    <div class="modal-body">
-      <label class="field-label">Nombre del patrón</label>
-      <input type="text" id="save-name" placeholder="Ej: Franela talla M" class="field-input">
-    </div>
-    <div class="modal-footer">
-      <button class="btn-primary" id="confirm-save">Guardar</button>
-      <button class="btn-ghost" id="cancel-save-2">Cancelar</button>
+    <div class="m-foot">
+      <button class="btn-p" id="confirm-save">Guardar</button>
+      <button class="btn-g" id="cancel-save2">Cancelar</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL CARGAR -->
-<div id="modal-load" class="modal" style="display:none">
-  <div class="modal-overlay"></div>
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3>Patrones guardados</h3>
-      <button class="modal-close" id="cancel-load">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="saved-patterns-list"></div>
-    </div>
+<!-- Modal Cargar -->
+<div id="modal-load" class="modal">
+  <div class="m-ov"></div>
+  <div class="m-box">
+    <div class="m-head"><h3>Patrones guardados</h3><button class="m-close" id="cancel-load">✕</button></div>
+    <div class="m-body"><div id="saved-list"></div></div>
   </div>
 </div>
 
-<!-- TOASTS -->
-<div id="toast-container"></div>
+<div id="toasts"></div>
 
-<!-- SCRIPTS -->
+<!-- Scripts -->
 <script src="js/constants.js"></script>
 <script src="js/svg-utils.js"></script>
 <script src="js/patterns/franela.js"></script>
@@ -349,6 +646,5 @@
 <script src="js/payment.js"></script>
 <script src="js/atelier-panel.js"></script>
 <script src="js/app.js"></script>
-
 </body>
 </html>
