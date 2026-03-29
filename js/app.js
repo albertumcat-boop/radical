@@ -213,6 +213,10 @@ PAT.App = (function () {
       sb?.classList.toggle('collapsed');
       const btn = $('sidebar-toggle');
       if (btn) btn.textContent = sb?.classList.contains('collapsed') ? '›' : '‹';
+      // Trazado manual
+document.getElementById('btn-drafter')?.addEventListener('click', function() {
+  if (PAT.DrafterUI) PAT.DrafterUI.open();
+});
     });
 
     // PDF
