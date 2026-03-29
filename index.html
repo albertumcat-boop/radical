@@ -321,7 +321,6 @@
 
 <div id="app">
 
-  <!-- SIDEBAR -->
   <aside id="sidebar">
 
     <div class="sb-logo">
@@ -335,7 +334,6 @@
 
     <div class="sb-body">
 
-      <!-- Prendas -->
       <div class="sb-sec">
         <div class="sec-title">Tipo de prenda</div>
         <div class="garment-grid">
@@ -357,7 +355,6 @@
         </div>
       </div>
 
-      <!-- Camisa género -->
       <div class="sb-sec" id="shirt-options" style="display:none">
         <div class="sec-title">Estilo</div>
         <div class="radio-grp">
@@ -370,7 +367,6 @@
         </div>
       </div>
 
-      <!-- Medidas -->
       <div class="sb-sec">
         <div class="sec-title">Medidas <span class="badge-u">cm</span></div>
         <div class="mgrp-title">Contornos</div>
@@ -389,7 +385,6 @@
         <div class="m-row"><label>Prof. cadera</label><input type="number" data-measure="hipDepth" value="20" min="14" max="30" step="0.5"></div>
       </div>
 
-      <!-- Parámetros -->
       <div class="sb-sec">
         <div class="sec-title">Parámetros</div>
         <div class="m-row"><label>Margen <span class="badge-u">mm</span></label><input type="number" id="p-seam" data-param="seam" value="10" min="5" max="25" step="1"></div>
@@ -397,7 +392,6 @@
         <div class="m-row"><label>Papel</label><select data-param="paper"><option value="letter">Carta</option><option value="a4">A4</option></select></div>
       </div>
 
-      <!-- Código atelier -->
       <div class="sb-sec">
         <div class="sec-title">Código atelier <span class="badge-u">% OFF</span></div>
         <div class="aff-row">
@@ -407,10 +401,8 @@
         <div id="aff-msg"></div>
       </div>
 
-      <!-- Acciones -->
       <div class="sb-sec sb-actions">
 
-        <!-- BOTÓN TRAZADO MANUAL -->
         <button class="btn-g" id="btn-drafter" style="border-color:var(--acc);color:var(--acc2)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M12 20h9"/>
@@ -442,15 +434,12 @@
 
       </div>
 
-    </div><!-- /sb-body -->
-
-    <div class="sb-foot">
+    </div><div class="sb-foot">
       <div class="scale-dot"></div>
       <span>Escala 1:1 garantizada</span>
     </div>
   </aside>
 
-  <!-- MAIN -->
   <main id="main">
     <div id="topbar">
       <div class="view-sw">
@@ -526,7 +515,6 @@
   </main>
 </div>
 
-<!-- Modal Guardar -->
 <div id="modal-save" class="modal">
   <div class="m-ov"></div>
   <div class="m-box">
@@ -542,7 +530,6 @@
   </div>
 </div>
 
-<!-- Modal Cargar -->
 <div id="modal-load" class="modal">
   <div class="m-ov"></div>
   <div class="m-box">
@@ -553,9 +540,16 @@
 
 <div id="toasts"></div>
 
-<!-- Scripts en orden correcto -->
 <script src="js/constants.js"></script>
 <script src="js/svg-utils.js"></script>
+
+<script>
+  if (window.PAT && PAT.SVGUtils) {
+    window.n  = PAT.SVGUtils.n;
+    window.NS = PAT.SVGUtils.NS;
+  }
+</script>
+
 <script src="js/patterns/franela.js"></script>
 <script src="js/patterns/blusa.js"></script>
 <script src="js/patterns/camisa.js"></script>
@@ -572,5 +566,38 @@
 <script src="js/app.js"></script>
 <script src="js/pattern-drafter.js"></script>
 <script src="js/drafter-ui.js"></script>
+
+<script>
+window.addEventListener('load', function() {
+  // ── Logo: expandir sidebar al hacer clic cuando está colapsado
+  var logoMark = document.getElementById('logo-mark');
+  if (logoMark) {
+    logoMark.addEventListener('click', function() {
+      var sb = document.getElementById('sidebar');
+      if (sb && sb.classList.contains('collapsed')) {
+        sb.classList.remove('collapsed');
+        var btn = document.getElementById('sidebar-toggle');
+        if (btn) btn.textContent = '‹';
+      }
+    });
+  }
+
+  // ── Trazado manual
+  var btnDrafter = document.getElementById('btn-drafter');
+  if (btnDrafter) {
+    btnDrafter.addEventListener('click', function() {
+      if (window.PAT && PAT.DrafterUI) {
+        PAT.DrafterUI.open();
+      } else {
+        console.error('[Drafter] PAT.DrafterUI no cargado. Archivos:', {
+          drafter:   typeof PAT !== 'undefined' && !!PAT.Drafter,
+          drafterUI: typeof PAT !== 'undefined' && !!PAT.DrafterUI
+        });
+      }
+    });
+  }
+});
+</script>
+
 </body>
 </html>
