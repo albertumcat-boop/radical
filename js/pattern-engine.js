@@ -1,168 +1,124 @@
-/**
- * pattern-engine.js
- * Orquesta la generación de piezas y las compone en el SVG principal.
- * Maneja el layout (posicionamiento de piezas) y la actualización en tiempo real.
- */
-
 'use strict';
 window.PAT = window.PAT || {};
 
-PAT.PatternEngine = (function() {
-  const U  = PAT.SVGUtils;
-  const NS = U.NS;
-  const GAP = PAT.PIECE_GAP;
+PAT.PatternEngine = (function () {
+  const NS  = 'http://www.w3.org/2000/svg';
+  const GAP = 30;
 
-  let _svgEl = null;       // El SVG principal (#pattern-svg)
-  let _contentEl = null;   // El grupo <g id="pattern-content">
-  let _currentPieces = []; // Array de {group, bounds, name}
-  let _currentBounds = { w: 0, h: 0 };
+  let _svg     = null;
+  let _content = null;
+  let _bounds  = { w: 100, h: 100 };
+  let _pieces  = [];
 
-  /** Inicializar el motor con el elemento SVG */
-  function init(svgElement) {
-    _svgEl      = svgElement;
-    _contentEl  = svgElement.querySelector('#pattern-content');
+  function init(svgEl) {
+    _svg     = svgEl;
+    _content = svgEl ? svgEl.getElementById
+      ? svgEl.getElementById('pattern-content')
+      : svgEl.querySelector('#pattern-content')
+      : null;
+    if (!_content && svgEl) {
+      // fallback: buscar por id directo
+      _content = document.getElementById('pattern-content');
+    }
+    console.log('[Engine] init svg:', !!_svg, 'content:', !!_content);
   }
 
-  /**
-   * Generar y renderizar el patrón completo.
-   * @param {string} garmentType - 'franela' | 'blusa' | 'camisa' | 'falda' | 'vestido'
-   * @param {Object} measures    - medidas en cm
-   * @param {Object} params      - {seam, ease, shirtGender}
-   */
   function generate(garmentType, measures, params) {
-    if (!_svgEl || !_contentEl) return;
+    if (!_svg) { console.error('[Engine] _svg null'); return; }
+    if (!_content) {
+      _content = document.getElementById('pattern-content');
+      if (!_content) { console.error('[Engine] #pattern-content no encontrado'); return; }
+    }
 
-    const m    = { ...measures, ease: params.ease };
-    const seam = params.seam;  // ya en mm
+    const m    = Object.assign({}, PAT.DEFAULT_MEASURES, measures, { ease: params.ease || 6 });
+    const seam = params.seam || 10;
 
-    // ── Generar piezas según el tipo ──────────────────────────────
-    let rawPieces = [];
+    let pieces = [];
     try {
       switch (garmentType) {
-        case 'franela':
-          rawPieces = PAT.Patterns.Franela.generate(m, seam);
-          break;
-        case 'blusa':
-          rawPieces = PAT.Patterns.Blusa.generate(m, seam);
-          break;
-        case 'camisa':
-          rawPieces = PAT.Patterns.Camisa.generate(m, seam, params.shirtGender || 'dama');
-          break;
-        case 'falda':
-          rawPieces = PAT.Patterns.Falda.generate(m, seam);
-          break;
-        case 'vestido':
-          rawPieces = PAT.Patterns.Vestido.generate(m, seam);
-          break;
-        default:
-          rawPieces = PAT.Patterns.Franela.generate(m, seam);
+        case 'franela':  pieces = PAT.Patterns.Franela.generate(m, seam); break;
+        case 'blusa':    pieces = PAT.Patterns.Blusa.generate(m, seam); break;
+        case 'camisa':   pieces = PAT.Patterns.Camisa.generate(m, seam, params.shirtGender || 'dama'); break;
+        case 'falda':    pieces = PAT.Patterns.Falda.generate(m, seam); break;
+        case 'vestido':  pieces = PAT.Patterns.Vestido.generate(m, seam); break;
+        default:         pieces = PAT.Patterns.Franela.generate(m, seam);
       }
     } catch (e) {
-      console.error('[PatternEngine] Error generando patrón:', e);
+      console.error('[Engine] Error generando:', e);
       return;
     }
 
-    // ── Layout: posicionar piezas en filas ────────────────────────
-    const laid = layoutPieces(rawPieces);
-    _currentPieces = laid.pieces;
-    _currentBounds = laid.totalBounds;
+    if (!pieces || pieces.length === 0) {
+      console.warn('[Engine] 0 piezas generadas');
+      return;
+    }
 
-    // ── Renderizar en SVG ─────────────────────────────────────────
-    renderToSVG(laid);
+    _render(pieces);
   }
 
-  /**
-   * Organiza las piezas en una cuadrícula 2D con separación GAP.
-   * Piezas anchas van primero, luego más estrechas debajo.
-   */
-  function layoutPieces(pieces) {
-    const MAX_ROW_WIDTH = 900;  // mm — máximo ancho por fila antes de saltar
-    let curX = 0, curY = 0, rowH = 0;
-    const laid = [];
+  function _render(pieces) {
+    // Limpiar
+    while (_content.firstChild) _content.removeChild(_content.firstChild);
 
-    // Agregar cuadrado de calibración como primera "pieza especial"
-    const calSize = 70;  // 5cm + márgenes
-    let calX = 10, calY = 10;
+    const PAD = 25;
+    const CAL_W = 80;
 
-    pieces.forEach((piece, i) => {
-      const bW = piece.bounds.w;
-      const bH = piece.bounds.h;
+    // Cuadrado de calibración
+    try {
+      const cal = PAT.SVGUtils.calibrationSquare(PAD, PAD);
+      _content.appendChild(cal);
+    } catch(e) { console.warn('[Engine] calibrationSquare error:', e); }
 
-      // Saltar a nueva fila si no cabe
-      if (curX > 0 && curX + bW > MAX_ROW_WIDTH) {
-        curX = 0;
+    // Posicionar piezas
+    const MAX_ROW = 1000;
+    let curX = CAL_W + GAP + PAD;
+    let curY = PAD;
+    let rowH = 0;
+
+    pieces.forEach(piece => {
+      if (!piece || !piece.group || !piece.bounds) return;
+
+      const pw = piece.bounds.w || 200;
+      const ph = piece.bounds.h || 300;
+
+      if (curX > CAL_W + GAP + PAD && curX + pw > MAX_ROW) {
+        curX = CAL_W + GAP + PAD;
         curY += rowH + GAP;
         rowH = 0;
       }
 
-      laid.push({
-        ...piece,
-        offsetX: curX + calSize + GAP,  // offset por cuadrado de calibración
-        offsetY: curY + calSize + GAP,
-      });
-
-      curX += bW + GAP;
-      rowH = Math.max(rowH, bH);
-    });
-
-    const totalW = MAX_ROW_WIDTH + calSize + GAP + 40;
-    const totalH = curY + rowH + calSize + GAP + 40;
-
-    return { pieces: laid, totalBounds: { w: totalW, h: totalH } };
-  }
-
-  /** Renderiza las piezas en el SVG y actualiza el viewBox */
-  function renderToSVG(laid) {
-    // Limpiar contenido anterior
-    while (_contentEl.firstChild) {
-      _contentEl.removeChild(_contentEl.firstChild);
-    }
-
-    const { pieces, totalBounds } = laid;
-    const padding = 20;
-
-    // Cuadrado de calibración (siempre en esquina superior izq)
-    _contentEl.appendChild(U.calibrationSquare(padding, padding));
-
-    // Renderizar cada pieza con su offset
-    pieces.forEach(piece => {
       const g = document.createElementNS(NS, 'g');
-      g.setAttribute('transform', `translate(${U.n(piece.offsetX)}, ${U.n(piece.offsetY)})`);
+      g.setAttribute('transform', 'translate(' + curX + ',' + curY + ')');
       g.appendChild(piece.group);
-      _contentEl.appendChild(g);
+      _content.appendChild(g);
+
+      curX += pw + GAP;
+      rowH  = Math.max(rowH, ph);
     });
 
-    // Actualizar viewBox del SVG para mostrar todo el patrón
-    const vbW = totalBounds.w + padding * 2;
-    const vbH = totalBounds.h + padding * 2;
-    _svgEl.setAttribute('viewBox', `0 0 ${U.n(vbW)} ${U.n(vbH)}`);
-    _svgEl.setAttribute('width', `${U.n(vbW)}mm`);
-    _svgEl.setAttribute('height', `${U.n(vbH)}mm`);
+    const totalW = MAX_ROW + PAD * 2;
+    const totalH = curY + rowH + PAD * 2;
 
-    return { vbW, vbH };
+    _svg.setAttribute('viewBox', '0 0 ' + totalW + ' ' + totalH);
+    _svg.setAttribute('width',  totalW + 'mm');
+    _svg.setAttribute('height', totalH + 'mm');
+
+    _bounds = { w: totalW, h: totalH };
+    _pieces = pieces;
+
+    console.log('[Engine] Render OK — ' + pieces.length + ' piezas, viewBox: 0 0 ' + totalW + ' ' + totalH);
   }
 
-  /** Retorna los datos del patrón actual para exportar */
   function getCurrentData() {
-    if (!_svgEl) return null;
-    return {
-      svgEl:   _svgEl,
-      pieces:  _currentPieces,
-      bounds:  _currentBounds,
-      svgText: new XMLSerializer().serializeToString(_svgEl),
-    };
+    if (!_svg) return null;
+    return { svgEl: _svg, pieces: _pieces, bounds: _bounds };
   }
 
-  /** Retorna SVG completo como string (para exportar como archivo .svg) */
   function getSVGString() {
-    if (!_svgEl) return '';
-    // Clonar SVG y forzar dimensiones físicas para impresión 1:1
-    const clone = _svgEl.cloneNode(true);
-    clone.setAttribute('xmlns', NS);
-    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-    // El width/height en mm garantiza escala 1:1 al imprimir
-    return new XMLSerializer().serializeToString(clone);
+    if (!_svg) return '';
+    return new XMLSerializer().serializeToString(_svg);
   }
 
-  return { init, generate, getCurrentData, getSVGString, get bounds() { return _currentBounds; } };
+  return { init, generate, getCurrentData, getSVGString,
+    get bounds() { return _bounds; } };
 })();
