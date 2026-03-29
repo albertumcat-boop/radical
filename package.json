@@ -1,0 +1,13 @@
+{
+  "name": "Radical",
+  "version": "1.0.0",
+  "description": "Sistema Integral de Patronaje Paramétrico y Visualización 3D",
+  "scripts": {
+    "start": "npx serve . -p 3000",
+    "deploy:firebase": "firebase deploy",
+    "deploy:vercel": "vercel --prod"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}
