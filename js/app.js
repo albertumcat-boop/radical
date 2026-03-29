@@ -217,6 +217,15 @@ PAT.App = (function () {
 
     // PDF
     $('btn-export-pdf')?.addEventListener('click', doPDFExport);
+    // Logo clickeable cuando sidebar está colapsado
+document.getElementById('logo-mark')?.addEventListener('click', function() {
+  const sb = document.getElementById('sidebar');
+  if (sb && sb.classList.contains('collapsed')) {
+    sb.classList.remove('collapsed');
+    const btn = document.getElementById('sidebar-toggle');
+    if (btn) btn.textContent = '‹';
+  }
+});
 
     // ── Guardar ────────────────────────────────────────────────
     $('btn-save')?.addEventListener('click', () => {
