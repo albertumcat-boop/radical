@@ -32,14 +32,26 @@
     overflow:hidden;z-index:20;flex-shrink:0;
   }
   #sidebar.collapsed{width:52px;min-width:52px}
-  #sidebar.collapsed .sb-body,
-  #sidebar.collapsed .sb-foot{opacity:0;pointer-events:none}
+ #sidebar.collapsed .sb-body,
+#sidebar.collapsed .sb-foot{opacity:0;pointer-events:none}
 
-  .sb-logo{
-    display:flex;align-items:center;gap:10px;padding:14px;
-    border-bottom:1px solid var(--brd);flex-shrink:0;
-    background:linear-gradient(135deg,rgba(139,92,246,.07) 0%,transparent 100%);
-  }
+#sidebar.collapsed .sb-logo{justify-content:center}
+#sidebar.collapsed .logo-text,
+#sidebar.collapsed .collapse-btn{display:none}
+#sidebar.collapsed .logo-mark{
+  cursor:pointer;width:34px;height:34px;
+  box-shadow:0 0 0 2px var(--acc2);
+  animation:blink 2s infinite;
+}
+
+  <div class="sb-logo">
+  <div class="logo-mark" id="logo-mark">✂</div>
+  <div class="logo-text">
+    <span class="logo-name">PatrónAI</span>
+    <span class="logo-tag">Pro</span>
+  </div>
+  <button id="sidebar-toggle" class="collapse-btn">‹</button>
+</div>
   .logo-mark{
     width:34px;height:34px;border-radius:var(--r);
     background:var(--acc);display:flex;align-items:center;justify-content:center;
