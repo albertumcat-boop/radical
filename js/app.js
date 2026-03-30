@@ -377,6 +377,28 @@ document.getElementById('logo-mark')?.addEventListener('click', function() {
       if (PAT.AuthTier && !PAT.AuthTier.canUseGarment(state.garment)) {
         state.garment = PAT.AuthTier.getTier().allowedGarments[0] || 'franela';
       }
+      // Verificar si hay un patrón manual que reemplaza este prediseñado
+const overrideKey = state.garment + (state.shirtGender ? '_' + state.shirtGender : '');
+const overrides   = window.PAT?._presetOverrides;
+if (overrides && overrides[overrideKey]) {
+  const ov = overrides[overrideKey];
+  const result = PAT.Drafter.compileAndRender(ov.code, state.measures);
+  if (result.piece) {
+    // Renderizar directamente en el SVG
+    const content = document.getElementById('pattern-content');
+    if (content) {
+      while (content.firstChild) content.removeChild(content.firstChild);
+      content.appendChild(result.piece.group);
+      const svg = document.getElementById('pattern-svg');
+      if (svg) {
+        const b = result.piece.bounds;
+        svg.setAttribute('viewBox', '0 0 ' + (b.w+40) + ' ' + (b.h+40));
+      }
+    }
+    updateTopbar();
+    return;
+  }
+}
       try {
         PAT.PatternEngine.generate(state.garment, state.measures, {
           seam: state.params.seam, ease: state.params.ease, shirtGender: state.shirtGender,
