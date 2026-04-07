@@ -1,1275 +1,1072 @@
 /**
- * drafter-ui.js v2.0
- * Interfaz de trazado manual estilo "instrucciones de patronaje"
- * Igual al sistema Atelier Escuela / Nereyda Herrera
+ * drafter-ui.js v3.0 — Editor Visual de Patronaje
+ * Menú desplegable por pieza, ajuste de cada punto con inputs,
+ * preview en vivo sin necesidad de escribir código.
  */
 'use strict';
 window.PAT = window.PAT || {};
 
 PAT.DrafterUI = (function () {
 
-  const MANUALS_KEY = 'pat_manuals';
+  const MK = 'pat_manuals';
+  const NS = 'http://www.w3.org/2000/svg';
 
-  // ── Manuales de ejemplo (basados en las fotos enviadas) ──────
-  const BUILTIN_EXAMPLES = {
+  // ══════════════════════════════════════════════════════════════
+  // DEFINICIÓN DE PIEZAS — cada punto tiene parámetros ajustables
+  // La fórmula base usa variables de medidas (B4, TALLE_ESP, etc.)
+  // El usuario puede ajustar el OFFSET de cada punto
+  // ══════════════════════════════════════════════════════════════
+  const PIECES = {
 
-    'Blusa Básica — Parte Trasera': {
+    'blusa-trasera': {
+      name: 'Blusa — Parte Trasera',
       garment: 'blusa',
-      gender:  null,
-      code: `# ══════════════════════════════════════════
-# TRAZADO BLUSA BÁSICA — PARTE TRASERA
-# Sistema Atelier Escuela
-# ══════════════════════════════════════════
-# Variables disponibles:
-#  B4 = busto/4   TALLE_ESP = talle espalda
-#  E2 = espalda/2  B12 = busto/12
-# ══════════════════════════════════════════
-
-PIEZA Blusa Básica — Parte Trasera
-
-# ── Paso 1: Rectángulo base ──────────────
-# A = esquina superior izquierda (CB/nuca)
-PUNTO A 0,0
-
-# B = ancho del bloque (busto/4)
-PUNTO B desde:A der:B4
-
-# C = largo talle posterior (esquina inf derecha)
-PUNTO C desde:B abajo:TALLE_ESP
-
-# D = esquina inferior izquierda (CB cintura)
-PUNTO D desde:A abajo:TALLE_ESP
-
-# ── Paso 2: Cuello trasero ───────────────
-# 1 = ancho cuello (busto/6)
-PUNTO 1 desde:A der:B6
-
-# 2 = profundidad cuello trasero (2cm)
-PUNTO 2 desde:A abajo:20
-
-# ── Paso 3: Hombro ───────────────────────
-# 2a = caída del hombro (subir 1cm desde 1)
-PUNTO 2A desde:1 abajo:10
-
-# 3 = sexta parte espalda - 2cm (posición hombro)
-PUNTO 3 desde:2A der:E2 arriba:20
-
-# ── Paso 4: Sisa ─────────────────────────
-# 4 = profundidad sisa (cuarta parte espalda)
-PUNTO 4 desde:A abajo:B4
-
-# E = punto de sisa lateral (mismo nivel que 4)
-PUNTO E desde:B abajo:B4
-
-# ── Paso 5: Cadera ───────────────────────
-# F = mitad del talle (nivel cintura-cadera)
-PUNTO F desde:B abajo:TALLE_ESP
-
-# ── Contorno ─────────────────────────────
-CURVA 2 1 control:-8
-LINEA 1 3
-CURVA 3 E semicurva:15
-LINEA E F
-LINEA F C
-LINEA C D
-DOBLEZ D A
-
-# ── Auxiliares ───────────────────────────
-HILO A D
-MUESCA linea:EF pos:0.5
-
-COTA A B "Busto/4"
-COTA A D "Talle espalda"`,
+      description: 'Blusa básica sistema Müller & Sohn',
+      icon: '👚',
+      points: [
+        { id:'A',  label:'A — Origen (CB nuca)',      base:'0',    dir:'abs',    x:0,  y:0,  xOff:0, yOff:0, xLocked:true, yLocked:true },
+        { id:'B',  label:'B — Ancho del bloque',      base:'B4',   dir:'der',    ref:'A', xOff:0, yOff:0, desc:'Busto ÷ 4' },
+        { id:'C',  label:'C — Largo espalda (inf der)',base:'TALLE_ESP', dir:'abajo', ref:'B', xOff:0, yOff:0, desc:'Talle espalda' },
+        { id:'D',  label:'D — CB cintura (inf izq)',   base:'TALLE_ESP', dir:'abajo', ref:'A', xOff:0, yOff:0, desc:'Talle espalda' },
+        { id:'1',  label:'1 — Ancho cuello',          base:'B6',   dir:'der',    ref:'A', xOff:0, yOff:0, desc:'Busto ÷ 6' },
+        { id:'2',  label:'2 — Prof. cuello trasero',  base:'20',   dir:'abajo',  ref:'A', xOff:0, yOff:0, desc:'Fijo ~2cm' },
+        { id:'2A', label:'2A — Caída hombro',         base:'10',   dir:'abajo',  ref:'1', xOff:0, yOff:0, desc:'Caída ~1cm' },
+        { id:'3',  label:'3 — Punta hombro',          base:'E2',   dir:'der',    ref:'2A', xOff:0, yOff:-20, desc:'Espalda ÷ 2, sube 2cm' },
+        { id:'E',  label:'E — Prof. sisa lateral',    base:'B4',   dir:'abajo',  ref:'B', xOff:0, yOff:0, desc:'Busto ÷ 4' },
+        { id:'F',  label:'F — Costado cintura',       base:'TALLE_ESP', dir:'abajo', ref:'B', xOff:0, yOff:0, desc:'Talle espalda' },
+      ],
+      lines: [
+        { type:'curve', from:'2',  to:'1',  ctrl:-8,  label:'Curva cuello' },
+        { type:'line',  from:'1',  to:'3',  label:'Línea hombro' },
+        { type:'curve', from:'3',  to:'E',  semi:15,  label:'Sisa' },
+        { type:'line',  from:'E',  to:'F',  label:'Costado' },
+        { type:'line',  from:'F',  to:'C',  label:'Bajo costado' },
+        { type:'line',  from:'C',  to:'D',  label:'Dobladillo' },
+        { type:'fold',  from:'D',  to:'A',  label:'CB — Doblez' },
+      ],
     },
 
-    'Blusa Básica — Parte Delantera': {
+    'blusa-delantera': {
+      name: 'Blusa — Parte Delantera',
       garment: 'blusa',
-      gender:  null,
-      code: `# ══════════════════════════════════════════
-# TRAZADO BLUSA BÁSICA — PARTE DELANTERA
-# Sistema Atelier Escuela
-# ══════════════════════════════════════════
-
-PIEZA Blusa Básica — Parte Delantera
-
-# Rectángulo base
-PUNTO A 0,0
-PUNTO B desde:A der:B4
-PUNTO C desde:B abajo:TALLE_DEL
-PUNTO D desde:A abajo:TALLE_DEL
-
-# Cuello delantero (más profundo que trasero)
-PUNTO 1 desde:A der:B6
-PUNTO 2 desde:A abajo:B6
-
-# Hombro (igual que trasero)
-PUNTO 2A desde:1 abajo:10
-PUNTO 3 desde:2A der:E2 arriba:20
-
-# Sisa
-PUNTO 4 desde:B abajo:B4
-
-# Línea E (cadera)
-PUNTO E desde:B abajo:TALLE_DEL
-
-# Pinza de busto
-PUNTO BP desde:A der:B4 abajo:TALLE_DEL
-
-# Contorno
-CURVA 2 1 control:-12
-LINEA 1 3
-CURVA 3 4 semicurva:12
-LINEA 4 E
-LINEA E D
-DOBLEZ D A
-
-HILO A D
-COTA 2 1 "Ancho cuello"
-COTA A D "Talle delantero"`,
+      description: 'Blusa básica con pinza de busto',
+      icon: '👗',
+      points: [
+        { id:'A',  label:'A — CF nuca (doblez)',      base:'0',    dir:'abs',  x:0,  y:0,  xLocked:true, yLocked:true },
+        { id:'B',  label:'B — Ancho bloque',          base:'B4',   dir:'der',  ref:'A', xOff:0, yOff:0, desc:'Busto ÷ 4' },
+        { id:'C',  label:'C — Bajo delantero der',    base:'TALLE_DEL', dir:'abajo', ref:'B', xOff:0, yOff:0, desc:'Talle delantero' },
+        { id:'D',  label:'D — CF cintura',            base:'TALLE_DEL', dir:'abajo', ref:'A', xOff:0, yOff:0, desc:'Talle delantero' },
+        { id:'1',  label:'1 — Ancho cuello',          base:'B6',   dir:'der',  ref:'A', xOff:0, yOff:0, desc:'Busto ÷ 6' },
+        { id:'2',  label:'2 — Prof. cuello delantero',base:'B6',   dir:'abajo', ref:'A', xOff:0, yOff:0, desc:'Más profundo que trasero' },
+        { id:'2A', label:'2A — Caída hombro',         base:'10',   dir:'abajo', ref:'1', xOff:0, yOff:0, desc:'~1cm' },
+        { id:'3',  label:'3 — Punta hombro',          base:'E2',   dir:'der',  ref:'2A', xOff:0, yOff:-20, desc:'Espalda ÷ 2, sube 2cm' },
+        { id:'4',  label:'4 — Prof. sisa delantera',  base:'B4',   dir:'abajo', ref:'B', xOff:0, yOff:0, desc:'Busto ÷ 4' },
+        { id:'E',  label:'E — Base costado',          base:'TALLE_DEL', dir:'abajo', ref:'B', xOff:0, yOff:0, desc:'Talle delantero' },
+      ],
+      lines: [
+        { type:'curve', from:'2',  to:'1',  ctrl:-12, label:'Curva cuello' },
+        { type:'line',  from:'1',  to:'3',  label:'Hombro' },
+        { type:'curve', from:'3',  to:'4',  semi:12,  label:'Sisa' },
+        { type:'line',  from:'4',  to:'E',  label:'Costado' },
+        { type:'line',  from:'E',  to:'D',  label:'Dobladillo' },
+        { type:'fold',  from:'D',  to:'A',  label:'CF — Doblez' },
+      ],
     },
 
-    'Camisa Caballero — Parte Posterior': {
+    'camisa-posterior': {
+      name: 'Camisa — Parte Posterior',
       garment: 'camisa',
-      gender:  'caballero',
-      code: `# ══════════════════════════════════════════
-# TRAZADO CAMISA CABALLERO — PARTE POSTERIOR
-# Sistema Atelier Escuela
-# Variables: BUSTO, ESPALDA, TALLE_ESP, B4, E2
-# ══════════════════════════════════════════
-
-PIEZA Camisa Caballero — Posterior
-
-# Rectángulo base
-# A.B = Cuarta parte de pecho + 2cm
-PUNTO A 0,0
-PUNTO B desde:A der:B4+20
-
-# B.C = Largo de la camisa
-PUNTO C desde:B abajo:LARGO
-
-# Cierre
-PUNTO D desde:A abajo:LARGO
-
-# A.1 = Sexta parte del ancho de espalda
-PUNTO 1 desde:A der:ESPALDA/6
-
-# 1.2 = Cuarta parte de hombro (caída)
-PUNTO 2 desde:1 abajo:10
-
-# 2.3 = Sexta parte espalda - 2cm
-PUNTO 3 desde:2 der:E2-20
-
-# A.4 = Sexta parte de espalda (profundidad sisa)
-PUNTO 4 desde:A abajo:ESPALDA/6
-
-# Bajar 2cm
-PUNTO 4A desde:4 abajo:20
-
-# E = nivel sisa
-PUNTO E desde:B abajo:ESPALDA/6+20
-
-# Canesú (8cm desde hombros)
-PUNTO CANESU_IZQ desde:D arriba:TALLE_ESP abajo:80
-PUNTO CANESU_DER desde:E arriba:ESPALDA/6-20 abajo:80
-
-# Contorno
-CURVA 2 1 control:-10
-LINEA 1 3
-CURVA 3 E semicurva:20
-LINEA E C
-LINEA C D
-DOBLEZ D A
-
-# Línea de canesú
-LINEA CANESU_IZQ CANESU_DER costura
-
-HILO A D
-COTA A B "Busto/4 + 2cm"
-COTA A D "Largo camisa"`,
+      description: 'Camisa clásica sistema Atelier Escuela',
+      icon: '👔',
+      points: [
+        { id:'A',  label:'A — CB nuca',               base:'0',       dir:'abs',   x:0, y:0, xLocked:true, yLocked:true },
+        { id:'B',  label:'B — Ancho bloque',           base:'B4',      dir:'der',   ref:'A', xOff:20, yOff:0, desc:'Busto ÷ 4 + 2cm' },
+        { id:'C',  label:'C — Largo inferior der',     base:'LARGO',   dir:'abajo', ref:'B', xOff:0, yOff:0, desc:'Largo camisa' },
+        { id:'D',  label:'D — CB bajo',               base:'LARGO',   dir:'abajo', ref:'A', xOff:0, yOff:0, desc:'Largo camisa' },
+        { id:'1',  label:'1 — Cuello (sexta espalda)', base:'ESPALDA', dir:'der',   ref:'A', xOff:0, yOff:0, desc:'Espalda ÷ 6' },
+        { id:'2',  label:'2 — Caída hombro',          base:'10',      dir:'abajo', ref:'1', xOff:0, yOff:0, desc:'~1cm caída' },
+        { id:'3',  label:'3 — Punta hombro',          base:'E2',      dir:'der',   ref:'2', xOff:-20, yOff:0, desc:'Espalda ÷ 2 - 2cm' },
+        { id:'E',  label:'E — Sisa lateral',          base:'ESPALDA', dir:'abajo', ref:'B', xOff:0, yOff:20, desc:'Espalda ÷ 6 + 2cm' },
+      ],
+      lines: [
+        { type:'curve', from:'2', to:'1',  ctrl:-10, label:'Cuello' },
+        { type:'line',  from:'1', to:'3',  label:'Hombro' },
+        { type:'curve', from:'3', to:'E',  semi:20,  label:'Sisa' },
+        { type:'line',  from:'E', to:'C',  label:'Costado' },
+        { type:'line',  from:'C', to:'D',  label:'Dobladillo' },
+        { type:'fold',  from:'D', to:'A',  label:'CB — Doblez' },
+      ],
     },
 
-    'Manga Larga — Camisa': {
+    'manga-larga': {
+      name: 'Manga Larga',
       garment: 'camisa',
-      gender:  null,
-      code: `# ══════════════════════════════════════════
-# MANGA LARGA PARA CAMISA
-# Sistema Atelier Escuela
-# ══════════════════════════════════════════
-
-PIEZA Manga Larga
-
-# A.B = Mitad del ancho de espalda + 1cm
-PUNTO A 0,0
-PUNTO B desde:A der:E2+10
-
-# Punto superior de la manga
-PUNTO B1 desde:B abajo:ESPALDA/6
-
-# B.C = Largo de manga
-PUNTO C desde:A abajo:MANGA
-
-# D = extremo inferior derecho
-PUNTO D desde:C der:E2+10
-
-# Puntos de la cabeza de manga
-# B.1 = décima parte del busto
-PUNTO P1 desde:A der:B10
-
-# 2 = mitad de B.1 (punto intermedio)
-PUNTO P2 desde:P1 der:B10/2
-
-# 3 = mitad de A,B
-PUNTO P3 desde:A der:E2+10 arriba:ESPALDA/6
-
-# 4 = mitad de A,B (punto control sisa)
-PUNTO P4 desde:A der:E2+10/2
-
-# Puño
-# C.4 = descontar ancho del puño (6cm aprox)
-PUNTO PUN_IZQ desde:C arriba:0
-PUNTO PUN_DER desde:D arriba:0
-
-# Contorno cabeza de manga (curvas S)
-CURVA A P1 control:-20
-CURVA P1 P3 control:15
-CURVA P3 B control:-10
-
-# Laterales
-LINEA B D
-LINEA D PUN_DER
-LINEA PUN_DER PUN_IZQ
-LINEA PUN_IZQ C
-LINEA C A
-
-# Abertura (6cm desde muñeca)
-PUNTO AB1 desde:D abajo:0 arriba:90
-HILO P3 PUN_IZQ
-MUESCA linea:AP1 pos:0.4
-MUESCA linea:P1P3 pos:0.5
-
-COTA A B "Espalda/2 + 1cm"
-COTA A C "Largo manga"`,
+      description: 'Manga larga para camisa o blusa',
+      icon: '🫱',
+      points: [
+        { id:'A',   label:'A — Extremo izq base manga', base:'0',      dir:'abs',   x:0, y:0, xLocked:true, yLocked:true },
+        { id:'B',   label:'B — Extremo der base manga', base:'E2',     dir:'der',   ref:'A', xOff:10, yOff:0, desc:'Espalda ÷ 2 + 1cm' },
+        { id:'C',   label:'C — Muñeca izq',            base:'MANGA',  dir:'abajo', ref:'A', xOff:0,  yOff:0, desc:'Largo manga' },
+        { id:'D',   label:'D — Muñeca der',            base:'E2',     dir:'der',   ref:'C', xOff:10, yOff:0, desc:'Espalda ÷ 2 + 1cm' },
+        { id:'P1',  label:'P1 — Ctrl sisa izq',        base:'B10',    dir:'der',   ref:'A', xOff:0,  yOff:0, desc:'Busto ÷ 10' },
+        { id:'P3',  label:'P3 — Pico cabeza manga',    base:'E2',     dir:'der',   ref:'A', xOff:10, yOff:0, desc:'Sube: Espalda ÷ 6', extra:'arriba', extraBase:'ESPALDA', extraDiv:6 },
+      ],
+      lines: [
+        { type:'curve', from:'A',  to:'P1', ctrl:-20, label:'Sisa izq' },
+        { type:'curve', from:'P1', to:'P3', ctrl:15,  label:'Cabeza manga' },
+        { type:'curve', from:'P3', to:'B',  ctrl:-10, label:'Sisa der' },
+        { type:'line',  from:'B',  to:'D',  label:'Costado der' },
+        { type:'line',  from:'D',  to:'C',  label:'Dobladillo' },
+        { type:'line',  from:'C',  to:'A',  label:'Costado izq' },
+      ],
     },
 
-    'Cuello Camisero con Pie': {
-      garment: 'camisa',
-      gender:  null,
-      code: `# ══════════════════════════════════════════
-# CUELLO CAMISERO CON PIE
-# Sistema Atelier Escuela
-# ══════════════════════════════════════════
-
-PIEZA Cuello Camisero
-
-# ─── PALA DEL CUELLO ────────────────────
-# A.B = Mitad del contorno del cuello
-PUNTO A 0,0
-PUNTO B desde:A der:CUELLO/2
-
-# B.C = Ancho del cuello (4cm)
-PUNTO C desde:B abajo:40
-
-# Punta del cuello (vuelo hacia la derecha)
-PUNTO PUNTA desde:B der:25 abajo:20
-
-# Lado izquierdo
-PUNTO D desde:A abajo:40
-
-# Doblez central
-PUNTO CENTRO desde:A der:CUELLO/4 abajo:20
-
-LINEA A B
-LINEA B PUNTA
-CURVA PUNTA C control:5
-LINEA C D
-LINEA D A
-DOBLEZ A B
-HILO A D
-MUESCA linea:AB pos:0
-MUESCA linea:AB pos:1
-
-COTA A B "Cuello/2"
-COTA B C "Ancho 4cm"
-
-# ─── PIE DE CUELLO ─────────────────────
-# (separado — trazar debajo del cuello)
-PUNTO P_A desde:A abajo:80
-PUNTO P_B desde:B abajo:80
-PUNTO P_C desde:P_B abajo:35
-PUNTO P_D desde:P_A abajo:35
-
-CURVA P_A P_B control:-8
-LINEA P_B P_C
-LINEA P_C P_D
-LINEA P_D P_A
-DOBLEZ P_A P_B
-HILO P_A P_D
-
-COTA P_A P_B "Cuello/2"
-COTA P_B P_C "Pie 3cm"`,
-    },
-
-    'Falda Recta': {
+    'falda-frente': {
+      name: 'Falda Recta — Frente',
       garment: 'falda',
-      gender:  null,
-      code: `# ══════════════════════════════════════════
-# TRAZADO FALDA RECTA
-# Sistema Atelier Escuela
-# ══════════════════════════════════════════
+      description: 'Falda recta clásica',
+      icon: '👗',
+      points: [
+        { id:'A',  label:'A — Cintura izq',          base:'0',          dir:'abs',   x:0, y:0, xLocked:true, yLocked:true },
+        { id:'B',  label:'B — Cintura der',          base:'H4',         dir:'der',   ref:'A', xOff:0, yOff:0, desc:'Cadera ÷ 4' },
+        { id:'C',  label:'C — Bajo der',             base:'FALDA',      dir:'abajo', ref:'B', xOff:0, yOff:0, desc:'Largo falda' },
+        { id:'D',  label:'D — Bajo izq',             base:'FALDA',      dir:'abajo', ref:'A', xOff:0, yOff:0, desc:'Largo falda' },
+        { id:'A1', label:'A1 — Ajuste cintura izq',  base:'5',          dir:'arriba', ref:'A', xOff:0, yOff:0, desc:'Sube ~0.5cm' },
+        { id:'B1', label:'B1 — Ajuste cintura der',  base:'15',         dir:'abajo', ref:'B', xOff:0, yOff:0, desc:'Baja ~1.5cm' },
+        { id:'PX', label:'PX — Centro pinza X',      base:'H4',         dir:'der',   ref:'A', xOff:0, yOff:0, desc:'Cadera ÷ 4 ÷ 2', div:2 },
+        { id:'PT', label:'PT — Punta sup. pinza',    base:'15',         dir:'abajo', ref:'PX', xOff:0, yOff:0, desc:'~1.5cm' },
+        { id:'PB', label:'PB — Punta inf. pinza',    base:'CADERA_PROF',dir:'abajo', ref:'PX', xOff:0, yOff:-20, desc:'Prof. cadera - 2cm' },
+      ],
+      lines: [
+        { type:'curve', from:'A1', to:'PT', ctrl:-8, label:'Cintura izq' },
+        { type:'line',  from:'PT', to:'PB', label:'Pinza (costura)' },
+        { type:'curve', from:'PB', to:'B1', ctrl:8,  label:'Cintura der' },
+        { type:'line',  from:'B1', to:'C',  label:'Costado' },
+        { type:'line',  from:'C',  to:'D',  label:'Dobladillo' },
+        { type:'fold',  from:'D',  to:'A1', label:'CF — Doblez' },
+      ],
+    },
 
-PIEZA Falda Recta — Frente
-
-# A.B = Cuarta parte de cadera
-PUNTO A 0,0
-PUNTO B desde:A der:H4
-
-# B.C = Largo de falda
-PUNTO C desde:B abajo:FALDA
-
-# D = esquina inferior izquierda
-PUNTO D desde:A abajo:FALDA
-
-# 1 = nivel cadera (profundidad cadera)
-PUNTO 1 desde:A abajo:CADERA_PROF
-
-# Ajuste de cintura (caída natural)
-PUNTO A1 desde:A arriba:5
-PUNTO B1 desde:B abajo:15
-
-# Pinza de cintura
-PUNTO PINZA_CX desde:A der:H4/2
-PUNTO PINZA_TOP desde:PINZA_CX abajo:15
-PUNTO PINZA_BOT desde:PINZA_CX abajo:CADERA_PROF-20
-
-# Contorno
-CURVA A1 PINZA_TOP control:-8
-LINEA PINZA_TOP PINZA_BOT costura
-CURVA PINZA_BOT B1 control:8
-LINEA B1 C
-LINEA C D
-DOBLEZ D A1
-
-# Línea auxiliar de cadera
-LINEA 1 B costura
-
-HILO A D
-MUESCA linea:B1C pos:0.5
-
-COTA A B "Cadera/4"
-COTA A D "Largo falda"`,
+    'cuello-camisero': {
+      name: 'Cuello Camisero',
+      garment: 'camisa',
+      description: 'Cuello clásico con pie y pala',
+      icon: '🔘',
+      points: [
+        { id:'A',     label:'A — Base izq',         base:'0',      dir:'abs',   x:0, y:0, xLocked:true, yLocked:true },
+        { id:'B',     label:'B — Base der',         base:'CUELLO', dir:'der',   ref:'A', xOff:0, yOff:0, desc:'Cuello ÷ 2' },
+        { id:'C',     label:'C — Bajo der',         base:'40',     dir:'abajo', ref:'B', xOff:0, yOff:0, desc:'Ancho ~4cm' },
+        { id:'PUNTA', label:'Punta — Vuelo cuello', base:'25',     dir:'der',   ref:'B', xOff:0, yOff:20, desc:'Vuelo + bajada' },
+        { id:'D',     label:'D — Bajo izq',         base:'40',     dir:'abajo', ref:'A', xOff:0, yOff:0, desc:'Ancho ~4cm' },
+        { id:'PA',    label:'PA — Pie base izq',    base:'80',     dir:'abajo', ref:'A', xOff:0, yOff:0, desc:'Separación del cuello' },
+        { id:'PB2',   label:'PB — Pie base der',    base:'CUELLO', dir:'der',   ref:'PA', xOff:0, yOff:0, desc:'Cuello ÷ 2' },
+        { id:'PC',    label:'PC — Pie bajo der',    base:'35',     dir:'abajo', ref:'PB2', xOff:0, yOff:0, desc:'Pie ~3.5cm' },
+        { id:'PD',    label:'PD — Pie bajo izq',    base:'35',     dir:'abajo', ref:'PA', xOff:0, yOff:0, desc:'Pie ~3.5cm' },
+      ],
+      lines: [
+        { type:'line',  from:'A',    to:'B',    label:'Cuello superior' },
+        { type:'line',  from:'B',    to:'PUNTA',label:'Pala' },
+        { type:'curve', from:'PUNTA',to:'C',    ctrl:5, label:'Punta cuello' },
+        { type:'line',  from:'C',    to:'D',    label:'Base cuello' },
+        { type:'line',  from:'D',    to:'A',    label:'Lado izq' },
+        { type:'fold',  from:'A',    to:'B',    label:'Doblez' },
+        { type:'curve', from:'PA',  to:'PB2',   ctrl:-8, label:'Pie superior' },
+        { type:'line',  from:'PB2', to:'PC',    label:'Pie der' },
+        { type:'line',  from:'PC',  to:'PD',    label:'Pie base' },
+        { type:'line',  from:'PD',  to:'PA',    label:'Pie izq' },
+      ],
     },
 
   };
 
-  // ── Estado del editor ────────────────────────────────────────
-  let _modal     = null;
-  let _editor    = null;
-  let _currentManualKey = null;
+  // ── Estado ──────────────────────────────────────────────────
+  let _modal        = null;
+  let _currentPiece = null;
+  let _adjustments  = {}; // { pointId: { xOff, yOff, ctrl } }
+  let _curManualKey = null;
+  let _previewSVG   = null;
 
-  // ── ABRIR ────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════
+  // OPEN / CLOSE
+  // ════════════════════════════════════════════════════════════
   function open() {
-    if (_modal) { _modal.classList.add('open'); _refreshManualsList(); return; }
+    if (_modal) { _modal.classList.add('open'); return; }
     _injectStyles();
     _buildUI();
   }
+  function close() { if (_modal) _modal.classList.remove('open'); }
 
-  function close() {
-    if (_modal) _modal.classList.remove('open');
-  }
-
-  // ── CSS ──────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════
+  // CSS
+  // ════════════════════════════════════════════════════════════
   function _injectStyles() {
-    if (document.getElementById('drafter-styles')) return;
+    if (document.getElementById('dv3-css')) return;
     const s = document.createElement('style');
-    s.id = 'drafter-styles';
+    s.id = 'dv3-css';
     s.textContent = `
-      #drafter-modal { z-index: 700; }
-
-      .drafter-panel {
-        position:relative;z-index:1;
-        background:var(--panel);
-        border:1px solid var(--brd2);
-        border-radius:16px;
-        width:min(1140px,97vw);
-        max-height:95vh;
-        display:flex;
-        flex-direction:column;
-        box-shadow:0 24px 64px rgba(0,0,0,.85);
-        overflow:hidden;
+      #dv3-modal { z-index:700 }
+      .dv3-panel {
+        position:relative;z-index:1;background:var(--panel);
+        border:1px solid var(--brd2);border-radius:16px;
+        width:min(1140px,97vw);max-height:96vh;
+        display:flex;flex-direction:column;
+        box-shadow:0 24px 64px rgba(0,0,0,.9);overflow:hidden;
       }
-
-      /* Header */
-      .drafter-hdr {
+      .dv3-hdr {
         display:flex;align-items:center;justify-content:space-between;
-        padding:16px 20px;
-        border-bottom:1px solid var(--brd);
-        background:linear-gradient(135deg,rgba(139,92,246,.08) 0%,transparent 100%);
+        padding:14px 20px;border-bottom:1px solid var(--brd);
+        background:linear-gradient(135deg,rgba(139,92,246,.1),transparent);
         flex-shrink:0;gap:12px;
       }
-      .drafter-hdr-left { display:flex;align-items:center;gap:12px }
-      .drafter-hdr h2 { font-size:15px;font-weight:800 }
-      .drafter-hdr p  { font-size:11px;color:var(--tx3);margin-top:1px }
-      .drafter-hdr-right { display:flex;gap:8px;align-items:center;flex-wrap:wrap }
+      .dv3-hdr-l { display:flex;align-items:center;gap:12px }
+      .dv3-hdr-l h2 { font-size:15px;font-weight:800 }
+      .dv3-hdr-l p  { font-size:11px;color:var(--tx3);margin-top:1px }
+      .dv3-hdr-r { display:flex;gap:8px;align-items:center }
 
-      /* Cuerpo (3 columnas) */
-      .drafter-body {
-        display:grid;
-        grid-template-columns:220px 1fr 260px;
-        flex:1;overflow:hidden;min-height:0;
-      }
-      @media(max-width:900px){
-        .drafter-body{grid-template-columns:1fr}
-        .drafter-manuals-col,.drafter-info-col{display:none}
-      }
+      /* Body — 3 columnas */
+      .dv3-body { display:grid;grid-template-columns:240px 1fr 280px;flex:1;overflow:hidden;min-height:0 }
+      @media(max-width:900px){.dv3-body{grid-template-columns:1fr}.dv3-col-l,.dv3-col-r{display:none}}
 
-      /* Columna izquierda: manuales guardados */
-      .drafter-manuals-col {
-        border-right:1px solid var(--brd);
-        display:flex;flex-direction:column;overflow:hidden;
-      }
-      .drafter-col-title {
-        font-size:10px;font-weight:700;letter-spacing:1px;
-        text-transform:uppercase;color:var(--tx3);
-        padding:12px 14px 8px;border-bottom:1px solid var(--brd);
+      /* Col izq — piezas */
+      .dv3-col-l { border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden }
+      .dv3-col-title {
+        font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);
+        padding:10px 14px 7px;border-bottom:1px solid var(--brd);flex-shrink:0;
         display:flex;align-items:center;justify-content:space-between;
-        flex-shrink:0;
       }
-      .drafter-manuals-list {
-        flex:1;overflow-y:auto;padding:8px;
-        display:flex;flex-direction:column;gap:5px;
+      .dv3-pieces-list { flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px }
+      .dv3-piece-btn {
+        display:flex;align-items:center;gap:10px;
+        padding:9px 12px;border-radius:8px;border:1.5px solid var(--brd);
+        background:var(--inp);cursor:pointer;transition:all .15s;text-align:left;
+        font-family:var(--font);width:100%;
       }
-      .manual-item {
-        padding:8px 10px;border-radius:var(--r);
-        background:var(--inp);border:1.5px solid var(--brd);
-        cursor:pointer;transition:all .15s;font-size:11px;
-        display:flex;align-items:center;justify-content:space-between;gap:6px;
-      }
-      .manual-item:hover { background:var(--hov);border-color:var(--brd2) }
-      .manual-item.active { background:var(--accbg);border-color:var(--acc);color:var(--acc2) }
-      .manual-item-name { font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
-      .manual-item-type { font-size:9px;color:var(--tx3);flex-shrink:0 }
-      .manual-del-btn { background:none;border:none;color:var(--tx3);cursor:pointer;font-size:12px;padding:1px 3px;line-height:1 }
-      .manual-del-btn:hover { color:var(--red) }
+      .dv3-piece-btn:hover { background:var(--hov);border-color:var(--brd2) }
+      .dv3-piece-btn.active { background:var(--accbg);border-color:var(--acc) }
+      .dv3-piece-icon { font-size:18px;flex-shrink:0 }
+      .dv3-piece-nm { font-size:11px;font-weight:700;color:var(--tx);line-height:1.3 }
+      .dv3-piece-desc { font-size:9px;color:var(--tx3);margin-top:1px }
 
-      .manual-section-title {
-        font-size:9px;font-weight:700;letter-spacing:.8px;
-        text-transform:uppercase;color:var(--tx3);
-        padding:8px 10px 4px;
+      /* Col centro — puntos ajustables */
+      .dv3-col-m { display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--brd) }
+      .dv3-piece-header {
+        padding:12px 16px;border-bottom:1px solid var(--brd);flex-shrink:0;
+        background:rgba(139,92,246,.05);
+      }
+      .dv3-piece-header h3 { font-size:14px;font-weight:800;margin-bottom:2px }
+      .dv3-piece-header p  { font-size:11px;color:var(--tx3) }
+
+      .dv3-points-scroll { flex:1;overflow-y:auto;padding:10px 14px }
+      .dv3-point-card {
+        background:var(--inp);border:1.5px solid var(--brd);border-radius:10px;
+        padding:12px 14px;margin-bottom:8px;transition:border-color .15s;
+      }
+      .dv3-point-card:hover { border-color:var(--brd2) }
+      .dv3-point-card.highlighted { border-color:var(--acc);background:var(--accbg) }
+
+      .dv3-pt-header {
+        display:flex;align-items:center;gap:10px;margin-bottom:10px;
+      }
+      .dv3-pt-badge {
+        width:28px;height:28px;border-radius:6px;
+        background:var(--acc);color:#fff;
+        font-size:11px;font-weight:800;
+        display:flex;align-items:center;justify-content:center;
+        flex-shrink:0;font-family:monospace;
+      }
+      .dv3-pt-name { font-size:12px;font-weight:700;color:var(--tx);flex:1 }
+      .dv3-pt-desc { font-size:10px;color:var(--tx3) }
+      .dv3-pt-coords {
+        font-size:10px;color:var(--acc2);font-family:monospace;font-weight:600;
       }
 
-      /* Columna central: editor */
-      .drafter-editor-col {
-        display:flex;flex-direction:column;overflow:hidden;
-        border-right:1px solid var(--brd);
+      /* Slider row */
+      .dv3-slider-row {
+        display:flex;align-items:center;gap:10px;margin-bottom:6px;
       }
-      .drafter-editor-hdr {
-        display:flex;align-items:center;justify-content:space-between;
-        padding:10px 14px;border-bottom:1px solid var(--brd);
-        flex-shrink:0;gap:8px;flex-wrap:wrap;
+      .dv3-slider-lbl { font-size:10px;color:var(--tx3);width:90px;flex-shrink:0 }
+      .dv3-slider {
+        flex:1;-webkit-appearance:none;appearance:none;
+        height:4px;background:var(--brd2);border-radius:2px;outline:none;cursor:pointer;
       }
-      .drafter-editor-name {
-        background:none;border:none;
-        color:var(--tx);font-size:13px;font-weight:700;
-        font-family:var(--font);outline:none;
-        flex:1;min-width:120px;
-        border-bottom:1.5px solid var(--brd);padding:2px 4px;
+      .dv3-slider::-webkit-slider-thumb {
+        -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+        background:var(--acc);cursor:pointer;box-shadow:0 0 6px rgba(139,92,246,.5);
+      }
+      .dv3-slider::-moz-range-thumb {
+        width:14px;height:14px;border-radius:50%;background:var(--acc);cursor:pointer;border:none;
+      }
+      .dv3-num-inp {
+        width:60px;background:var(--bg);border:1.5px solid var(--brd);
+        color:var(--tx);border-radius:6px;padding:4px 8px;
+        font-size:11px;font-family:monospace;text-align:right;outline:none;
         transition:border-color .15s;
       }
-      .drafter-editor-name:focus { border-color:var(--acc) }
+      .dv3-num-inp:focus { border-color:var(--acc) }
+      .dv3-unit { font-size:10px;color:var(--tx3);width:20px;flex-shrink:0 }
 
-      .drafter-vars-bar {
-        display:flex;gap:6px;flex-wrap:wrap;
-        padding:8px 14px;border-bottom:1px solid var(--brd);
-        flex-shrink:0;
+      /* Sección de líneas */
+      .dv3-lines-section { padding:10px 14px;border-top:1px solid var(--brd);flex-shrink:0 }
+      .dv3-lines-title { font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px }
+      .dv3-line-row {
+        display:flex;align-items:center;gap:8px;padding:5px 8px;
+        border-radius:6px;background:var(--inp);margin-bottom:4px;
+        font-size:11px;color:var(--tx2);
       }
-      .var-chip {
+      .dv3-line-type {
+        width:28px;height:3px;border-radius:1px;flex-shrink:0;
+      }
+      .dv3-line-ctrl-row { display:flex;align-items:center;gap:8px;flex:1 }
+      .dv3-line-lbl { flex:1 }
+      .dv3-line-num {
+        width:50px;background:var(--bg);border:1px solid var(--brd);
+        color:var(--tx);border-radius:5px;padding:3px 6px;
+        font-size:10px;font-family:monospace;text-align:right;outline:none;
+      }
+      .dv3-line-num:focus { border-color:var(--acc) }
+
+      /* Acciones */
+      .dv3-actions { display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--brd);flex-shrink:0;flex-wrap:wrap }
+      .dv3-btn-p {
+        background:linear-gradient(135deg,var(--acc),#6d28d9);color:#fff;border:none;
+        border-radius:var(--r);padding:9px 16px;font-size:12px;font-weight:700;
+        cursor:pointer;font-family:var(--font);transition:all .15s;
+      }
+      .dv3-btn-p:hover { filter:brightness(1.1);transform:translateY(-1px) }
+      .dv3-btn-s { background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:var(--r);padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s }
+      .dv3-btn-s:hover { background:var(--hov) }
+      .dv3-btn-g { background:transparent;border:1.5px solid var(--brd);color:var(--tx2);border-radius:var(--r);padding:8px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s }
+      .dv3-btn-g:hover { background:var(--inp);color:var(--tx) }
+      .dv3-btn-add { background:rgba(52,211,153,.1);border:1.5px solid rgba(52,211,153,.3);color:#34d399;border-radius:var(--r);padding:9px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s }
+      .dv3-btn-add:hover { background:rgba(52,211,153,.2) }
+
+      /* Col der — preview */
+      .dv3-col-r { display:flex;flex-direction:column;overflow:hidden }
+      .dv3-preview-wrap { flex:1;background:#080810;position:relative;overflow:hidden;min-height:0 }
+      #dv3-svg { width:100%;height:100% }
+      .dv3-info-bar {
+        padding:10px 14px;border-top:1px solid var(--brd);flex-shrink:0;
+        display:flex;flex-direction:column;gap:4px;
+      }
+      .dv3-info-row { display:flex;justify-content:space-between;font-size:11px }
+      .dv3-info-lbl { color:var(--tx3) }
+      .dv3-info-val { color:var(--tx);font-weight:700;font-family:monospace }
+
+      /* Vars badge */
+      .dv3-var-pill {
+        display:inline-flex;align-items:center;gap:4px;
         background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);
-        color:var(--acc2);border-radius:20px;
-        padding:2px 9px;font-size:10px;font-weight:600;
-        font-family:var(--mono);cursor:pointer;transition:all .15s;
-        white-space:nowrap;
-      }
-      .var-chip:hover { background:rgba(139,92,246,.2);border-color:var(--acc) }
-
-      .drafter-textarea {
-        flex:1;resize:none;
-        background:#0a0a12;
-        border:none;
-        color:#c8c0f0;
-        padding:14px;
-        font-size:12px;
-        font-family:'Cascadia Code','Fira Code',monospace;
-        line-height:1.75;
-        outline:none;
-        tab-size:2;
-        min-height:0;
-      }
-      .drafter-textarea:focus { outline:none }
-
-      .drafter-errors-bar {
-        background:rgba(248,113,113,.06);
-        border-top:1px solid rgba(248,113,113,.2);
-        font-size:10px;color:#f87171;
-        font-family:monospace;line-height:1.6;
-        padding:8px 14px;max-height:60px;overflow-y:auto;
-        flex-shrink:0;display:none;
-        white-space:pre;
+        color:var(--acc2);border-radius:12px;padding:2px 8px;font-size:10px;
+        font-family:monospace;font-weight:600;cursor:help;white-space:nowrap;
       }
 
-      .drafter-actions-bar {
-        display:flex;gap:8px;padding:10px 14px;
-        border-top:1px solid var(--brd);flex-shrink:0;
-        flex-wrap:wrap;align-items:center;
+      /* Saved list */
+      .dv3-saved-lbl { font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);padding:8px 8px 3px }
+      .dv3-saved-item {
+        display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;
+        background:var(--inp);border:1.5px solid var(--brd);cursor:pointer;
+        font-size:11px;transition:all .15s;margin-bottom:3px;
       }
+      .dv3-saved-item:hover { background:var(--hov);border-color:var(--brd2) }
+      .dv3-saved-item.active { background:var(--accbg);border-color:var(--acc) }
+      .dv3-saved-nm { font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx) }
+      .dv3-saved-tp { font-size:9px;color:var(--tx3) }
+      .dv3-del-btn { background:none;border:none;color:var(--tx3);cursor:pointer;font-size:11px;padding:1px 3px;line-height:1 }
+      .dv3-del-btn:hover { color:var(--red) }
 
-      /* Columna derecha: preview + info */
-      .drafter-info-col {
-        display:flex;flex-direction:column;overflow:hidden;
+      /* No piece selected */
+      .dv3-empty {
+        flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+        gap:12px;color:var(--tx3);padding:40px;text-align:center;
       }
-      .drafter-preview-wrap {
-        flex:1;position:relative;overflow:hidden;
-        background:#0a0a12;border-bottom:1px solid var(--brd);
-        min-height:0;
-      }
-      #drafter-svg {
-        width:100%;height:100%;
-        cursor:crosshair;
-      }
-
-      .drafter-points-wrap {
-        padding:10px 12px;overflow-y:auto;
-        max-height:200px;flex-shrink:0;
-      }
-      .pts-table {
-        width:100%;border-collapse:collapse;font-size:10px;
-        font-family:var(--mono);
-      }
-      .pts-table th {
-        text-align:left;color:var(--tx3);font-weight:700;
-        letter-spacing:.6px;text-transform:uppercase;
-        padding:4px 6px;border-bottom:1px solid var(--brd);font-size:9px;
-      }
-      .pts-table td {
-        padding:3px 6px;color:var(--tx2);border-bottom:1px solid var(--brd);
-      }
-      .pts-table tr:hover td { background:var(--hov) }
-      .pts-table .pt-name { color:var(--acc2);font-weight:700 }
-
-      .drafter-info-box {
-        padding:10px 12px;border-top:1px solid var(--brd);flex-shrink:0;
-        font-size:11px;
-      }
-      .info-row { display:flex;justify-content:space-between;margin-bottom:4px }
-      .info-label { color:var(--tx3) }
-      .info-value { color:var(--tx);font-weight:600;font-family:var(--mono) }
-
-      /* Botones */
-      .btn-compile {
-        background:linear-gradient(135deg,var(--acc),#6d28d9);
-        color:#fff;border:none;border-radius:var(--r);
-        padding:9px 18px;font-size:12px;font-weight:700;
-        cursor:pointer;font-family:var(--font);
-        box-shadow:0 2px 12px rgba(139,92,246,.3);
-        transition:all .15s;
-        display:flex;align-items:center;gap:6px;
-      }
-      .btn-compile:hover { filter:brightness(1.1);transform:translateY(-1px) }
-      .btn-save-manual {
-        background:var(--inp);border:1.5px solid var(--brd2);
-        color:var(--tx);border-radius:var(--r);
-        padding:9px 14px;font-size:12px;font-weight:600;
-        cursor:pointer;font-family:var(--font);transition:all .15s;
-      }
-      .btn-save-manual:hover { background:var(--hov) }
-      .btn-add-pattern {
-        background:rgba(52,211,153,.1);border:1.5px solid rgba(52,211,153,.3);
-        color:#34d399;border-radius:var(--r);
-        padding:9px 14px;font-size:12px;font-weight:600;
-        cursor:pointer;font-family:var(--font);transition:all .15s;
-      }
-      .btn-add-pattern:hover { background:rgba(52,211,153,.2) }
-      .btn-replace-preset {
-        background:rgba(251,191,36,.1);border:1.5px solid rgba(251,191,36,.3);
-        color:var(--yel);border-radius:var(--r);
-        padding:9px 14px;font-size:12px;font-weight:600;
-        cursor:pointer;font-family:var(--font);transition:all .15s;
-      }
-      .btn-replace-preset:hover { background:rgba(251,191,36,.2) }
-      .btn-drafter-g {
-        background:transparent;border:1.5px solid var(--brd);
-        color:var(--tx2);border-radius:var(--r);
-        padding:8px 12px;font-size:11px;font-weight:600;
-        cursor:pointer;font-family:var(--font);transition:all .15s;
-      }
-      .btn-drafter-g:hover { background:var(--inp);color:var(--tx);border-color:var(--brd2) }
-
-      /* Modal de confirmación */
-      .drafter-confirm {
-        position:fixed;inset:0;z-index:850;
-        display:flex;align-items:center;justify-content:center;
-      }
-      .drafter-confirm-box {
-        position:relative;z-index:1;
-        background:var(--panel);border:1px solid var(--brd2);
-        border-radius:14px;width:min(400px,92vw);
-        padding:28px;box-shadow:0 16px 48px rgba(0,0,0,.7);
-        text-align:center;
-      }
-      .drafter-confirm-box h3 { font-size:16px;font-weight:800;margin-bottom:8px }
-      .drafter-confirm-box p  { font-size:12px;color:var(--tx2);margin-bottom:20px;line-height:1.6 }
-      .drafter-confirm-actions { display:flex;gap:10px;justify-content:center;flex-wrap:wrap }
-
-      /* Selector de tipo de prenda */
-      .garment-type-sel {
-        background:var(--inp);border:1.5px solid var(--brd);
-        color:var(--tx);border-radius:var(--r);
-        padding:6px 10px;font-size:11px;outline:none;cursor:pointer;
-      }
+      .dv3-empty-icon { font-size:48px;opacity:.4 }
+      .dv3-empty h3 { font-size:14px;font-weight:700;color:var(--tx2) }
+      .dv3-empty p  { font-size:12px;line-height:1.6 }
     `;
     document.head.appendChild(s);
   }
 
-  // ── CONSTRUIR UI ─────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════
+  // BUILD UI
+  // ════════════════════════════════════════════════════════════
   function _buildUI() {
     _modal = document.createElement('div');
-    _modal.id        = 'drafter-modal';
+    _modal.id = 'dv3-modal';
     _modal.className = 'modal open';
 
-    const state   = window.PAT?.App?.getState?.() || {};
-    const measures = state.measures || {};
-    const vars     = _buildVarsDisplay(measures);
-
     _modal.innerHTML = `
-      <div class="m-ov" id="drafter-overlay"></div>
-      <div class="drafter-panel">
+      <div class="m-ov" id="dv3-ov"></div>
+      <div class="dv3-panel">
 
         <!-- HEADER -->
-        <div class="drafter-hdr">
-          <div class="drafter-hdr-left">
-            <span style="font-size:20px">✏️</span>
+        <div class="dv3-hdr">
+          <div class="dv3-hdr-l">
+            <span style="font-size:22px">✏️</span>
             <div>
-              <h2>Editor de Trazado Manual</h2>
-              <p>Define puntos con fórmulas basadas en tus medidas reales</p>
+              <h2>Editor Visual de Patronaje</h2>
+              <p>Selecciona la pieza · Ajusta cada punto · Preview en vivo</p>
             </div>
           </div>
-          <div class="drafter-hdr-right">
-            <select id="drafter-example-sel" class="garment-type-sel">
-              <option value="">Cargar ejemplo…</option>
-              ${Object.keys(BUILTIN_EXAMPLES).map(k =>
-                `<option value="${k}">${k}</option>`
-              ).join('')}
-            </select>
-            <button class="btn-drafter-g" id="drafter-help-btn">? Referencia</button>
-            <button class="m-close" id="drafter-close-btn">✕</button>
+          <div class="dv3-hdr-r">
+            <button class="dv3-btn-g" id="dv3-reset-btn">↺ Resetear</button>
+            <button class="m-close" id="dv3-close">✕</button>
           </div>
         </div>
 
-        <!-- CUERPO -->
-        <div class="drafter-body">
+        <!-- BODY -->
+        <div class="dv3-body">
 
-          <!-- COL 1: MANUALES GUARDADOS -->
-          <div class="drafter-manuals-col">
-            <div class="drafter-col-title">
-              Mis manuales
-              <button class="btn-drafter-g" id="drafter-new-btn" style="padding:3px 8px;font-size:10px">+ Nuevo</button>
+          <!-- COL IZQ: lista de piezas + guardados -->
+          <div class="dv3-col-l">
+            <div class="dv3-col-title">
+              Tipo de pieza
             </div>
-            <div class="drafter-manuals-list" id="drafter-manuals-list"></div>
-          </div>
+            <div class="dv3-pieces-list" id="dv3-pieces-list"></div>
 
-          <!-- COL 2: EDITOR DE CÓDIGO -->
-          <div class="drafter-editor-col">
-
-            <div class="drafter-editor-hdr">
-              <input type="text" id="drafter-piece-name"
-                     class="drafter-editor-name"
-                     value="Mi Pieza"
-                     placeholder="Nombre de la pieza…" />
-              <select id="drafter-garment-type" class="garment-type-sel" title="Tipo de prenda para reemplazar">
-                <option value="">Tipo de prenda…</option>
-                <option value="franela">Franela</option>
-                <option value="blusa">Blusa</option>
-                <option value="camisa_dama">Camisa Dama</option>
-                <option value="camisa_caballero">Camisa Caballero</option>
-                <option value="falda">Falda</option>
-                <option value="vestido">Vestido</option>
-              </select>
-            </div>
-
-            <!-- Chips de variables disponibles -->
-            <div class="drafter-vars-bar" title="Haz clic para insertar en el editor">
-              <span style="font-size:10px;color:var(--tx3);margin-right:4px">Variables:</span>
-              ${vars.map(v => `<span class="var-chip" data-var="${v.key}" title="${v.desc}">${v.key}</span>`).join('')}
-            </div>
-
-            <textarea id="drafter-code"
-                      class="drafter-textarea"
-                      spellcheck="false"
-                      placeholder="# Escribe tus instrucciones de trazado aquí
-# Ejemplo:
-PIEZA Mi Blusa
-PUNTO A 0,0
-PUNTO B desde:A der:B4
-PUNTO C desde:B abajo:TALLE_ESP
-LINEA A B
-LINEA B C"></textarea>
-
-            <div class="drafter-errors-bar" id="drafter-errors"></div>
-
-            <div class="drafter-actions-bar">
-              <button class="btn-compile" id="drafter-run">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                Generar
-              </button>
-              <button class="btn-save-manual" id="drafter-save-btn">💾 Guardar manual</button>
-              <button class="btn-add-pattern" id="drafter-add-btn">＋ Agregar al patrón</button>
-              <button class="btn-replace-preset" id="drafter-replace-btn">⇄ Reemplazar prenda base</button>
-              <button class="btn-drafter-g" id="drafter-clear-btn">✕ Limpiar</button>
+            <div style="border-top:1px solid var(--brd);flex-shrink:0">
+              <div class="dv3-col-title" style="border-bottom:none">
+                Mis patrones guardados
+                <button class="dv3-btn-g" id="dv3-new-btn" style="padding:3px 7px;font-size:9px">+ Nuevo</button>
+              </div>
+              <div style="padding:6px;max-height:160px;overflow-y:auto" id="dv3-saved-list"></div>
             </div>
           </div>
 
-          <!-- COL 3: PREVIEW + INFO -->
-          <div class="drafter-info-col">
-            <div class="drafter-col-title" style="padding:12px">Vista previa</div>
-            <div class="drafter-preview-wrap">
-              <svg id="drafter-svg"
-                   xmlns="http://www.w3.org/2000/svg"
-                   viewBox="0 0 400 400">
+          <!-- COL CENTRO: puntos ajustables -->
+          <div class="dv3-col-m" id="dv3-col-m">
+            <div class="dv3-empty" id="dv3-empty">
+              <div class="dv3-empty-icon">✂</div>
+              <h3>Selecciona una pieza</h3>
+              <p>Elige el tipo de pieza en la lista de la izquierda para comenzar a ajustar los puntos de tu patrón.</p>
+            </div>
+          </div>
+
+          <!-- COL DER: preview -->
+          <div class="dv3-col-r">
+            <div class="dv3-col-title" style="padding:10px 14px">
+              Vista previa en vivo
+              <span id="dv3-scale-tag" style="font-size:9px;color:var(--tx3);font-weight:400">—</span>
+            </div>
+            <div class="dv3-preview-wrap">
+              <svg id="dv3-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
                 <defs>
-                  <pattern id="dg" width="50" height="50" patternUnits="userSpaceOnUse">
-                    <path d="M50 0L0 0 0 50" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+                  <pattern id="dv3-grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                    <path d="M50 0L0 0 0 50" fill="none" stroke="rgba(255,255,255,.04)" stroke-width=".5"/>
                   </pattern>
-                  <marker id="arrow" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
-                    <path d="M0,0 L0,7 L7,3.5 z" fill="#8b5cf6"/>
+                  <marker id="dv3-arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                    <path d="M0,0 L0,6 L6,3 z" fill="#8b5cf6"/>
                   </marker>
-                  <marker id="arrow-rev" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse">
-                    <path d="M0,0 L0,7 L7,3.5 z" fill="#8b5cf6"/>
+                  <marker id="dv3-arrow-rev" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse">
+                    <path d="M0,0 L0,6 L6,3 z" fill="#8b5cf6"/>
                   </marker>
                 </defs>
-                <rect x="-9999" y="-9999" width="19998" height="19998" fill="url(#dg)"/>
-                <g id="drafter-preview-g"></g>
+                <rect x="-9999" y="-9999" width="19998" height="19998" fill="url(#dv3-grid)"/>
+                <g id="dv3-pattern-g"></g>
               </svg>
             </div>
-
-            <div class="drafter-col-title" style="padding:10px 12px 4px">Puntos definidos</div>
-            <div class="drafter-points-wrap">
-              <table class="pts-table" id="drafter-pts-table">
-                <thead>
-                  <tr><th>Punto</th><th>X (mm)</th><th>Y (mm)</th><th>Desc</th></tr>
-                </thead>
-                <tbody id="drafter-pts-body">
-                  <tr><td colspan="4" style="color:var(--tx3);text-align:center;padding:10px">Sin puntos aún</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="drafter-info-box" id="drafter-info-box">
-              <div class="info-row"><span class="info-label">Tamaño aprox.</span><span class="info-value" id="drafter-size">—</span></div>
-              <div class="info-row"><span class="info-label">Puntos</span><span class="info-value" id="drafter-pt-count">0</span></div>
-              <div class="info-row"><span class="info-label">Líneas</span><span class="info-value" id="drafter-ln-count">0</span></div>
+            <div class="dv3-info-bar">
+              <div class="dv3-info-row"><span class="dv3-info-lbl">Tamaño aprox.</span><span class="dv3-info-val" id="dv3-size">—</span></div>
+              <div class="dv3-info-row"><span class="dv3-info-lbl">Puntos</span><span class="dv3-info-val" id="dv3-pts-count">0</span></div>
+              <div class="dv3-info-row"><span class="dv3-info-lbl">Medidas base</span><span class="dv3-info-val" id="dv3-bust-val">88cm</span></div>
             </div>
           </div>
 
-        </div>
-      </div>
-
-      <!-- Panel de referencia -->
-      <div id="drafter-ref-panel" style="
-        display:none;position:fixed;right:20px;top:80px;z-index:720;
-        background:var(--panel);border:1px solid var(--brd2);border-radius:12px;
-        width:340px;max-height:82vh;box-shadow:0 8px 32px rgba(0,0,0,.6);
-        display:none;flex-direction:column;overflow:hidden;
-      ">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--brd);flex-shrink:0">
-          <span style="font-weight:700;font-size:13px">📖 Referencia de comandos</span>
-          <button class="btn-drafter-g" id="drafter-ref-close" style="padding:3px 8px">✕</button>
-        </div>
-        <div style="overflow-y:auto;padding:14px 16px;font-size:11px;line-height:1.75;color:var(--tx2)">
-          ${_helpHTML()}
         </div>
       </div>
     `;
 
     document.body.appendChild(_modal);
-    _editor = document.getElementById('drafter-code');
+    _previewSVG = document.getElementById('dv3-svg');
 
-    _bindEvents();
-    _refreshManualsList();
-    _loadExample(Object.keys(BUILTIN_EXAMPLES)[0]);
+    // Poblar lista de piezas
+    const list = document.getElementById('dv3-pieces-list');
+    Object.entries(PIECES).forEach(([key, piece]) => {
+      const btn = document.createElement('button');
+      btn.className = 'dv3-piece-btn';
+      btn.dataset.key = key;
+      btn.innerHTML = `
+        <span class="dv3-piece-icon">${piece.icon}</span>
+        <div>
+          <div class="dv3-piece-nm">${piece.name}</div>
+          <div class="dv3-piece-desc">${piece.description}</div>
+        </div>
+      `;
+      btn.addEventListener('click', () => _selectPiece(key));
+      list.appendChild(btn);
+    });
+
+    // Eventos
+    document.getElementById('dv3-ov').onclick    = close;
+    document.getElementById('dv3-close').onclick = close;
+    document.getElementById('dv3-reset-btn').onclick = _resetAdjustments;
+    document.getElementById('dv3-new-btn').onclick   = () => { _curManualKey = null; _refreshSaved(); };
+
+    _refreshSaved();
+
+    // Seleccionar primera pieza por defecto
+    _selectPiece(Object.keys(PIECES)[0]);
   }
 
-  // ── EVENTOS ──────────────────────────────────────────────────
-  function _bindEvents() {
-    document.getElementById('drafter-overlay').onclick  = close;
-    document.getElementById('drafter-close-btn').onclick = close;
+  // ════════════════════════════════════════════════════════════
+  // SELECCIONAR PIEZA
+  // ════════════════════════════════════════════════════════════
+  function _selectPiece(key) {
+    _currentPiece = key;
+    _adjustments  = {};
 
-    document.getElementById('drafter-run').onclick = _compile;
-    document.getElementById('drafter-clear-btn').onclick = () => {
-      _editor.value = '';
-      _clearPreview();
-    };
-    document.getElementById('drafter-add-btn').onclick     = _addToMainPattern;
-    document.getElementById('drafter-replace-btn').onclick = _replacePreset;
-    document.getElementById('drafter-save-btn').onclick    = _saveManual;
-    document.getElementById('drafter-new-btn').onclick     = _newManual;
-
-    // Cargar ejemplo predefinido
-    document.getElementById('drafter-example-sel').onchange = function() {
-      if (this.value) { _loadExample(this.value); this.value = ''; }
-    };
-
-    // Panel de referencia
-    document.getElementById('drafter-help-btn').onclick = () => {
-      const p = document.getElementById('drafter-ref-panel');
-      p.style.display = p.style.display === 'none' || !p.style.display ? 'flex' : 'none';
-      p.style.flexDirection = 'column';
-    };
-    document.getElementById('drafter-ref-close').onclick = () => {
-      document.getElementById('drafter-ref-panel').style.display = 'none';
-    };
-
-    // Insertar variable al hacer clic en chip
-    document.querySelectorAll('.var-chip').forEach(chip => {
-      chip.onclick = () => {
-        const v   = chip.dataset.var;
-        const pos = _editor.selectionStart;
-        const before = _editor.value.slice(0, pos);
-        const after  = _editor.value.slice(pos);
-        _editor.value = before + v + after;
-        _editor.focus();
-        _editor.setSelectionRange(pos + v.length, pos + v.length);
+    // Inicializar adjustments desde la definición
+    const piece = PIECES[key];
+    piece.points.forEach(pt => {
+      _adjustments[pt.id] = {
+        xOff: pt.xOff || 0,
+        yOff: pt.yOff || 0,
+        ctrl: 0,
+      };
+    });
+    // Inicializar líneas con sus controles
+    piece.lines.forEach((ln, i) => {
+      _adjustments['line_' + i] = {
+        ctrl: ln.ctrl || ln.semi || 0,
       };
     });
 
-    // Auto-compilar (debounce 700ms)
-    let _t = null;
-    _editor.oninput = () => { clearTimeout(_t); _t = setTimeout(_compile, 700); };
+    // Marcar botón activo
+    document.querySelectorAll('.dv3-piece-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.key === key);
+    });
+
+    // Construir UI de puntos
+    _buildPointsUI(piece);
+
+    // Actualizar preview
+    _updatePreview();
   }
 
-  // ── COMPILAR Y PREVISUALIZAR ─────────────────────────────────
-  function _compile() {
-    const text = _editor?.value || '';
-    if (!text.trim()) return;
+  // ════════════════════════════════════════════════════════════
+  // CONSTRUIR UI DE PUNTOS
+  // ════════════════════════════════════════════════════════════
+  function _buildPointsUI(piece) {
+    const col = document.getElementById('dv3-col-m');
+    const measures = _getMeasures();
+    const vars = _buildVars(measures);
 
-    // Actualizar nombre desde el textarea si tiene PIEZA
-    const pMatch = text.match(/^PIEZA\s+(.+)$/im);
-    if (pMatch) {
-      const nameInput = document.getElementById('drafter-piece-name');
-      if (nameInput && !nameInput._userEdited) nameInput.value = pMatch[1].trim();
+    col.innerHTML = `
+      <div class="dv3-piece-header">
+        <h3>${piece.icon} ${piece.name}</h3>
+        <p>${piece.description}</p>
+      </div>
+      <div class="dv3-points-scroll" id="dv3-points-scroll">
+        ${piece.points.map(pt => _buildPointCard(pt, vars)).join('')}
+      </div>
+      <div class="dv3-lines-section">
+        <div class="dv3-lines-title">Líneas del contorno — ajustar curvas</div>
+        ${piece.lines.map((ln, i) => _buildLineRow(ln, i)).join('')}
+      </div>
+      <div class="dv3-actions">
+        <button class="dv3-btn-p" id="dv3-add-btn">＋ Agregar al patrón</button>
+        <button class="dv3-btn-s" id="dv3-save-btn">💾 Guardar</button>
+        <button class="dv3-btn-g" id="dv3-reset-pts">↺ Resetear puntos</button>
+      </div>
+    `;
+
+    // Bind sliders e inputs
+    _bindPointControls(piece);
+
+    document.getElementById('dv3-add-btn').onclick  = _addToPattern;
+    document.getElementById('dv3-save-btn').onclick  = _saveManual;
+    document.getElementById('dv3-reset-pts').onclick = _resetAdjustments;
+  }
+
+  function _buildPointCard(pt, vars) {
+    if (pt.xLocked && pt.yLocked) {
+      return `
+        <div class="dv3-point-card" id="ptcard-${pt.id}">
+          <div class="dv3-pt-header">
+            <div class="dv3-pt-badge">${pt.id}</div>
+            <div>
+              <div class="dv3-pt-name">${pt.label}</div>
+              <div class="dv3-pt-coords" id="ptcoord-${pt.id}">x:0 · y:0</div>
+            </div>
+            <span style="font-size:10px;color:var(--tx3);margin-left:auto">🔒 Origen fijo</span>
+          </div>
+        </div>
+      `;
     }
 
-    const measures = window.PAT?.App?.getState?.()?.measures || {};
-    const result   = PAT.Drafter.compileAndRender(text, measures);
+    const baseVal = _evalBase(pt.base, vars);
+    const adj = _adjustments[pt.id] || { xOff:0, yOff:0 };
 
-    // Mostrar errores
-    const errBox = document.getElementById('drafter-errors');
-    if (errBox) {
-      const msgs = [...(result.errors||[]).map(e=>'❌ '+e),
-                    ...(result.warnings||[]).map(w=>'⚠️ '+w)];
-      errBox.textContent  = msgs.join('\n');
-      errBox.style.display= msgs.length ? 'block' : 'none';
+    const xDir = ['der','izq'].includes(pt.dir) ? pt.dir : 'der';
+    const yDir = ['abajo','arriba'].includes(pt.dir) ? pt.dir : 'abajo';
+    const isXMain = ['der','izq'].includes(pt.dir);
+
+    return `
+      <div class="dv3-point-card" id="ptcard-${pt.id}">
+        <div class="dv3-pt-header">
+          <div class="dv3-pt-badge">${pt.id}</div>
+          <div style="flex:1">
+            <div class="dv3-pt-name">${pt.label}</div>
+            ${pt.desc ? `<div class="dv3-pt-desc">${pt.desc}</div>` : ''}
+          </div>
+          <span class="dv3-pt-coords" id="ptcoord-${pt.id}">—</span>
+        </div>
+
+        <!-- Ajuste principal -->
+        <div class="dv3-slider-row">
+          <span class="dv3-slider-lbl">
+            Base <span style="color:var(--acc2);font-family:monospace">${pt.base}</span>
+          </span>
+          <span style="font-size:10px;color:var(--tx2);font-family:monospace;width:60px;text-align:right">
+            = ${Math.round(baseVal)}mm
+          </span>
+        </div>
+
+        <!-- Offset X -->
+        <div class="dv3-slider-row">
+          <span class="dv3-slider-lbl" style="color:${isXMain?'var(--tx)':'var(--tx3)'}">
+            Ajuste ${isXMain ? (pt.dir === 'der' ? '→ Derecha' : '← Izquierda') : '↔ X'}
+          </span>
+          <input type="range" class="dv3-slider" id="sx-${pt.id}"
+            min="-100" max="100" step="1" value="${adj.xOff}"
+            style="${!isXMain ? 'opacity:.5' : ''}">
+          <input type="number" class="dv3-num-inp" id="nx-${pt.id}"
+            value="${adj.xOff}" min="-200" max="200" step="1">
+          <span class="dv3-unit">mm</span>
+        </div>
+
+        <!-- Offset Y -->
+        <div class="dv3-slider-row">
+          <span class="dv3-slider-lbl" style="color:${!isXMain?'var(--tx)':'var(--tx3)'}">
+            Ajuste ${!isXMain ? (pt.dir === 'abajo' ? '↓ Abajo' : '↑ Arriba') : '↕ Y'}
+          </span>
+          <input type="range" class="dv3-slider" id="sy-${pt.id}"
+            min="-100" max="100" step="1" value="${adj.yOff}"
+            style="${isXMain ? 'opacity:.5' : ''}">
+          <input type="number" class="dv3-num-inp" id="ny-${pt.id}"
+            value="${adj.yOff}" min="-200" max="200" step="1">
+          <span class="dv3-unit">mm</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function _buildLineRow(ln, i) {
+    const adj = _adjustments['line_' + i] || { ctrl: ln.ctrl || ln.semi || 0 };
+    const type = ln.type;
+    const color = type === 'fold' ? '#f87171' : type === 'curve' ? '#60a5fa' : '#e2e8f0';
+    const bgStyle = type === 'fold'
+      ? 'repeating-linear-gradient(90deg,#f87171 0,#f87171 4px,transparent 4px,transparent 8px)'
+      : type === 'curve' ? '#60a5fa' : '#e2e8f0';
+
+    const hasCurve = type === 'curve';
+
+    return `
+      <div class="dv3-line-row">
+        <div class="dv3-line-type" style="background:${bgStyle}"></div>
+        <span class="dv3-line-lbl">${ln.label || ln.from + ' → ' + ln.to}</span>
+        ${hasCurve ? `
+          <div class="dv3-line-ctrl-row">
+            <span style="font-size:10px;color:var(--tx3)">curva</span>
+            <input type="range" class="dv3-slider" id="lc-${i}"
+              min="-60" max="60" step="1" value="${adj.ctrl}" style="width:70px">
+            <input type="number" class="dv3-line-num" id="ln-${i}"
+              value="${adj.ctrl}" min="-100" max="100" step="1">
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // BIND CONTROLES
+  // ════════════════════════════════════════════════════════════
+  function _bindPointControls(piece) {
+    // Bind puntos
+    piece.points.forEach(pt => {
+      if (pt.xLocked && pt.yLocked) return;
+
+      const sxEl = document.getElementById('sx-' + pt.id);
+      const syEl = document.getElementById('sy-' + pt.id);
+      const nxEl = document.getElementById('nx-' + pt.id);
+      const nyEl = document.getElementById('ny-' + pt.id);
+
+      if (!_adjustments[pt.id]) _adjustments[pt.id] = { xOff:0, yOff:0 };
+
+      const syncX = (val) => {
+        val = parseFloat(val);
+        _adjustments[pt.id].xOff = val;
+        if (sxEl) sxEl.value = val;
+        if (nxEl) nxEl.value = val;
+        _highlightCard(pt.id);
+        _updatePreview();
+      };
+      const syncY = (val) => {
+        val = parseFloat(val);
+        _adjustments[pt.id].yOff = val;
+        if (syEl) syEl.value = val;
+        if (nyEl) nyEl.value = val;
+        _highlightCard(pt.id);
+        _updatePreview();
+      };
+
+      if (sxEl) { sxEl.addEventListener('input', e => syncX(e.target.value)); }
+      if (nxEl) { nxEl.addEventListener('input', e => syncX(e.target.value)); }
+      if (syEl) { syEl.addEventListener('input', e => syncY(e.target.value)); }
+      if (nyEl) { nyEl.addEventListener('input', e => syncY(e.target.value)); }
+    });
+
+    // Bind curvas de líneas
+    piece.lines.forEach((ln, i) => {
+      if (ln.type !== 'curve') return;
+      const slEl = document.getElementById('lc-' + i);
+      const nmEl = document.getElementById('ln-' + i);
+      if (!_adjustments['line_' + i]) _adjustments['line_' + i] = { ctrl: ln.ctrl || 0 };
+
+      const syncCtrl = (val) => {
+        val = parseFloat(val);
+        _adjustments['line_' + i].ctrl = val;
+        if (slEl) slEl.value = val;
+        if (nmEl) nmEl.value = val;
+        _updatePreview();
+      };
+      if (slEl) slEl.addEventListener('input', e => syncCtrl(e.target.value));
+      if (nmEl) nmEl.addEventListener('input', e => syncCtrl(e.target.value));
+    });
+  }
+
+  let _highlightTimer = null;
+  function _highlightCard(ptId) {
+    const card = document.getElementById('ptcard-' + ptId);
+    if (card) {
+      card.classList.add('highlighted');
+      clearTimeout(_highlightTimer);
+      _highlightTimer = setTimeout(() => card.classList.remove('highlighted'), 800);
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // CALCULAR PUNTOS
+  // ════════════════════════════════════════════════════════════
+  function _getMeasures() {
+    const m = {};
+    document.querySelectorAll('[data-measure]').forEach(el => {
+      m[el.dataset.measure] = parseFloat(el.value) || 0;
+    });
+    return Object.assign({ bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,wrist:16,skirtLength:60,hipDepth:20 }, m);
+  }
+
+  function _buildVars(m) {
+    const b = (m.bust||88)*10, w=(m.waist||68)*10, h=(m.hip||94)*10;
+    const sh=(m.shoulder||38)*10, nk=(m.neck||36)*10;
+    return {
+      BUSTO:b, CINTURA:w, CADERA:h, ESPALDA:sh, CUELLO:nk,
+      TALLE_ESP:(m.backLength||40)*10, TALLE_DEL:(m.frontLength||42)*10,
+      LARGO:(m.totalLength||65)*10, MANGA:(m.sleeveLength||60)*10,
+      MUNECA:(m.wrist||16)*10, FALDA:(m.skirtLength||60)*10,
+      CADERA_PROF:(m.hipDepth||20)*10,
+      B4:b/4, B6:b/6, B8:b/8, B10:b/10, B12:b/12,
+      W4:w/4, H4:h/4, E2:sh/2,
+    };
+  }
+
+  function _evalBase(expr, vars) {
+    if (!expr || expr === '0') return 0;
+    let c = String(expr).trim();
+    Object.entries(vars).forEach(([k,v]) => {
+      c = c.replace(new RegExp('\\b'+k+'\\b','g'), v.toFixed(4));
+    });
+    if (!/^[\d\s+\-*/().]+$/.test(c)) return 0;
+    try { return Math.round(Function('"use strict";return('+c+')')() * 100) / 100; }
+    catch(e) { return 0; }
+  }
+
+  function _computePoints(piece, vars) {
+    const pts = {};
+    piece.points.forEach(pt => {
+      const adj = _adjustments[pt.id] || { xOff:0, yOff:0 };
+      let x=0, y=0;
+
+      if (pt.xLocked && pt.yLocked) {
+        pts[pt.id] = { x: pt.x || 0, y: pt.y || 0 };
+        return;
+      }
+
+      const ref = pt.ref ? pts[pt.ref] : null;
+      if (ref) { x = ref.x; y = ref.y; }
+
+      const base = _evalBase(pt.base, vars);
+
+      // Aplicar dirección base + offset del usuario
+      switch (pt.dir) {
+        case 'der':    x += base + (adj.xOff || 0); y += (adj.yOff || 0); break;
+        case 'izq':    x -= base + (adj.xOff || 0); y += (adj.yOff || 0); break;
+        case 'abajo':  y += base + (adj.yOff || 0); x += (adj.xOff || 0); break;
+        case 'arriba': y -= base + (adj.yOff || 0); x += (adj.xOff || 0); break;
+        case 'abs':    x = (pt.x||0) + (adj.xOff||0); y = (pt.y||0) + (adj.yOff||0); break;
+      }
+
+      // Extra (ej: arriba adicional para P3 en manga)
+      if (pt.extra === 'arriba' && pt.extraBase) {
+        const extraVal = _evalBase(pt.extraBase + (pt.extraDiv ? '/' + pt.extraDiv : ''), vars);
+        y -= extraVal;
+      }
+
+      pts[pt.id] = { x, y };
+    });
+    return pts;
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // GENERAR SVG
+  // ════════════════════════════════════════════════════════════
+  function _buildSVG(piece, pts) {
+    const g = document.createElementNS(NS, 'g');
+
+    // Calcular bbox
+    const xs = Object.values(pts).map(p=>p.x);
+    const ys = Object.values(pts).map(p=>p.y);
+    const minX=Math.min(...xs), maxX=Math.max(...xs);
+    const minY=Math.min(...ys), maxY=Math.max(...ys);
+
+    // Path del contorno
+    let d = '', started = false;
+    piece.lines.forEach((ln, i) => {
+      const a = pts[ln.from], b = pts[ln.to];
+      if (!a || !b) return;
+
+      if (!started) { d += `M ${a.x} ${a.y}`; started = true; }
+
+      const adj = _adjustments['line_' + i] || { ctrl: ln.ctrl || ln.semi || 0 };
+      const ctrl = adj.ctrl;
+
+      if (ln.type === 'line' || ln.type === 'fold') {
+        d += ` L ${b.x} ${b.y}`;
+      } else if (ln.type === 'curve') {
+        if (ctrl !== 0) {
+          const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+          const dx=b.x-a.x, dy=b.y-a.y;
+          const len = Math.hypot(dx,dy)||1;
+          const px=-dy/len*ctrl, py=dx/len*ctrl;
+          d += ` Q ${mx+px} ${my+py} ${b.x} ${b.y}`;
+        } else {
+          d += ` L ${b.x} ${b.y}`;
+        }
+      }
+    });
+
+    if (d) {
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'rgba(139,92,246,0.06)');
+      path.setAttribute('stroke', '#e2e8f0');
+      path.setAttribute('stroke-width', '0.9');
+      path.setAttribute('stroke-linejoin', 'round');
+      path.setAttribute('stroke-linecap', 'round');
+      g.appendChild(path);
     }
 
-    if (!result.piece) { _clearPreview(); return; }
+    // Líneas de doblez (rojo punteado)
+    piece.lines.filter(ln => ln.type === 'fold').forEach(ln => {
+      const a = pts[ln.from], b = pts[ln.to];
+      if (!a || !b) return;
+      const el = document.createElementNS(NS, 'line');
+      el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);
+      el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);
+      el.setAttribute('stroke','#f87171');el.setAttribute('stroke-width','0.7');
+      el.setAttribute('stroke-dasharray','8,4');el.setAttribute('fill','none');
+      g.appendChild(el);
+    });
 
-    // Actualizar SVG preview
-    const g = document.getElementById('drafter-preview-g');
+    // Puntos + etiquetas
+    Object.entries(pts).forEach(([id, pt]) => {
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx',pt.x);c.setAttribute('cy',pt.y);c.setAttribute('r','2.8');
+      c.setAttribute('fill','#8b5cf6');c.setAttribute('stroke','#090911');c.setAttribute('stroke-width','0.5');
+      g.appendChild(c);
+
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('x',pt.x+4);t.setAttribute('y',pt.y-3);
+      t.setAttribute('font-size','6');t.setAttribute('fill','#a78bfa');
+      t.setAttribute('font-family','Arial');t.setAttribute('font-weight','bold');
+      t.textContent = id;
+      g.appendChild(t);
+
+      // Actualizar coordenadas en el card
+      const coordEl = document.getElementById('ptcoord-' + id);
+      if (coordEl) coordEl.textContent = `x:${Math.round(pt.x)} · y:${Math.round(pt.y)}`;
+    });
+
+    // Hilo recto (de A a D si existe)
+    const grainA = pts['A'], grainD = pts['D'] || pts['C'];
+    if (grainA && grainD) {
+      const el = document.createElementNS(NS, 'line');
+      el.setAttribute('x1',grainA.x+10);el.setAttribute('y1',(grainA.y+grainD.y)/2);
+      el.setAttribute('x2',grainA.x+10);el.setAttribute('y2',(grainA.y+grainD.y)/2+40);
+      el.setAttribute('stroke','#60a5fa');el.setAttribute('stroke-width','0.7');
+      el.setAttribute('marker-end','url(#dv3-arrow)');el.setAttribute('fill','none');
+      g.appendChild(el);
+    }
+
+    // Nombre de la pieza centrado
+    const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
+    const nt = document.createElementNS(NS,'text');
+    nt.setAttribute('x',cx);nt.setAttribute('y',cy);
+    nt.setAttribute('font-size','7');nt.setAttribute('fill','#ede9fe');
+    nt.setAttribute('font-family','Arial');nt.setAttribute('font-weight','bold');
+    nt.setAttribute('text-anchor','middle');
+    nt.textContent = piece.name;
+    g.appendChild(nt);
+
+    const PAD = 25;
+    return {
+      group: g,
+      bounds: { x:minX-PAD, y:minY-PAD, w:(maxX-minX)+PAD*2, h:(maxY-minY)+PAD*2 },
+    };
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // UPDATE PREVIEW
+  // ════════════════════════════════════════════════════════════
+  function _updatePreview() {
+    if (!_currentPiece || !_previewSVG) return;
+
+    const piece   = PIECES[_currentPiece];
+    const measures = _getMeasures();
+    const vars    = _buildVars(measures);
+    const pts     = _computePoints(piece, vars);
+
+    const result  = _buildSVG(piece, pts);
+
+    const g = document.getElementById('dv3-pattern-g');
     if (g) {
       while (g.firstChild) g.removeChild(g.firstChild);
-      g.appendChild(result.piece.group.cloneNode(true));
+      g.appendChild(result.group);
     }
 
-    // Ajustar viewBox
-    const b = result.piece.bounds;
-    const PAD = 15;
-    const svg = document.getElementById('drafter-svg');
-    if (svg) {
-      svg.setAttribute('viewBox',
-        (b.x-PAD)+' '+(b.y-PAD)+' '+(b.w+PAD*2)+' '+(b.h+PAD*2)
-      );
-    }
-
-    // Tabla de puntos
-    _renderPointsTable(result.points);
+    const b = result.bounds, P=10;
+    _previewSVG.setAttribute('viewBox', `${b.x-P} ${b.y-P} ${b.w+P*2} ${b.h+P*2}`);
 
     // Info
     const wCm = Math.round(b.w/10), hCm = Math.round(b.h/10);
-    const sizeEl = document.getElementById('drafter-size');
-    const ptEl   = document.getElementById('drafter-pt-count');
-    if (sizeEl) sizeEl.textContent = wCm + ' × ' + hCm + ' cm';
-    if (ptEl)   ptEl.textContent   = Object.keys(result.points).length;
+    const sizeEl = document.getElementById('dv3-size');
+    const ptEl   = document.getElementById('dv3-pts-count');
+    const bustEl = document.getElementById('dv3-bust-val');
+    if (sizeEl) sizeEl.textContent = `${wCm} × ${hCm} cm`;
+    if (ptEl)   ptEl.textContent   = Object.keys(pts).length;
+    if (bustEl) bustEl.textContent = `${measures.bust}cm busto`;
+
+    const scaleEl = document.getElementById('dv3-scale-tag');
+    if (scaleEl) scaleEl.textContent = `${wCm}×${hCm} cm`;
   }
 
-  function _clearPreview() {
-    const g = document.getElementById('drafter-preview-g');
-    if (g) while (g.firstChild) g.removeChild(g.firstChild);
-  }
+  // ════════════════════════════════════════════════════════════
+  // AGREGAR AL PATRÓN PRINCIPAL
+  // ════════════════════════════════════════════════════════════
+  function _addToPattern() {
+    if (!_currentPiece) return;
+    const piece    = PIECES[_currentPiece];
+    const measures  = _getMeasures();
+    const vars     = _buildVars(measures);
+    const pts      = _computePoints(piece, vars);
+    const result   = _buildSVG(piece, pts);
 
-  function _renderPointsTable(points) {
-    const tbody = document.getElementById('drafter-pts-body');
-    if (!tbody) return;
-    const entries = Object.entries(points);
-    if (!entries.length) {
-      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--tx3);text-align:center;padding:10px">Sin puntos</td></tr>';
-      return;
+    const content = document.getElementById('pattern-content');
+    if (!content) { PAT.App.toast('SVG principal no encontrado', 'error'); return; }
+
+    let ox = 30, oy = 30;
+    try { const eb = content.getBBox(); if (eb.width>0) ox = eb.x+eb.width+35; } catch(e){}
+
+    const w = document.createElementNS(NS, 'g');
+    w.setAttribute('transform', `translate(${ox},${oy})`);
+    w.setAttribute('class', 'manual-piece');
+    w.appendChild(result.group.cloneNode(true));
+    content.appendChild(w);
+
+    const ms = document.getElementById('pattern-svg');
+    if (ms) {
+      const vb = (ms.getAttribute('viewBox')||'0 0 600 400').split(' ').map(Number);
+      ms.setAttribute('viewBox', `0 0 ${Math.max(vb[2],ox+result.bounds.w+50)} ${Math.max(vb[3],oy+result.bounds.h+50)}`);
     }
-    tbody.innerHTML = entries.map(([name, pt]) => {
-      const dist = Math.round(Math.hypot(pt.x, pt.y));
-      return `<tr>
-        <td class="pt-name">${name}</td>
-        <td>${Math.round(pt.x)}</td>
-        <td>${Math.round(pt.y)}</td>
-        <td style="color:var(--tx3)">${dist}mm</td>
-      </tr>`;
-    }).join('');
+
+    close();
+    PAT.App.toast(`✅ "${piece.name}" agregado al patrón`, 'success');
+    if (PAT.App.fitScreen) setTimeout(PAT.App.fitScreen, 120);
   }
 
-  // ── GUARDAR MANUAL ───────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════
+  // GUARDAR / CARGAR MANUALES
+  // ════════════════════════════════════════════════════════════
   function _saveManual() {
-    const name    = document.getElementById('drafter-piece-name')?.value.trim() || 'Manual sin nombre';
-    const code    = _editor?.value || '';
-    const garment = document.getElementById('drafter-garment-type')?.value || '';
-    if (!code.trim()) { PAT.App.toast('Escribe instrucciones primero', 'error'); return; }
-
+    if (!_currentPiece) return;
+    const piece = PIECES[_currentPiece];
+    const id    = _curManualKey || ('m_' + Date.now());
     const manuals = _loadManuals();
-    const id      = _currentManualKey || ('manual_' + Date.now());
-
     manuals[id] = {
-      id, name, code, garment,
+      id, name: piece.name, pieceKey: _currentPiece,
+      adjustments: JSON.parse(JSON.stringify(_adjustments)),
       savedAt: new Date().toISOString(),
     };
-
     _saveManuals(manuals);
-    _currentManualKey = id;
-    _refreshManualsList();
-    PAT.App.toast('💾 Manual "' + name + '" guardado', 'success');
+    _curManualKey = id;
+    _refreshSaved();
+    PAT.App.toast(`💾 "${piece.name}" guardado`, 'success');
   }
 
-  function _newManual() {
-    _currentManualKey = null;
-    _editor.value = '';
-    document.getElementById('drafter-piece-name').value = 'Nueva Pieza';
-    document.getElementById('drafter-garment-type').value = '';
-    _clearPreview();
-    _renderPointsTable({});
-  }
-
-  function _loadExample(key) {
-    const ex = BUILTIN_EXAMPLES[key];
-    if (!ex) return;
-    _editor.value = ex.code;
-    const nameInput = document.getElementById('drafter-piece-name');
-    if (nameInput) { nameInput.value = key; nameInput._userEdited = false; }
-    if (ex.garment) {
-      const gSel = document.getElementById('drafter-garment-type');
-      if (gSel) {
-        const val = ex.gender ? ex.garment + '_' + ex.gender : ex.garment;
-        gSel.value = val || ex.garment;
-      }
-    }
-    _compile();
-  }
-
-  function _refreshManualsList() {
-    const list = document.getElementById('drafter-manuals-list');
+  function _refreshSaved() {
+    const list = document.getElementById('dv3-saved-list');
     if (!list) return;
-
     const manuals = _loadManuals();
     const keys    = Object.keys(manuals);
     list.innerHTML = '';
 
-    // Sección: manuales guardados por el usuario
-    if (keys.length > 0) {
-      const userTitle = document.createElement('div');
-      userTitle.className = 'manual-section-title';
-      userTitle.textContent = 'Mis manuales';
-      list.appendChild(userTitle);
-
-      keys.forEach(id => {
-        const m   = manuals[id];
-        const div = document.createElement('div');
-        div.className = 'manual-item' + (_currentManualKey === id ? ' active' : '');
-        div.innerHTML = `
-          <span class="manual-item-name">${m.name}</span>
-          <span class="manual-item-type">${m.garment || '—'}</span>
-          <button class="manual-del-btn" data-id="${id}" title="Eliminar">✕</button>
-        `;
-        div.addEventListener('click', function(e) {
-          if (e.target.classList.contains('manual-del-btn')) return;
-          _currentManualKey = id;
-          _editor.value = m.code;
-          document.getElementById('drafter-piece-name').value = m.name;
-          const gSel = document.getElementById('drafter-garment-type');
-          if (gSel) gSel.value = m.garment || '';
-          _compile();
-          _refreshManualsList();
-        });
-        div.querySelector('.manual-del-btn').addEventListener('click', function(e) {
-          e.stopPropagation();
-          if (!confirm('¿Eliminar manual "' + m.name + '"?')) return;
-          delete manuals[id];
-          _saveManuals(manuals);
-          if (_currentManualKey === id) _currentManualKey = null;
-          _refreshManualsList();
-          PAT.App.toast('"' + m.name + '" eliminado');
-        });
-        list.appendChild(div);
-      });
+    if (!keys.length) {
+      list.innerHTML = '<div style="font-size:10px;color:var(--tx3);padding:8px 10px">Sin patrones guardados</div>';
+      return;
     }
 
-    // Sección: ejemplos prediseñados
-    const exTitle = document.createElement('div');
-    exTitle.className = 'manual-section-title';
-    exTitle.textContent = 'Ejemplos incluidos';
-    list.appendChild(exTitle);
+    const lbl = document.createElement('div');
+    lbl.className = 'dv3-saved-lbl';
+    lbl.textContent = 'Guardados';
+    list.appendChild(lbl);
 
-    Object.keys(BUILTIN_EXAMPLES).forEach(key => {
+    keys.forEach(id => {
+      const m   = manuals[id];
       const div = document.createElement('div');
-      div.className = 'manual-item';
+      div.className = 'dv3-saved-item' + (_curManualKey===id ? ' active' : '');
       div.innerHTML = `
-        <span class="manual-item-name">${key}</span>
-        <span class="manual-item-type" style="color:var(--acc2)">base</span>
+        <span class="dv3-saved-nm">${m.name}</span>
+        <span class="dv3-saved-tp">${PIECES[m.pieceKey]?.icon || ''}</span>
+        <button class="dv3-del-btn" data-id="${id}" title="Eliminar">✕</button>
       `;
-      div.addEventListener('click', () => _loadExample(key));
+      div.addEventListener('click', function(e) {
+        if (e.target.classList.contains('dv3-del-btn')) return;
+        _curManualKey = id;
+        _adjustments  = JSON.parse(JSON.stringify(m.adjustments || {}));
+        _selectPiece(m.pieceKey);
+        _updatePreview();
+        _refreshSaved();
+      });
+      div.querySelector('.dv3-del-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (!confirm(`¿Eliminar "${m.name}"?`)) return;
+        delete manuals[id];
+        _saveManuals(manuals);
+        if (_curManualKey === id) _curManualKey = null;
+        _refreshSaved();
+      });
       list.appendChild(div);
     });
   }
 
-  // ── AGREGAR AL PATRÓN PRINCIPAL ──────────────────────────────
-  function _addToMainPattern() {
-    const text     = _editor?.value || '';
-    const measures = window.PAT?.App?.getState?.()?.measures || {};
-    const result   = PAT.Drafter.compileAndRender(text, measures);
-    if (!result.piece) { PAT.App.toast('No hay pieza válida', 'error'); return; }
-
-    const content = document.getElementById('pattern-content');
-    if (!content) { PAT.App.toast('Error: SVG principal no encontrado', 'error'); return; }
-
-    // Calcular offset para no solaparse
-    let offsetX = 30, offsetY = 30;
-    try {
-      const existing = content.getBBox();
-      if (existing.width > 0) offsetX = existing.x + existing.width + 35;
-    } catch(e) {}
-
-    const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    wrapper.setAttribute('transform', 'translate(' + offsetX + ',' + offsetY + ')');
-    wrapper.setAttribute('class', 'manual-piece');
-    wrapper.appendChild(result.piece.group.cloneNode(true));
-    content.appendChild(wrapper);
-
-    // Expandir viewBox del SVG principal
-    const mainSVG = document.getElementById('pattern-svg');
-    if (mainSVG) {
-      const vbParts = (mainSVG.getAttribute('viewBox') || '0 0 600 400').split(' ').map(Number);
-      const newW = Math.max(vbParts[2], offsetX + result.piece.bounds.w + 50);
-      const newH = Math.max(vbParts[3], offsetY + result.piece.bounds.h + 50);
-      mainSVG.setAttribute('viewBox', '0 0 ' + newW + ' ' + newH);
-      mainSVG.setAttribute('width',  newW + 'mm');
-      mainSVG.setAttribute('height', newH + 'mm');
-    }
-
-    close();
-    PAT.App.toast('✅ "' + result.piece.name + '" agregado al patrón', 'success');
-    if (PAT.App.fitScreen) setTimeout(PAT.App.fitScreen, 120);
+  function _resetAdjustments() {
+    if (!_currentPiece) return;
+    _adjustments = {};
+    _selectPiece(_currentPiece);
+    PAT.App.toast('↺ Puntos reseteados', 'info');
   }
 
-  // ── REEMPLAZAR PRENDA PREDISEÑADA ────────────────────────────
-  function _replacePreset() {
-    const garmentSel = document.getElementById('drafter-garment-type')?.value;
-    if (!garmentSel) {
-      PAT.App.toast('Selecciona el tipo de prenda a reemplazar', 'warning');
-      return;
-    }
-
-    const text     = _editor?.value || '';
-    const measures = window.PAT?.App?.getState?.()?.measures || {};
-    const result   = PAT.Drafter.compileAndRender(text, measures);
-    if (!result.piece) { PAT.App.toast('Compila el patrón primero', 'error'); return; }
-
-    // Parsear tipo de prenda y género
-    const parts   = garmentSel.split('_');
-    const garment = parts[0];
-    const gender  = parts[1] || null;
-
-    const garmentNames = {
-      franela: 'Franela', blusa: 'Blusa',
-      camisa_dama: 'Camisa Dama', camisa_caballero: 'Camisa Caballero',
-      falda: 'Falda', vestido: 'Vestido',
-    };
-    const gName = garmentNames[garmentSel] || garmentSel;
-
-    _showConfirmReplace(gName, result.piece.name, () => {
-      // Guardar como override en localStorage
-      _savePresetOverride(garmentSel, {
-        name:    result.piece.name,
-        code:    text,
-        savedAt: new Date().toISOString(),
-      });
-
-      // Registrar en el engine para que use esta pieza
-      if (!window.PAT._presetOverrides) window.PAT._presetOverrides = {};
-      window.PAT._presetOverrides[garmentSel] = {
-        code: text, pieceName: result.piece.name
-      };
-
-      close();
-      PAT.App.toast('✅ "' + result.piece.name + '" es ahora el patrón base de ' + gName, 'success');
-
-      // Regenerar el patrón activo si coincide con la prenda reemplazada
-      const appState = window.PAT?.App?.getState?.();
-      if (appState && appState.garment === garment) {
-        PAT.App.generate?.(80);
-      }
-    });
-  }
-
-  function _showConfirmReplace(presetName, pieceName, onConfirm) {
-    const overlay = document.createElement('div');
-    overlay.className = 'drafter-confirm';
-    overlay.innerHTML = `
-      <div class="m-ov"></div>
-      <div class="drafter-confirm-box">
-        <div style="font-size:32px;margin-bottom:12px">⇄</div>
-        <h3>¿Reemplazar patrón base?</h3>
-        <p>
-          El patrón <strong>"${pieceName}"</strong> que acabas de trazar reemplazará
-          el patrón prediseñado de <strong>${presetName}</strong>.<br><br>
-          Cuando selecciones <em>${presetName}</em> en el menú,
-          se usará <strong>tu patrón manual</strong> en lugar del predeterminado.
-        </p>
-        <div class="drafter-confirm-actions">
-          <button class="btn-replace-preset" id="confirm-replace-yes">✓ Sí, reemplazar</button>
-          <button class="btn-drafter-g" id="confirm-replace-no">Cancelar</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    overlay.querySelector('#confirm-replace-yes').onclick = () => {
-      overlay.remove(); onConfirm();
-    };
-    overlay.querySelector('#confirm-replace-no').onclick  = () => overlay.remove();
-    overlay.querySelector('.m-ov').onclick = () => overlay.remove();
-  }
-
-  // ── PERSISTENCIA ─────────────────────────────────────────────
-  function _loadManuals() {
-    try { return JSON.parse(localStorage.getItem(MANUALS_KEY) || '{}'); } catch(e) { return {}; }
-  }
-  function _saveManuals(manuals) {
-    localStorage.setItem(MANUALS_KEY, JSON.stringify(manuals));
-  }
-  function _savePresetOverride(key, data) {
-    try {
-      const overrides = JSON.parse(localStorage.getItem('pat_preset_overrides') || '{}');
-      overrides[key] = data;
-      localStorage.setItem('pat_preset_overrides', JSON.stringify(overrides));
-    } catch(e) {}
-  }
-
-  // ── VARIABLES PARA MOSTRAR ───────────────────────────────────
-  function _buildVarsDisplay(m) {
-    const bust = m.bust || 88;
-    return [
-      { key:'B4',        desc:'Busto÷4 = '      + Math.round(bust*10/4)   + 'mm' },
-      { key:'B6',        desc:'Busto÷6 = '      + Math.round(bust*10/6)   + 'mm' },
-      { key:'B8',        desc:'Busto÷8 = '      + Math.round(bust*10/8)   + 'mm' },
-      { key:'B12',       desc:'Busto÷12 = '     + Math.round(bust*10/12)  + 'mm' },
-      { key:'E2',        desc:'Espalda÷2 = '    + Math.round((m.shoulder||38)*10/2) + 'mm' },
-      { key:'H4',        desc:'Cadera÷4 = '     + Math.round((m.hip||94)*10/4) + 'mm' },
-      { key:'W4',        desc:'Cintura÷4 = '    + Math.round((m.waist||68)*10/4) + 'mm' },
-      { key:'TALLE_ESP', desc:'Talle espalda = ' + (m.backLength||40)*10  + 'mm' },
-      { key:'TALLE_DEL', desc:'Talle delantero = '+(m.frontLength||42)*10 + 'mm' },
-      { key:'LARGO',     desc:'Largo total = '  + (m.totalLength||65)*10  + 'mm' },
-      { key:'MANGA',     desc:'Largo manga = '  + (m.sleeveLength||60)*10 + 'mm' },
-      { key:'CUELLO',    desc:'Contorno cuello = '+(m.neck||36)*10 + 'mm' },
-      { key:'BUSTO',     desc:'Busto completo = ' + (m.bust||88)*10 + 'mm' },
-      { key:'CADERA',    desc:'Cadera completa = '+(m.hip||94)*10  + 'mm' },
-    ];
-  }
-
-  // ── HTML DE REFERENCIA ────────────────────────────────────────
-  function _helpHTML() {
-    return `
-      <div style="display:flex;flex-direction:column;gap:14px">
-
-        <div>
-          <div style="font-weight:700;color:var(--tx);margin-bottom:6px">📐 PUNTO — Definir un punto</div>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block;margin-bottom:4px">PUNTO A 0,0</code>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block;margin-bottom:4px">PUNTO B desde:A der:B4+20</code>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block">PUNTO C desde:A der:B6 abajo:TALLE_ESP</code>
-          <div style="margin-top:4px;color:var(--tx3)">Direcciones: <code>der</code> <code>izq</code> <code>abajo</code> <code>arriba</code></div>
-        </div>
-
-        <div>
-          <div style="font-weight:700;color:var(--tx);margin-bottom:6px">📏 LINEA — Línea recta</div>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block;margin-bottom:4px">LINEA A B</code>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block">LINEA A B costura</code>
-        </div>
-
-        <div>
-          <div style="font-weight:700;color:var(--tx);margin-bottom:6px">〜 CURVA — Curva entre puntos</div>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block;margin-bottom:4px">CURVA A B control:15</code>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block;margin-bottom:4px">CURVA A B control:-10</code>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block">CURVA A B semicurva:20</code>
-          <div style="margin-top:4px;color:var(--tx3)">control+ = curva derecha, control- = izquierda<br>semicurva = forma de sisa</div>
-        </div>
-
-        <div>
-          <div style="font-weight:700;color:var(--tx);margin-bottom:6px">⌒ ARCO — Arco de circunferencia</div>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block">ARCO A B radio:50 dir:convexo</code>
-        </div>
-
-        <div>
-          <div style="font-weight:700;color:var(--tx);margin-bottom:6px">🔴 DOBLEZ / HILO / MUESCA / COTA</div>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block;margin-bottom:3px">DOBLEZ A D</code>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block;margin-bottom:3px">HILO A C</code>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block;margin-bottom:3px">MUESCA linea:AB pos:0.5</code>
-          <code style="background:var(--inp);padding:4px 8px;border-radius:4px;display:block">COTA A B "Busto/4"</code>
-        </div>
-
-        <div>
-          <div style="font-weight:700;color:var(--tx);margin-bottom:6px">🔢 Variables de medidas</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-family:monospace;font-size:10px">
-            <span>B4 = busto÷4</span><span>B6 = busto÷6</span>
-            <span>E2 = espalda÷2</span><span>H4 = cadera÷4</span>
-            <span>W4 = cintura÷4</span><span>B12 = busto÷12</span>
-            <span>TALLE_ESP</span><span>TALLE_DEL</span>
-            <span>LARGO</span><span>MANGA</span>
-            <span>CUELLO</span><span>MUNECA</span>
-          </div>
-          <div style="margin-top:6px;color:var(--tx3)">
-            Puedes usar fórmulas: <code>B4+20</code> <code>MANGA-50</code> <code>CUELLO/2+30</code>
-          </div>
-        </div>
-
-        <div>
-          <div style="font-weight:700;color:var(--tx);margin-bottom:6px">✏️ Ejemplo completo (Atelier Escuela)</div>
-          <code style="background:var(--inp);padding:8px;border-radius:4px;display:block;font-size:10px;line-height:1.8;white-space:pre">PIEZA Blusa Trasera
-# Rectángulo base
-PUNTO A 0,0
-PUNTO B desde:A der:B4
-PUNTO C desde:B abajo:TALLE_ESP
-PUNTO D desde:A abajo:TALLE_ESP
-# Cuello
-PUNTO 1 desde:A der:B6
-PUNTO 2 desde:A abajo:20
-# Hombro
-PUNTO 3 desde:1 der:E2-20 abajo:10
-# Sisa
-PUNTO E desde:B abajo:B4
-# Contorno
-CURVA 2 1 control:-8
-LINEA 1 3
-CURVA 3 E semicurva:15
-LINEA E C
-LINEA C D
-DOBLEZ D A
-HILO A D</code>
-        </div>
-
-      </div>
-    `;
-  }
+  function _loadManuals() { try { return JSON.parse(localStorage.getItem(MK)||'{}'); } catch(e) { return {}; } }
+  function _saveManuals(m) { localStorage.setItem(MK, JSON.stringify(m)); }
 
   return { open, close };
 })();
