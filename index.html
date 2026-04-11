@@ -472,12 +472,12 @@ PAT.Mannequin3D = (function () {
     boy:   '/assets/mannequin-boy.glb',
   };
 
-  // Fallback CDN (modelos Three.js de ejemplo — humanos básicos)
+  // Modelos GLB gratuitos con CORS habilitado (raw.githubusercontent.com)
   const GLB_CDN = {
-    woman: 'https://threejs.org/examples/models/gltf/Michelle.glb',
-    man:   'https://threejs.org/examples/models/gltf/Soldier.glb',
-    girl:  'https://threejs.org/examples/models/gltf/Michelle.glb',
-    boy:   'https://threejs.org/examples/models/gltf/Soldier.glb',
+    woman: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb',
+    man:   'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb',
+    girl:  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb',
+    boy:   'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RiggedFigure/glTF-Binary/RiggedFigure.glb',
   };
 
   const BT = {
@@ -609,7 +609,7 @@ PAT.Mannequin3D = (function () {
   }
 
   function _applyGLBModel(gltf, bt){
-    // Limpiar body anterior
+    // Limpiar body procedural — el GLB lo reemplaza
     while(bodyGroup.children.length){
       const c=bodyGroup.children[0];
       c.geometry?.dispose();
@@ -653,6 +653,12 @@ PAT.Mannequin3D = (function () {
 
     bodyGroup.add(model);
     console.log(`[PatrónAI] Modelo GLB cargado: ${bt}, scale=${scale.toFixed(3)}`);
+
+    // Rebuild garment on top of GLB with updated radii based on GLB size
+    if(_currentMeasures && Object.keys(_currentMeasures).length && _currentRadii){
+      _buildGarment(_lastGarment, _currentRadii, _currentMeasures);
+      _buildML(_currentMeasures, _currentRadii);
+    }
   }
 
   // ════════════════════════════════════════════════════════════
@@ -984,18 +990,14 @@ PAT.Mannequin3D = (function () {
 
   function _rebuildAll(){
     const m=Object.assign({bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,skirtLength:60,hipDepth:20},_currentMeasures);
-    // Si hay GLTFLoader disponible, intentar cargar GLB
+    // Siempre construir procedural primero (se ve de inmediato)
+    const radii=_buildProceduralBody(m);
+    _currentRadii=radii;
+    _buildGarment(_lastGarment,radii,m);
+    _buildML(m,radii);
+    // Luego intentar cargar GLB (reemplaza el procedural si existe)
     if(typeof THREE.GLTFLoader !== 'undefined'){
-      const radii=_buildProceduralBody(m); // construir procedural primero
-      _currentRadii=radii;
-      _buildGarment(_lastGarment,radii,m);
-      _buildML(m,radii);
-      _loadGLB(_bodyType); // luego intentar reemplazar con GLB
-    } else {
-      const radii=_buildProceduralBody(m);
-      _currentRadii=radii;
-      _buildGarment(_lastGarment,radii,m);
-      _buildML(m,radii);
+      _loadGLB(_bodyType);
     }
   }
 
@@ -1015,8 +1017,10 @@ PAT.Mannequin3D = (function () {
     _currentRadii=radii;
     _buildGarment(gt,radii,m);
     _buildML(m,radii);
-    // Intentar GLB
-    if(typeof THREE.GLTFLoader!=='undefined') _loadGLB(_bodyType);
+    // Intentar cargar GLB (si ya está cargado no recarga)
+    if(typeof THREE.GLTFLoader!=='undefined' && !_loadedModel){
+      _loadGLB(_bodyType);
+    }
   }
 
   function resize(w,h){
