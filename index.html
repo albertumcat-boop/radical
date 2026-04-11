@@ -850,6 +850,10 @@ PAT.DrafterUI = (function () {
           <g id="dv6-pts"></g>
         </g>
 
+        <!-- Guías de escuadra FUERA del canvas — coords SVG directas -->
+        <line id="dv6-guide-h" x1="0" y1="0" x2="0" y2="0" stroke="#34d399" stroke-width="0.8" stroke-dasharray="6,3" opacity="0" pointer-events="none"/>
+        <line id="dv6-guide-v" x1="0" y1="0" x2="0" y2="0" stroke="#34d399" stroke-width="0.8" stroke-dasharray="6,3" opacity="0" pointer-events="none"/>
+
         <!-- Línea temporal FUERA del canvas — usa coordenadas SVG directas -->
         <line id="dv6-tmp" x1="0" y1="0" x2="0" y2="0"
           stroke="#34d399" stroke-width="1.5" stroke-dasharray="8,4" opacity="0" pointer-events="none"/>
@@ -1003,10 +1007,19 @@ PAT.DrafterUI = (function () {
 
   function _snap(mm) {
     if (!_snapEnabled) return mm;
-    return {
-      x: Math.round(mm.x / _snapSize) * _snapSize,
-      y: Math.round(mm.y / _snapSize) * _snapSize,
-    };
+    let x = Math.round(mm.x / _snapSize) * _snapSize;
+    let y = Math.round(mm.y / _snapSize) * _snapSize;
+
+    // Si hay un punto seleccionado, snap también a su X e Y (escuadra)
+    if (_selected && _points[_selected]) {
+      const sp = _points[_selected];
+      const svgCur = _mmToSvg(mm.x, mm.y);
+      const svgSel = _mmToSvg(sp.x, sp.y);
+      const GUIDE_THRESH = 12; // px de pantalla
+      if (Math.abs(svgCur.y - svgSel.y) < GUIDE_THRESH) y = sp.y; // snap a misma altura
+      if (Math.abs(svgCur.x - svgSel.x) < GUIDE_THRESH) x = sp.x; // snap a mismo X
+    }
+    return { x, y };
   }
 
   // ════════════════════════════════════════════════════════════
@@ -1218,6 +1231,50 @@ PAT.DrafterUI = (function () {
       sc.setAttribute('opacity', '0');
     }
 
+    // ESCUADRA — mostrar guías horizontales y verticales desde el punto seleccionado
+    const guideH = document.getElementById('dv6-guide-h');
+    const guideV = document.getElementById('dv6-guide-v');
+    if (guideH && guideV) {
+      if (_selected && _points[_selected]) {
+        const sp = _points[_selected];
+        const svgSel = _mmToSvg(sp.x, sp.y);
+        const wrap2 = document.getElementById('dv6-wrap');
+        const wW = wrap2 ? wrap2.clientWidth : 1200;
+        const wH = wrap2 ? wrap2.clientHeight : 800;
+
+        // Línea horizontal (mismo Y que el punto seleccionado)
+        guideH.setAttribute('x1', 0); guideH.setAttribute('y1', svgSel.y);
+        guideH.setAttribute('x2', wW - 260); guideH.setAttribute('y2', svgSel.y);
+        guideH.setAttribute('opacity', '0.7');
+
+        // Línea vertical (mismo X que el punto seleccionado)
+        guideV.setAttribute('x1', svgSel.x); guideV.setAttribute('y1', 0);
+        guideV.setAttribute('x2', svgSel.x); guideV.setAttribute('y2', wH);
+        guideV.setAttribute('opacity', '0.7');
+
+        // Si el cursor está cerca de la guía horizontal, snap a esa Y
+        if (_snapEnabled) {
+          const curSvg = _mmToSvg(mm.x, mm.y);
+          if (Math.abs(curSvg.y - svgSel.y) < 12) {
+            // Resaltar la guía H
+            guideH.setAttribute('stroke', '#fbbf24');
+            guideH.setAttribute('opacity', '1');
+          } else {
+            guideH.setAttribute('stroke', '#34d399');
+          }
+          if (Math.abs(curSvg.x - svgSel.x) < 12) {
+            guideV.setAttribute('stroke', '#fbbf24');
+            guideV.setAttribute('opacity', '1');
+          } else {
+            guideV.setAttribute('stroke', '#34d399');
+          }
+        }
+      } else {
+        guideH.setAttribute('opacity', '0');
+        guideV.setAttribute('opacity', '0');
+      }
+    }
+
     if (_isPan && _panStart) {
       _pan.x = e.clientX - _panStart.x;
       _pan.y = e.clientY - _panStart.y;
@@ -1356,11 +1413,19 @@ PAT.DrafterUI = (function () {
   }
 
   function _nearestCtrl(mm,thresh) {
+    // Detectar clic en el diamante de control O en cualquier punto de la curva
     for(let i=0;i<_lines.length;i++){
       const ln=_lines[i];if(ln.type!=='curve')continue;
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)continue;
       const {cpx,cpy}=_curveCP(a,b,ln.ctrl);
-      if(Math.hypot(cpx-mm.x,cpy-mm.y)<thresh)return i;
+      // 1. Cerca del punto de control (diamante)
+      if(Math.hypot(cpx-mm.x,cpy-mm.y)<thresh*2)return i;
+      // 2. Cerca de cualquier punto de la curva Bézier (muestreo)
+      for(let t=0.05;t<=0.95;t+=0.05){
+        const px=(1-t)*(1-t)*a.x+2*(1-t)*t*cpx+t*t*b.x;
+        const py=(1-t)*(1-t)*a.y+2*(1-t)*t*cpy+t*t*b.y;
+        if(Math.hypot(px-mm.x,py-mm.y)<thresh*1.5)return i;
+      }
     }
     return -1;
   }
@@ -1485,28 +1550,46 @@ PAT.DrafterUI = (function () {
 
   function _renderCurveControls(){
     while(_ctrlG.firstChild)_ctrlG.removeChild(_ctrlG.firstChild);
-    const sz=2.5; // mm
+    const sz=4; // mm — más grande para facilitar agarre
 
     _lines.forEach((ln,i)=>{
       if(ln.type!=='curve')return;
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       const{cpx,cpy}=_curveCP(a,b,ln.ctrl);
-      // Línea de guía desde midpoint al ctrl
       const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+
+      // Línea de guía
       const guide=document.createElementNS(NS,'line');
       guide.setAttribute('x1',mx);guide.setAttribute('y1',my);
       guide.setAttribute('x2',cpx);guide.setAttribute('y2',cpy);
-      guide.setAttribute('stroke','rgba(96,165,250,.3)');guide.setAttribute('stroke-width','0.3');
-      guide.setAttribute('stroke-dasharray','1.5,1');
+      guide.setAttribute('stroke','rgba(96,165,250,.4)');guide.setAttribute('stroke-width','0.4');
+      guide.setAttribute('stroke-dasharray','2,1.5');
       _ctrlG.appendChild(guide);
-      // Diamante draggable
+
+      // Zona de hit invisible (grande) para facilitar agarre
+      const hitZone=document.createElementNS(NS,'circle');
+      hitZone.setAttribute('cx',cpx);hitZone.setAttribute('cy',cpy);hitZone.setAttribute('r',sz*2);
+      hitZone.setAttribute('fill','transparent');hitZone.setAttribute('stroke','none');
+      hitZone.style.cursor='move';
+      _ctrlG.appendChild(hitZone);
+
+      // Diamante visible
       const pts=`${cpx},${cpy-sz} ${cpx+sz},${cpy} ${cpx},${cpy+sz} ${cpx-sz},${cpy}`;
       const diamond=document.createElementNS(NS,'polygon');
       diamond.setAttribute('points',pts);
       diamond.setAttribute('fill',i===_selectedLine?'#93c5fd':'#60a5fa');
-      diamond.setAttribute('stroke','#06060c');diamond.setAttribute('stroke-width','0.25');
+      diamond.setAttribute('stroke','#ede9fe');
+      diamond.setAttribute('stroke-width',i===_selectedLine?'0.5':'0.3');
       diamond.style.cursor='move';
       _ctrlG.appendChild(diamond);
+
+      // Etiqueta con valor de curvatura
+      const lbl=document.createElementNS(NS,'text');
+      lbl.setAttribute('x',cpx+sz*1.4);lbl.setAttribute('y',cpy);
+      lbl.setAttribute('font-size','3.5');lbl.setAttribute('fill','#60a5fa');
+      lbl.setAttribute('font-family','monospace');
+      lbl.textContent=Math.round(ln.ctrl)+'mm';
+      _ctrlG.appendChild(lbl);
     });
   }
 
