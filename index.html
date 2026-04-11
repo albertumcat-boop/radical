@@ -471,10 +471,13 @@ PAT.Mannequin3D = (function () {
   function init(el){
     if(_initialized||!el)return;
     _canvas=el;
-    const W=el.clientWidth||800, H=el.clientHeight||600;
+    // Si el canvas está oculto (display:none), clientWidth=0 → usar el padre
+    const _par = el.parentElement || document.getElementById('view-3d') || el;
+    const W = el.clientWidth || _par.clientWidth || window.innerWidth * 0.6 || 800;
+    const H = el.clientHeight || _par.clientHeight || window.innerHeight * 0.7 || 600;
     renderer=new THREE.WebGLRenderer({canvas:el,antialias:true});
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-    renderer.setSize(W,H);
+    renderer.setSize(W, H);
     renderer.setClearColor(0x07070f,1);
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -975,11 +978,31 @@ PAT.Mannequin3D = (function () {
 
   function toggleWireframe(){_isWireframe=!_isWireframe;garmentGroup.traverse(c=>{if(c.isMesh)c.material.wireframe=_isWireframe;});}
   function resetCamera(){camera.position.set(0,0.95,2.8);controls.target.set(0,0.82,0);controls.update();}
-  function _onResize(){if(!_canvas||!renderer)return;const w=_canvas.clientWidth,h=_canvas.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);}
+  function _onResize(){
+    if(!_canvas||!renderer)return;
+    const _p=_canvas.parentElement||document.getElementById('view-3d')||_canvas;
+    const w=_canvas.clientWidth||_p.clientWidth||800;
+    const h=_canvas.clientHeight||_p.clientHeight||600;
+    if(!w||!h)return;
+    camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);
+  }
   function _animate(){_animId=requestAnimationFrame(_animate);_simTick();if(controls)controls.update();if(renderer&&scene&&camera)renderer.render(scene,camera);}
   function destroy(){if(_animId)cancelAnimationFrame(_animId);window.removeEventListener('resize',_onResize);if(renderer)renderer.dispose();_initialized=false;}
 
-  return{init,updateGarment,toggleWireframe,resetCamera,destroy};
+  function resize(w, h) {
+    if (!renderer || !camera) return;
+    if (!w || !h) {
+      const el = document.getElementById('three-canvas');
+      if (el) { w = el.clientWidth; h = el.clientHeight; }
+    }
+    if (w && h) {
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+  }
+
+  return{init,updateGarment,toggleWireframe,resetCamera,destroy,resize};
 })();
 
 </script>
@@ -2724,6 +2747,30 @@ window.addEventListener('load', function() {
   document.querySelectorAll('.view-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var view = this.dataset.view;
+
+      // Vista 3D normal
+      if (view === 'viewer3d') {
+        // Inicializar maniquí si no está listo
+        var tc = document.getElementById('three-canvas');
+        if (tc && window.PAT && PAT.Mannequin3D && !tc._m3dInit) {
+          tc._m3dInit = true;
+          // Esperar a que el canvas sea visible antes de inicializar
+          setTimeout(function() {
+            PAT.Mannequin3D.init(tc);
+            // Forzar resize para que Three.js tome las dimensiones correctas
+            setTimeout(function() {
+              if (PAT.Mannequin3D.resetCamera) PAT.Mannequin3D.resetCamera();
+            }, 100);
+          }, 50);
+        } else if (tc && tc._m3dInit && PAT.Mannequin3D) {
+          // Ya inicializado — forzar resize después de que el canvas sea visible
+          setTimeout(function() {
+            if (PAT.Mannequin3D.resize) PAT.Mannequin3D.resize();
+            if (PAT.Mannequin3D.resetCamera) PAT.Mannequin3D.resetCamera();
+          }, 80);
+        }
+      }
+
       if (view === 'split') {
         _splitMode = !_splitMode;
         var main = document.getElementById('main');
