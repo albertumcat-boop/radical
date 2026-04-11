@@ -812,6 +812,7 @@ PAT.DrafterUI = (function () {
     <button class="tb" data-tool="addLine" title="L">╱ Línea</button>
     <button class="tb" data-tool="addCurve" title="C">⌒ Curva</button>
     <button class="tb" data-tool="addFold" title="F">— Doblez</button>
+    <button class="tb" data-tool="addDart" title="D" style="border-color:rgba(251,191,36,.25);color:#fbbf24">📌 Pinza</button>
     <div class="dv6-sep"></div>
     <!-- Rectángulo base -->
     <button class="tb" id="dv6-rect" title="R">⬜ Rectángulo</button>
@@ -1205,6 +1206,11 @@ PAT.DrafterUI = (function () {
       return;
     }
 
+    if (_tool === 'addDart') {
+      if (!near) { _instr('⚠️ Clic exactamente sobre un punto existente'); return; }
+      _addDart(near); return;
+    }
+
     if (_tool === 'addLine' || _tool === 'addCurve' || _tool === 'addFold') {
       if (!near) {
         _instr('⚠️ Haz clic exactamente sobre un punto existente (círculo morado)');
@@ -1391,8 +1397,9 @@ PAT.DrafterUI = (function () {
       case 'l': case 'L': _setTool('addLine'); break;
       case 'c': case 'C': _setTool('addCurve'); break;
       case 'f': case 'F': _setTool('addFold'); break;
+      case 'd': case 'D': _setTool('addDart'); break;
       case 'r': case 'R': _insertRect(); break;
-      case 'Escape': _lnStart=null; _tempLine.setAttribute('opacity','0'); _setTool('select'); break;
+      case 'Escape': _lnStart=null; _dartPts=[]; _tempLine.setAttribute('opacity','0'); _setTool('select'); break;
       case 'Delete': case 'Backspace': if(_selected)_delSelected(); break;
     }
   }
@@ -1418,6 +1425,7 @@ PAT.DrafterUI = (function () {
       addLine:  '╱ Clic en punto A → clic en punto B — traza línea recta. La distancia aparece en verde.',
       addCurve: '⌒ Clic en punto A → clic en punto B — traza curva. Arrastra el ◆ azul para ajustar.',
       addFold:  '— Clic en punto A → clic en punto B — marca doblez (rojo) o hilo recto.',
+      addDart:  '📌 Pinza: Clic en punto APEX (punta) → clic en punto DERECHO → clic en punto IZQUIERDO de la pinza.',
     }[_tool]||'';
   }
 
@@ -1478,6 +1486,32 @@ PAT.DrafterUI = (function () {
   // ════════════════════════════════════════════════════════════
   // LÍNEAS
   // ════════════════════════════════════════════════════════════
+  // Dart state: 3 clicks needed (apex, right, left)
+  let _dartPts = [];
+
+  function _addDart(ptId) {
+    _dartPts.push(ptId);
+    if (_dartPts.length === 1) {
+      _instr('📌 Punto APEX (punta) seleccionado. Ahora clic en el punto DERECHO de la pinza.');
+      _renderAll(); return;
+    }
+    if (_dartPts.length === 2) {
+      _instr('📌 Clic en el punto IZQUIERDO de la pinza para cerrarla.');
+      _renderAll(); return;
+    }
+    if (_dartPts.length >= 3) {
+      // Crear la pinza: apex→right, apex→left (líneas de costura en naranja)
+      _snapshot();
+      const [apex, right, left] = _dartPts;
+      _lines.push({ from:apex, to:right, type:'dart', ctrl:0, cpx:null, cpy:null });
+      _lines.push({ from:apex, to:left,  type:'dart', ctrl:0, cpx:null, cpy:null });
+      _dartPts = [];
+      _renderAll();
+      _setTool('select');
+      _instr('✅ Pinza creada. Las líneas naranjas marcan la costura de la pinza.');
+    }
+  }
+
   function _addLn(fromId,toId,tool){
     const type=tool==='addCurve'?'curve':tool==='addFold'?'fold':'line';
     _lines.push({from:fromId,to:toId,type,ctrl:20,cpx:null,cpy:null});
@@ -1622,8 +1656,9 @@ PAT.DrafterUI = (function () {
       }else{
         el=document.createElementNS(NS,'line');
         el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);
-        el.setAttribute('stroke',ln.type==='fold'?'#f87171':'#e2e8f0');
+        el.setAttribute('stroke',ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':'#e2e8f0');
         if(ln.type==='fold')el.setAttribute('stroke-dasharray','3,1.5');
+        if(ln.type==='dart')el.setAttribute('stroke-dasharray','2,1');
       }
       el.setAttribute('stroke-width',sw);
       _linesG.appendChild(el);
@@ -1819,8 +1854,8 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-lncnt').textContent=_lines.length;
     _lines.forEach((ln,i)=>{
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
-      const col=ln.type==='fold'?'#f87171':ln.type==='curve'?'#60a5fa':'#e2e8f0';
-      const bg=ln.type==='fold'?'repeating-linear-gradient(90deg,#f87171 0,#f87171 4px,transparent 4px,transparent 8px)':col;
+      const col=ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':ln.type==='curve'?'#60a5fa':'#e2e8f0';
+      const bg=ln.type==='fold'?'repeating-linear-gradient(90deg,#f87171 0,#f87171 4px,transparent 4px,transparent 8px)':ln.type==='dart'?'repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 4px,transparent 4px,transparent 8px)':col;
       const div=document.createElement('div');div.className='dv6-lni'+(i===_selectedLine?' on':'');
       div.innerHTML=`<div class="dv6-lbar" style="background:${bg}"></div><span class="dv6-llb">${a.name}→${b.name} <span style="color:#3d3d58">(${ln.type}${ln.type==='curve'?' '+ln.ctrl+'mm':''})</span></span><button class="dv6-ldel">✕</button>`;
       div.addEventListener('click',e=>{if(e.target.classList.contains('dv6-ldel'))return;_selectLine(i===_selectedLine?null:i);_refreshPanel();});
