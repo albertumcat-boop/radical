@@ -631,8 +631,11 @@ PAT.Mannequin3D = (function () {
     // ─── PIES ───
     [-1,1].forEach(s=>{
       const lx=s*rH*(isM?0.48:0.52);
-      const foot=new THREE.Mesh(new THREE.BoxGeometry(rH*0.40,yAnk*0.65,rH*1.28),skin);
-      foot.position.set(lx,yAnk*0.32,rH*0.20);foot.castShadow=true;bodyGroup.add(foot);
+      const foot=new THREE.Mesh(new THREE.BoxGeometry(rH*0.52,yAnk*0.70,rH*1.55),skin);
+      foot.position.set(lx,yAnk*0.35,rH*0.28);foot.castShadow=true;bodyGroup.add(foot);
+      // Tobillo
+      const ank=new THREE.Mesh(new THREE.SphereGeometry(rH*0.234,14,10),skin);
+      ank.position.set(lx,yAnk*0.88,0);bodyGroup.add(ank);
     });
 
     // ─── PIERNAS — loft con secciones elípticas ───
@@ -640,24 +643,24 @@ PAT.Mannequin3D = (function () {
     [-1,1].forEach(s=>{
       const lx=s*rH*(isM?0.48:0.52);
 
-      // Pantorrilla
+      // Pantorrilla — proporciones reales (circ ~37cm = radio 5.9cm)
       const calf=loftMesh([
-        {y:0,      rx:rH*0.115, rz:rH*0.135},  // tobillo: más profundo que ancho
-        {y:(yKne-yAnk)*0.25, rx:rH*0.145, rz:rH*0.175, cz:rH*0.02},  // vientre pantorrilla
-        {y:(yKne-yAnk)*0.55, rx:rH*0.138, rz:rH*0.162},
-        {y:(yKne-yAnk)*0.80, rx:rH*0.128, rz:rH*0.148},
-        {y:(yKne-yAnk),      rx:rH*0.145, rz:rH*0.152},  // rodilla: más redondeada
-      ],20,skin);
+        {y:0,                rx:rH*0.234, rz:rH*0.268},  // tobillo (~22cm circ)
+        {y:(yKne-yAnk)*0.22, rx:rH*0.320, rz:rH*0.385, cz:rH*0.04},  // vientre pantorrilla (37cm)
+        {y:(yKne-yAnk)*0.50, rx:rH*0.305, rz:rH*0.355, cz:rH*0.03},
+        {y:(yKne-yAnk)*0.78, rx:rH*0.280, rz:rH*0.320},
+        {y:(yKne-yAnk),      rx:rH*0.295, rz:rH*0.320},  // rodilla
+      ],24,skin);
       calf.position.set(lx,yAnk,0);calf.castShadow=true;bodyGroup.add(calf);
 
-      // Muslo — más ancho de lado, sobresale un poco adelante
+      // Muslo — proporciones reales (circ ~56cm = radio 8.9cm)
       const thigh=loftMesh([
-        {y:0,      rx:rH*0.145, rz:rH*0.155},  // encima rodilla
-        {y:(yCro-yKne)*0.22, rx:rH*0.210, rz:rH*0.220, cz:rH*0.015},
-        {y:(yCro-yKne)*0.50, rx:rH*0.235, rz:rH*0.228, cz:rH*0.018},  // punto más ancho
-        {y:(yCro-yKne)*0.75, rx:rH*0.220, rz:rH*0.210},
-        {y:(yCro-yKne),      rx:rH*0.195, rz:rH*0.185},  // entrepierna
-      ],22,skin);
+        {y:0,                rx:rH*0.295, rz:rH*0.325},  // encima rodilla
+        {y:(yCro-yKne)*0.20, rx:rH*0.520, rz:rH*0.540, cz:rH*0.025},
+        {y:(yCro-yKne)*0.48, rx:rH*0.595, rz:rH*0.580, cz:rH*0.030},  // max muslo (56cm)
+        {y:(yCro-yKne)*0.72, rx:rH*0.568, rz:rH*0.545, cz:rH*0.015},
+        {y:(yCro-yKne),      rx:rH*0.520, rz:rH*0.490},  // entrepierna
+      ],26,skin);
       thigh.position.set(lx,yKne,0);thigh.castShadow=true;bodyGroup.add(thigh);
     });
 
@@ -790,7 +793,8 @@ PAT.Mannequin3D = (function () {
     });
 
     // ─── BRAZOS — loft elíptico ───
-    const aTop=rB*(isM?0.148:0.122), aMid=rB*(isM?0.135:0.110), aFore=rB*(isM?0.118:0.096), aWris=rB*(isM?0.088:0.075);
+    // Brazos: radio musculo correcto (bicep ~29cm circ = 4.6cm radio)
+    const aTop=rB*(isM?0.360:0.310), aMid=rB*(isM?0.335:0.285), aFore=rB*(isM?0.295:0.248), aWris=rB*(isM?0.210:0.182);
     const uAH=(yShl-yArm)*0.94, fAH=uAH*0.92, ang=isM?0.22:0.28;
 
     [-1,1].forEach(s=>{
@@ -912,9 +916,10 @@ PAT.Mannequin3D = (function () {
   function lerp(a,b,t){return a+(b-a)*Math.min(Math.max(t,0),1);}
 
   function grainLines(r,yB,yT){
-    const rm=new THREE.LineBasicMaterial({color:0xf87171,opacity:0.45,transparent:true});
-    const bm=new THREE.LineBasicMaterial({color:0x60a5fa,opacity:0.45,transparent:true});
-    for(let i=0;i<8;i++){const a=i/8*Math.PI*2,b=a+Math.PI/8;
+    // Solo unas pocas líneas sutiles de hilo (no en anillos)
+    const rm=new THREE.LineBasicMaterial({color:0xf87171,opacity:0.30,transparent:true});
+    const bm=new THREE.LineBasicMaterial({color:0x60a5fa,opacity:0.30,transparent:true});
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2,b=a+Math.PI/6;
       garmentGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(Math.cos(a)*r*0.97,yB,Math.sin(a)*r*0.97),new THREE.Vector3(Math.cos(a)*r*0.97,yT,Math.sin(a)*r*0.97)]),rm));
       garmentGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(Math.cos(a)*r*0.97,yB,Math.sin(a)*r*0.97),new THREE.Vector3(Math.cos(b)*r*0.97,yT,Math.sin(b)*r*0.97)]),bm));
     }
