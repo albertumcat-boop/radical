@@ -438,12 +438,12 @@
 <script src="js/patterns/vestido.js"></script>
 <script src="js/pattern-engine.js"></script>
 <script src="js/pdf-export.js"></script>
-<!-- mannequin-3d v12 dressform -->
+<!-- mannequin-3d v13 -->
 <script>
 /**
- * mannequin-3d.js v12 — PatrónAI Pro
- * Mannequin procedural profesional — estilo dressform CLO 3D
- * Sin GLB externo. Silueta humana real con loft mesh elíptico.
+ * mannequin-3d.js v13 — PatrónAI Pro
+ * Carga modelo GLB real desde /assets/mannequin-female.glb
+ * Fallback automático a dressform procedural si no existe.
  */
 'use strict';
 window.PAT = window.PAT || {};
@@ -455,32 +455,217 @@ PAT.Mannequin3D = (function () {
   let _canvas=null, _animId=null, _initialized=false;
   let _currentMeasures={}, _activeMeasureLine=null;
   let _isWireframe=false, _bodyType='woman', _lastGarment='franela';
-  let _currentRadii=null;
+  let _currentRadii=null, _glbLoaded=false;
+
+  // ── Rutas a tus modelos GLB en /assets/ ──
+  const GLB = {
+    woman: '/assets/Animated_Woman.glb',
+    man:   '/assets/Man.glb',
+    girl:  '/assets/Animated_Woman.glb',
+    boy:   '/assets/Man.glb',
+  };
 
   const BT = {
-    woman:{ l:'Mujer',  e:'👩', bM:1.00, wM:0.78, hM:1.00, sM:0.88, nM:0.94, ht:1.00 },
-    man:  { l:'Hombre', e:'👨', bM:1.14, wM:0.95, hM:0.86, sM:1.12, nM:1.08, ht:1.06 },
-    girl: { l:'Niña',   e:'👧', bM:0.58, wM:0.63, hM:0.56, sM:0.60, nM:0.70, ht:0.70 },
-    boy:  { l:'Niño',   e:'👦', bM:0.56, wM:0.61, hM:0.54, sM:0.63, nM:0.68, ht:0.68 },
+    woman:{ l:'Mujer',  e:'👩', sc:1.00, ht:1.00 },
+    man:  { l:'Hombre', e:'👨', sc:1.08, ht:1.06 },
+    girl: { l:'Niña',   e:'👧', sc:0.72, ht:0.70 },
+    boy:  { l:'Niño',   e:'👦', sc:0.70, ht:0.68 },
+  };
+
+  // Para cálculo de radios del dressform (fallback)
+  const BTR = {
+    woman:{ bM:1.00, wM:0.78, hM:1.00, sM:0.88, nM:0.94 },
+    man:  { bM:1.14, wM:0.95, hM:0.86, sM:1.12, nM:1.08 },
+    girl: { bM:0.58, wM:0.63, hM:0.56, sM:0.60, nM:0.70 },
+    boy:  { bM:0.56, wM:0.61, hM:0.54, sM:0.63, nM:0.68 },
   };
 
   function cmR(c){ return c/(2*Math.PI*100); }
 
   // ════════════════════════════════════════════════════════════
-  // LOFT MESH — secciones elípticas conectadas
-  // sections: [{y, rx, rz, cx=0, cz=0}]
-  // rx=radio izq-der  rz=radio frente-atrás  cz=desplazamiento
+  // INIT
   // ════════════════════════════════════════════════════════════
-  function loftMesh(sections, segs, mat, capBot, capTop){
-    segs = segs||32;
-    const pos=[], idx=[];
-    sections.forEach(s=>{
+  function init(el){
+    if(_initialized||!el)return;
+    _canvas=el;
+    const par=el.parentElement||document.getElementById('view-3d')||el;
+    const W=el.clientWidth||par.clientWidth||800;
+    const H=el.clientHeight||par.clientHeight||600;
+
+    renderer=new THREE.WebGLRenderer({canvas:el,antialias:true,alpha:false});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setSize(W,H);
+    renderer.setClearColor(0x06060e,1);
+    renderer.shadowMap.enabled=true;
+    renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+    scene=new THREE.Scene();
+    scene.fog=new THREE.FogExp2(0x06060e,0.07);
+
+    camera=new THREE.PerspectiveCamera(36,W/H,0.01,30);
+    camera.position.set(0,0.95,2.8);
+
+    controls=new THREE.OrbitControls(camera,renderer.domElement);
+    controls.enableDamping=true;
+    controls.dampingFactor=0.06;
+    controls.minDistance=0.3;
+    controls.maxDistance=7;
+    controls.target.set(0,0.82,0);
+    controls.update();
+
+    bodyGroup    = new THREE.Group();
+    garmentGroup = new THREE.Group();
+    measureGroup = new THREE.Group();
+    scene.add(bodyGroup, garmentGroup, measureGroup);
+
+    _buildScene();
+    _injectPanel();
+    window.addEventListener('resize', _onResize);
+    _animate();
+    _initialized=true;
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // ESCENA
+  // ════════════════════════════════════════════════════════════
+  function _buildScene(){
+    // Suelo
+    const floor=new THREE.Mesh(
+      new THREE.PlaneGeometry(8,8),
+      new THREE.MeshStandardMaterial({color:0x090918,roughness:0.98})
+    );
+    floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+    scene.add(new THREE.GridHelper(6,30,0x14142a,0x0c0c1e));
+
+    // Paredes (esquina)
+    const wm=new THREE.MeshStandardMaterial({color:0x0c0c1f,roughness:0.95,side:THREE.FrontSide});
+    const bw=new THREE.Mesh(new THREE.PlaneGeometry(7,4),wm);
+    bw.position.set(0,2,-2.5); bw.receiveShadow=true; scene.add(bw);
+    const sw=new THREE.Mesh(new THREE.PlaneGeometry(7,4),wm.clone());
+    sw.position.set(-2.5,2,0); sw.rotation.y=Math.PI/2; sw.receiveShadow=true; scene.add(sw);
+
+    // Luces
+    scene.add(new THREE.AmbientLight(0xeef0ff,0.50));
+    const key=new THREE.DirectionalLight(0xfff8f0,1.35);
+    key.position.set(1.5,3.5,2.5); key.castShadow=true;
+    key.shadow.mapSize.set(2048,2048);
+    key.shadow.camera.left=-2; key.shadow.camera.right=2;
+    key.shadow.camera.top=3;   key.shadow.camera.bottom=-1;
+    scene.add(key);
+    const fill=new THREE.DirectionalLight(0xb0c8ff,0.45);
+    fill.position.set(-2,2,1); scene.add(fill);
+    const back=new THREE.DirectionalLight(0x8855cc,0.30);
+    back.position.set(0.5,2.5,-3); scene.add(back);
+    scene.add(new THREE.HemisphereLight(0xeeeeff,0x111133,0.28));
+
+    // Base del maniquí
+    const bm=new THREE.MeshStandardMaterial({color:0x1a1a32,metalness:0.8,roughness:0.2});
+    const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,0.025,48),bm);
+    disc.position.set(0,0.012,0); scene.add(disc);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.5,14),bm);
+    pole.position.set(0,0.275,0); scene.add(pole);
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // CARGAR MODELO GLB
+  // ════════════════════════════════════════════════════════════
+  function _loadGLBModel(bt, onDone){
+    if(typeof THREE.GLTFLoader === 'undefined'){
+      console.warn('[PatrónAI] GLTFLoader no disponible, usando dressform');
+      onDone(false); return;
+    }
+
+    const url = GLB[bt];
+    _showLoader(true, 'Cargando modelo 3D...');
+
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+      url,
+      function(gltf){
+        _showLoader(false);
+        _applyModel(gltf, bt);
+        _glbLoaded = true;
+        onDone(true);
+      },
+      function(xhr){
+        if(xhr.total){
+          const pct = Math.round(xhr.loaded/xhr.total*100);
+          _showLoader(true, `Cargando modelo... ${pct}%`);
+        }
+      },
+      function(err){
+        console.warn('[PatrónAI] GLB no encontrado en',url,'— usando dressform procedural');
+        _showLoader(false);
+        _glbLoaded = false;
+        onDone(false);
+      }
+    );
+  }
+
+  function _applyModel(gltf, bt){
+    // Limpiar cuerpo anterior
+    while(bodyGroup.children.length){
+      const c=bodyGroup.children[0];
+      c.geometry?.dispose();
+      if(c.material) Array.isArray(c.material)?c.material.forEach(m=>m.dispose()):c.material.dispose();
+      bodyGroup.remove(c);
+    }
+
+    const model = gltf.scene;
+    const bt2 = BT[bt];
+
+    // Calcular escala: el modelo debe medir 1.68m × factor de altura
+    const box=new THREE.Box3().setFromObject(model);
+    const size=new THREE.Vector3(); box.getSize(size);
+    const targetH = 1.68 * bt2.ht;
+    const scale   = (targetH / size.y) * bt2.sc;
+    model.scale.setScalar(scale);
+
+    // Centrar y apoyar en el suelo
+    box.setFromObject(model);
+    const center=new THREE.Vector3(); box.getCenter(center);
+    model.position.x = -center.x;
+    model.position.z = -center.z;
+    model.position.y = -box.min.y;
+
+    // Mejorar materiales y sombras
+    model.traverse(child=>{
+      if(!child.isMesh) return;
+      child.castShadow    = true;
+      child.receiveShadow = true;
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(m=>{
+        m.roughness = Math.max(m.roughness||0, 0.55);
+        m.metalness = Math.min(m.metalness||0, 0.05);
+        m.needsUpdate = true;
+      });
+    });
+
+    // Manejar animaciones — pausar en frame 0 (T-pose) para patronaje
+    if(gltf.animations && gltf.animations.length > 0){
+      if(!scene._mixer) scene._mixer = new THREE.AnimationMixer(model);
+      const mixer = scene._mixer;
+      // No reproducir animaciones — dejar en T-pose
+      // mixer.clipAction(gltf.animations[0]).play(); // desactivado
+    }
+
+    bodyGroup.add(model);
+    console.log(`[PatrónAI] ✓ Modelo GLB cargado: ${bt}, scale=${scale.toFixed(3)}, height=${(size.y*scale).toFixed(2)}m`);
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // DRESSFORM PROCEDURAL (fallback cuando no hay GLB)
+  // ════════════════════════════════════════════════════════════
+  function loftMesh(secs,segs,mat,capB,capT){
+    segs=segs||32;
+    const pos=[],idx=[];
+    secs.forEach(s=>{
       for(let i=0;i<=segs;i++){
         const a=i/segs*Math.PI*2;
-        pos.push((s.cx||0)+s.rx*Math.cos(a), s.y, (s.cz||0)+s.rz*Math.sin(a));
+        pos.push((s.cx||0)+s.rx*Math.cos(a),s.y,(s.cz||0)+s.rz*Math.sin(a));
       }
     });
-    for(let s=0;s<sections.length-1;s++){
+    for(let s=0;s<secs.length-1;s++){
       for(let i=0;i<segs;i++){
         const a=s*(segs+1)+i,b=a+1,c=(s+1)*(segs+1)+i,d=c+1;
         idx.push(a,c,b,b,c,d);
@@ -492,294 +677,145 @@ PAT.Mannequin3D = (function () {
       for(let i=0;i<=segs;i++){const a=i/segs*Math.PI*2;pos.push((sec.cx||0)+sec.rx*Math.cos(a),sec.y,(sec.cz||0)+sec.rz*Math.sin(a));}
       for(let i=0;i<segs;i++) inv?idx.push(ci,ci+i+2,ci+i+1):idx.push(ci,ci+i+1,ci+i+2);
     }
-    if(capBot) cap(sections[0],true);
-    if(capTop) cap(sections[sections.length-1],false);
+    if(capB) cap(secs[0],true);
+    if(capT) cap(secs[secs.length-1],false);
     const geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-    geo.setIndex(idx);
-    geo.computeVertexNormals();
+    geo.setIndex(idx); geo.computeVertexNormals();
     return new THREE.Mesh(geo,mat);
   }
 
-  // ════════════════════════════════════════════════════════════
-  function init(el){
-    if(_initialized||!el)return; _canvas=el;
-    const par=el.parentElement||document.getElementById('view-3d')||el;
-    const W=el.clientWidth||par.clientWidth||800, H=el.clientHeight||par.clientHeight||600;
-    renderer=new THREE.WebGLRenderer({canvas:el,antialias:true});
-    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-    renderer.setSize(W,H);
-    renderer.setClearColor(0x06060e,1);
-    renderer.shadowMap.enabled=true;
-    renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    scene=new THREE.Scene();
-    scene.fog=new THREE.FogExp2(0x06060e,0.07);
-    camera=new THREE.PerspectiveCamera(36,W/H,0.01,30);
-    camera.position.set(0,0.95,2.8);
-    controls=new THREE.OrbitControls(camera,renderer.domElement);
-    controls.enableDamping=true; controls.dampingFactor=0.06;
-    controls.minDistance=0.3; controls.maxDistance=7;
-    controls.target.set(0,0.82,0); controls.update();
-    bodyGroup=new THREE.Group(); garmentGroup=new THREE.Group(); measureGroup=new THREE.Group();
-    scene.add(bodyGroup,garmentGroup,measureGroup);
-    _buildScene(); _injectPanel();
-    window.addEventListener('resize',_onResize);
-    _animate(); _initialized=true;
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // ESCENA
-  // ════════════════════════════════════════════════════════════
-  function _buildScene(){
-    const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMaterial({color:0x090918,roughness:0.98}));
-    floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-    scene.add(new THREE.GridHelper(6,30,0x14142a,0x0c0c1e));
-    const wm=new THREE.MeshStandardMaterial({color:0x0b0b1e,roughness:0.95,side:THREE.FrontSide});
-    const bw=new THREE.Mesh(new THREE.PlaneGeometry(7,4),wm); bw.position.set(0,2,-2.5); bw.receiveShadow=true; scene.add(bw);
-    const sw=new THREE.Mesh(new THREE.PlaneGeometry(7,4),wm.clone()); sw.position.set(-2.5,2,0); sw.rotation.y=Math.PI/2; sw.receiveShadow=true; scene.add(sw);
-    scene.add(new THREE.AmbientLight(0xeef0ff,0.48));
-    const key=new THREE.DirectionalLight(0xfff8f0,1.3); key.position.set(1.5,3.5,2.5); key.castShadow=true;
-    key.shadow.mapSize.set(2048,2048); key.shadow.camera.left=-2; key.shadow.camera.right=2; key.shadow.camera.top=3; key.shadow.camera.bottom=-1; scene.add(key);
-    const fill=new THREE.DirectionalLight(0xb0c8ff,0.45); fill.position.set(-2,2,1); scene.add(fill);
-    const back=new THREE.DirectionalLight(0x7c3aed,0.28); back.position.set(0,2.5,-3); scene.add(back);
-    scene.add(new THREE.HemisphereLight(0xeeeeff,0x111133,0.28));
-    const bm=new THREE.MeshStandardMaterial({color:0x1a1a32,metalness:0.8,roughness:0.2});
-    const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,0.025,48),bm); disc.position.set(0,0.012,0); scene.add(disc);
-    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.5,14),bm); pole.position.set(0,0.275,0); scene.add(pole);
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // CUERPO — mannequin profesional con silueta real
-  // ════════════════════════════════════════════════════════════
-  function _buildBody(m){
-    while(bodyGroup.children.length){const c=bodyGroup.children[0];c.geometry?.dispose();c.material?.dispose();bodyGroup.remove(c);}
-    const bt=BT[_bodyType]||BT.woman, ht=bt.ht;
+  function _buildDressform(m){
+    while(bodyGroup.children.length){
+      const c=bodyGroup.children[0]; c.geometry?.dispose(); c.material?.dispose(); bodyGroup.remove(c);
+    }
+    const btr=BTR[_bodyType]||BTR.woman, bt=BT[_bodyType]||BT.woman, ht=bt.ht;
     const isF=(_bodyType==='woman'||_bodyType==='girl'), isM=_bodyType==='man';
+    const rB=cmR(m.bust)*btr.bM, rW=cmR(m.waist)*btr.wM;
+    const rH=cmR(m.hip)*btr.hM, rN=cmR(m.neck)*btr.nM;
+    const rS=(m.shoulder/100)/2*btr.sM;
+    const T=1.68*ht;
+    const yAnk=T*.048,yKne=T*.268,yCro=T*.478,yHip=T*.535;
+    const yWai=T*.622,yBus=T*.732,yArm=T*.758,yShl=T*.820;
+    const yNkB=T*.862,yNkT=T*.900,yHdC=T*.972;
 
-    // Radios calculados de medidas reales
-    const rB=cmR(m.bust)*bt.bM, rW=cmR(m.waist)*bt.wM;
-    const rH=cmR(m.hip)*bt.hM,  rN=cmR(m.neck)*bt.nM;
-    const rS=(m.shoulder/100)/2*bt.sM;
+    // Color marfil cálido — dressform real
+    const skin=new THREE.MeshStandardMaterial({color:0xf0ece4,roughness:0.55,metalness:0.02});
+    const skinDk=new THREE.MeshStandardMaterial({color:0xe0d8cc,roughness:0.60,metalness:0.02});
+    function addM(geo,x,y,z){const ms=new THREE.Mesh(geo,skin);ms.position.set(x||0,y||0,z||0);ms.castShadow=true;bodyGroup.add(ms);return ms;}
 
-    // Proporciones del cuerpo humano estándar (OMS)
-    const T=1.68*ht;                    // altura total
-    const yAnk=T*.048, yKne=T*.268, yCro=T*.478, yHip=T*.535;
-    const yWai=T*.622, yBus=T*.732, yArm=T*.758, yShl=T*.820;
-    const yNkB=T*.862, yNkT=T*.900, yHdC=T*.972;
-
-    // Color del dressform — blanco/marfil profesional
-    const dressColor = 0xf0ece4; // marfil cálido
-    const skin=new THREE.MeshStandardMaterial({color:dressColor,roughness:0.55,metalness:0.02,side:THREE.FrontSide});
-    const skinDk=new THREE.MeshStandardMaterial({color:0xe8e0d4,roughness:0.60,metalness:0.02});
-
-    function addM(geo,mat,x,y,z){const ms=new THREE.Mesh(geo,mat||skin);ms.position.set(x||0,y||0,z||0);ms.castShadow=true;ms.receiveShadow=true;bodyGroup.add(ms);return ms;}
-
-    // ── PIERNAS ──
-    // Proporciones anatómicas reales: muslo~56cm circ, pantorrilla~37cm circ
+    // PIERNAS
     const legSep=rH*(isM?.46:.50);
     [-1,1].forEach(s=>{
       const lx=s*legSep;
-      // Pie (caja)
       const ft=new THREE.Mesh(new THREE.BoxGeometry(rH*.48,yAnk*.7,rH*1.4),skin);
       ft.position.set(lx,yAnk*.35,rH*.22); ft.castShadow=true; bodyGroup.add(ft);
-      // Tobillo
-      addM(new THREE.SphereGeometry(rH*.23,16,12),null,lx,yAnk*.85);
-      // Pantorrilla — elíptica, más profunda que ancha, vientre anterior
+      addM(new THREE.SphereGeometry(rH*.23,16,12),lx,yAnk*.85);
       const calf=loftMesh([
-        {y:0,           rx:rH*.225, rz:rH*.255},           // tobillo (circ ~22cm)
-        {y:(yKne-yAnk)*.18, rx:rH*.310, rz:rH*.375, cz:rH*.03}, // inicio pantorrilla
-        {y:(yKne-yAnk)*.40, rx:rH*.328, rz:rH*.392, cz:rH*.04}, // max pantorrilla (circ ~37cm)
-        {y:(yKne-yAnk)*.65, rx:rH*.305, rz:rH*.358, cz:rH*.02},
-        {y:(yKne-yAnk)*.85, rx:rH*.282, rz:rH*.325},
-        {y:(yKne-yAnk),     rx:rH*.295, rz:rH*.315},       // rodilla
+        {y:0,           rx:rH*.225,rz:rH*.255},
+        {y:(yKne-yAnk)*.18,rx:rH*.310,rz:rH*.375,cz:rH*.03},
+        {y:(yKne-yAnk)*.42,rx:rH*.328,rz:rH*.392,cz:rH*.04},
+        {y:(yKne-yAnk)*.68,rx:rH*.305,rz:rH*.355},
+        {y:(yKne-yAnk),    rx:rH*.295,rz:rH*.315},
       ],24,skin,true,false);
       calf.position.set(lx,yAnk,0); calf.castShadow=true; bodyGroup.add(calf);
-      // Rótula
-      addM(new THREE.SphereGeometry(rH*.308,16,12),null,lx,yKne);
-      // Muslo — ancho, sobresale adelante, la cara interna es más recta
+      addM(new THREE.SphereGeometry(rH*.308,16,12),lx,yKne);
       const thigh=loftMesh([
-        {y:0,               rx:rH*.305, rz:rH*.322},       // sobre rodilla
-        {y:(yCro-yKne)*.18, rx:rH*.490, rz:rH*.515, cz:rH*.028},
-        {y:(yCro-yKne)*.42, rx:rH*.568, rz:rH*.562, cz:rH*.032}, // max muslo (circ~56cm)
-        {y:(yCro-yKne)*.68, rx:rH*.545, rz:rH*.535, cz:rH*.018},
-        {y:(yCro-yKne)*.88, rx:rH*.512, rz:rH*.498, cz:rH*.008},
-        {y:(yCro-yKne),     rx:rH*.490, rz:rH*.470},       // entrepierna
+        {y:0,              rx:rH*.305,rz:rH*.322},
+        {y:(yCro-yKne)*.18,rx:rH*.490,rz:rH*.515,cz:rH*.028},
+        {y:(yCro-yKne)*.42,rx:rH*.568,rz:rH*.562,cz:rH*.032},
+        {y:(yCro-yKne)*.68,rx:rH*.545,rz:rH*.535,cz:rH*.018},
+        {y:(yCro-yKne),    rx:rH*.490,rz:rH*.470},
       ],26,skin,false,false);
       thigh.position.set(lx,yKne,0); thigh.castShadow=true; bodyGroup.add(thigh);
     });
 
-    // ── PELVIS + CADERA ──
-    // La cadera es más ancha que profunda; los glúteos protruyen hacia atrás
+    // PELVIS
     const pelvis=loftMesh([
-      {y:0,               rx:rH*.78, rz:rH*.68, cz:-rH*.05},  // entrepierna
-      {y:(yHip-yCro)*.22, rx:rH*.88, rz:rH*.80, cz:-rH*.08},
-      {y:(yHip-yCro)*.50, rx:rH*1.00,rz:rH*.90, cz:-rH*.11}, // max cadera
-      {y:(yHip-yCro)*.72, rx:rH*.98, rz:rH*.88, cz:-rH*.08},
-      {y:(yHip-yCro)*.88, rx:rW*1.05,rz:rW*.94, cz:-rH*.03},
-      {y:(yWai-yCro),     rx:rW*1.00,rz:rW*.90, cz:0},        // cintura
+      {y:0,              rx:rH*.78,rz:rH*.68,cz:-rH*.05},
+      {y:(yHip-yCro)*.22,rx:rH*.88,rz:rH*.80,cz:-rH*.08},
+      {y:(yHip-yCro)*.50,rx:rH*1.00,rz:rH*.90,cz:-rH*.11},
+      {y:(yHip-yCro)*.72,rx:rH*.98,rz:rH*.88,cz:-rH*.08},
+      {y:(yWai-yCro),    rx:rW*1.00,rz:rW*.90,cz:0},
     ],40,skin,false,false);
     pelvis.position.y=yCro; pelvis.castShadow=true; bodyGroup.add(pelvis);
 
-    // ── TORSO — la pieza más crítica para la silueta ──
+    // TORSO
     const tH=yNkB-yWai;
-    const wRel=(yWai-yWai)/tH, bRel=(yBus-yWai)/tH; // 0 y relativo
-    let tSecs;
-    if(isF){
-      tSecs=[
-        {y:0,            rx:rW*1.00, rz:rW*.90,  cz:0},          // cintura angosta
-        {y:tH*.10,       rx:rW*1.02, rz:rW*.92,  cz:rB*.01},
-        {y:tH*.22,       rx:rB*.85,  rz:rB*.82,  cz:rB*.04},     // bajo busto
-        {y:tH*.36,       rx:rB*.93,  rz:rB*.89,  cz:rB*.09},
-        {y:tH*.50,       rx:rB*1.00, rz:rB*.95,  cz:rB*.14},     // max busto (protruye adelante)
-        {y:tH*.62,       rx:rB*.98,  rz:rB*.91,  cz:rB*.11},
-        {y:tH*.74,       rx:rB*.92,  rz:rB*.84,  cz:rB*.05},
-        {y:tH*.85,       rx:rS*1.02, rz:rS*.84,  cz:0},          // hombros
-        {y:tH*.94,       rx:rN*1.42, rz:rN*1.28, cz:0},
-        {y:tH,           rx:rN*1.35, rz:rN*1.20, cz:0},          // base cuello
-      ];
-    } else if(isM){
-      tSecs=[
-        {y:0,            rx:rW*1.02, rz:rW*.92,  cz:0},
-        {y:tH*.18,       rx:rW*1.05, rz:rW*.96,  cz:rB*.02},
-        {y:tH*.38,       rx:rB*.96,  rz:rB*.88,  cz:rB*.05},
-        {y:tH*.56,       rx:rB*1.04, rz:rB*.92,  cz:rB*.06},     // pecho masculino
-        {y:tH*.72,       rx:rB*1.02, rz:rB*.88,  cz:rB*.04},
-        {y:tH*.86,       rx:rS*1.08, rz:rS*.88,  cz:0},          // hombros anchos
-        {y:tH*.95,       rx:rN*1.50, rz:rN*1.32, cz:0},
-        {y:tH,           rx:rN*1.42, rz:rN*1.24, cz:0},
-      ];
-    } else {
-      tSecs=[
-        {y:0,            rx:rW*.98,  rz:rW*.88,  cz:0},
-        {y:tH*.30,       rx:rB*.90,  rz:rB*.85,  cz:rB*.03},
-        {y:tH*.58,       rx:rB*.96,  rz:rB*.90,  cz:rB*.05},
-        {y:tH*.82,       rx:rS*.98,  rz:rS*.82,  cz:0},
-        {y:tH,           rx:rN*1.35, rz:rN*1.18, cz:0},
-      ];
-    }
-    const torso=loftMesh(tSecs,44,skin,false,false);
+    const tS=isF?[
+      {y:0,        rx:rW,      rz:rW*.90,  cz:0},
+      {y:tH*.12,   rx:rW*1.02, rz:rW*.92,  cz:rB*.02},
+      {y:tH*.28,   rx:rB*.86,  rz:rB*.82,  cz:rB*.05},
+      {y:tH*.46,   rx:rB*.95,  rz:rB*.91,  cz:rB*.11},
+      {y:tH*.58,   rx:rB*1.00, rz:rB*.95,  cz:rB*.15},
+      {y:tH*.70,   rx:rB*.96,  rz:rB*.88,  cz:rB*.09},
+      {y:tH*.82,   rx:rB*.90,  rz:rB*.82,  cz:rB*.04},
+      {y:tH*.90,   rx:rS*1.02, rz:rS*.84,  cz:0},
+      {y:tH,       rx:rN*1.38, rz:rN*1.22, cz:0},
+    ]:[
+      {y:0,        rx:rW*1.02, rz:rW*.92,  cz:0},
+      {y:tH*.22,   rx:rB*.92,  rz:rB*.84,  cz:rB*.03},
+      {y:tH*.50,   rx:rB*1.04, rz:rB*.90,  cz:rB*.06},
+      {y:tH*.72,   rx:rB*1.02, rz:rB*.86,  cz:rB*.04},
+      {y:tH*.88,   rx:rS*1.08, rz:rS*.88,  cz:0},
+      {y:tH,       rx:rN*1.44, rz:rN*1.26, cz:0},
+    ];
+    const torso=loftMesh(tS,44,skin,false,false);
     torso.position.y=yWai; torso.castShadow=true; bodyGroup.add(torso);
 
-    // Busto femenino 3D (dos esferas aplastadas)
     if(isF && _bodyType==='woman'){
       [-1,1].forEach(s=>{
-        const bust=new THREE.Mesh(new THREE.SphereGeometry(rB*.26,20,16,0,Math.PI*2,0,Math.PI*.72),skin);
-        bust.scale.set(.90,.94,1.0);
-        bust.position.set(s*rB*.44, yBus+rB*.04, rB*.68);
-        bust.rotation.x=-.28; bust.castShadow=true; bodyGroup.add(bust);
+        const b=new THREE.Mesh(new THREE.SphereGeometry(rB*.26,20,16,0,Math.PI*2,0,Math.PI*.72),skin);
+        b.scale.set(.90,.94,1.0); b.position.set(s*rB*.44,yBus+rB*.04,rB*.68); b.rotation.x=-.28; b.castShadow=true; bodyGroup.add(b);
       });
     }
 
-    // ── CUELLO ──
-    const neck=loftMesh([
-      {y:0,            rx:rN*1.32, rz:rN*1.16},
-      {y:(yNkT-yNkB)*.38, rx:rN*1.10, rz:rN*.98},
-      {y:(yNkT-yNkB),  rx:rN*.96,  rz:rN*.84},
-    ],22,skin,false,true);
+    // CUELLO + CABEZA
+    const neck=loftMesh([{y:0,rx:rN*1.32,rz:rN*1.16},{y:(yNkT-yNkB)*.38,rx:rN*1.10,rz:rN*.98},{y:(yNkT-yNkB),rx:rN*.96,rz:rN*.84}],22,skin,false,true);
     neck.position.y=yNkB; bodyGroup.add(neck);
-
-    // ── CABEZA (estilo mannequin: ovalada, sin rasgos) ──
     const headR=rN*2.10;
     const head=new THREE.Mesh(new THREE.SphereGeometry(headR,36,26),skin);
     head.scale.set(.88,1.04,.82); head.position.set(0,yHdC,0); head.castShadow=true; bodyGroup.add(head);
-    // Sombra bajo mandíbula
     const jaw=new THREE.Mesh(new THREE.SphereGeometry(headR*.72,24,16,0,Math.PI*2,Math.PI*.52,Math.PI*.22),skinDk);
-    jaw.scale.set(isM?.90:.84,isM?.52:.46,isM?.80:.74);
-    jaw.position.set(0,yHdC-headR*.10,headR*.05); bodyGroup.add(jaw);
-
-    // Cabello (volumen simple sobre la cabeza)
-    const hairCol=isM?0x1a1208:isF?0x2a1a0a:0x3a2010;
-    const hm=new THREE.MeshStandardMaterial({color:hairCol,roughness:.90});
-    const hairH=isM?Math.PI*.42:Math.PI*.52;
-    const hair=new THREE.Mesh(new THREE.SphereGeometry(headR*1.055,28,20,0,Math.PI*2,0,hairH),hm);
+    jaw.scale.set(isM?.90:.84,isM?.52:.46,isM?.80:.74); jaw.position.set(0,yHdC-headR*.10,headR*.05); bodyGroup.add(jaw);
+    const hc=isM?0x1a1208:isF?0x2a1a0a:0x3a2010;
+    const hm=new THREE.MeshStandardMaterial({color:hc,roughness:.90});
+    const hair=new THREE.Mesh(new THREE.SphereGeometry(headR*1.055,28,20,0,Math.PI*2,0,isM?Math.PI*.42:Math.PI*.52),hm);
     hair.scale.set(.88,1.04,.84); hair.position.set(0,yHdC+headR*.04,0); bodyGroup.add(hair);
-    if(isF){
-      // Mechones laterales
-      [-1,1].forEach(s=>{
-        const st=new THREE.Mesh(new THREE.CylinderGeometry(headR*.22,headR*.10,headR*1.0,12),hm);
-        st.position.set(s*headR*.86,yHdC-headR*.24,0); st.rotation.z=s*.10; bodyGroup.add(st);
-      });
-    }
+    if(isF){[-1,1].forEach(s=>{const st=new THREE.Mesh(new THREE.CylinderGeometry(headR*.22,headR*.10,headR*1.0,12),hm);st.position.set(s*headR*.86,yHdC-headR*.24,0);st.rotation.z=s*.10;bodyGroup.add(st);});}
 
-    // ── HOMBROS — esferoide aplastado ──
+    // HOMBROS + BRAZOS
     [-1,1].forEach(s=>{
       const shR=rB*(isM?.195:.170);
       const sh=new THREE.Mesh(new THREE.SphereGeometry(shR,18,14),skin);
-      sh.scale.set(1.0,.80,.86); sh.position.set(s*rS*1.02,yShl,0); sh.castShadow=true; bodyGroup.add(sh);
+      sh.scale.set(1.0,.80,.86); sh.position.set(s*rS*1.02,yShl,0); bodyGroup.add(sh);
     });
-
-    // ── BRAZOS — perfil muscular real ──
-    // Proporciones: brazo superior~29cm circ, antebrazo~24cm circ, muñeca~16cm
-    const aT=rB*(isM?.310:.258), aM=rB*(isM?.290:.235);
-    const aF=rB*(isM?.265:.210), aW=rB*(isM?.200:.175);
-    const uAH=(yShl-yArm)*.94, fAH=uAH*.90, ang=isM?.22:.28;
-
+    const aT=rB*(isM?.310:.258),aM=rB*(isM?.290:.235),aF=rB*(isM?.265:.210),aW=rB*(isM?.200:.175);
+    const uAH=(yShl-yArm)*.94,fAH=uAH*.90,ang=isM?.22:.28;
     [-1,1].forEach(s=>{
-      const ax=s*rS;
-      const elbX=ax+s*Math.sin(ang)*uAH, elbY=yShl-Math.cos(ang)*uAH;
-
-      // Brazo superior
-      const ua=loftMesh([
-        {y:0,       rx:aT,       rz:aT},
-        {y:uAH*.28, rx:aM*1.08,  rz:aM*1.04, cz:isM?aM*.04:aM*.02},
-        {y:uAH*.55, rx:aM*1.04,  rz:aM*.98},
-        {y:uAH*.80, rx:aF*1.04,  rz:aF*.98},
-        {y:uAH,     rx:aF,       rz:aF*.94},
-      ],16,skin,false,false);
-      ua.position.set(ax+s*Math.sin(ang)*uAH*.5, yShl-Math.cos(ang)*uAH*.5, 0);
-      ua.rotation.z=s*ang; ua.castShadow=true; bodyGroup.add(ua);
-
-      // Codo
-      addM(new THREE.SphereGeometry(aF*1.0,14,10),null,elbX,elbY,0);
-
-      // Antebrazo
+      const ax=s*rS,elbX=ax+s*Math.sin(ang)*uAH,elbY=yShl-Math.cos(ang)*uAH;
+      const ua=loftMesh([{y:0,rx:aT,rz:aT},{y:uAH*.30,rx:aM*1.08,rz:aM*1.04},{y:uAH*.65,rx:aM*.96,rz:aF*1.02},{y:uAH,rx:aF,rz:aF*.92}],16,skin,false,false);
+      ua.position.set(ax+s*Math.sin(ang)*uAH*.5,yShl-Math.cos(ang)*uAH*.5,0); ua.rotation.z=s*ang; ua.castShadow=true; bodyGroup.add(ua);
+      addM(new THREE.SphereGeometry(aF,14,10),elbX,elbY);
       const fa=s*.12;
-      const far_=loftMesh([
-        {y:0,       rx:aF*.95, rz:aF*.90},
-        {y:fAH*.28, rx:aF*1.04,rz:aF*.99},
-        {y:fAH*.62, rx:aF*.90, rz:aF*.86},
-        {y:fAH*.88, rx:aW*1.18,rz:aW*1.10},
-        {y:fAH,     rx:aW,     rz:aW*.88},
-      ],14,skin,false,false);
-      far_.position.set(elbX+s*Math.sin(Math.abs(fa))*fAH*.5, elbY-Math.cos(fa)*fAH*.5, 0);
-      far_.rotation.z=fa; far_.castShadow=true; bodyGroup.add(far_);
-
-      // Mano
-      const hx=elbX+s*Math.sin(Math.abs(fa))*fAH, hy=elbY-fAH;
+      const far_=loftMesh([{y:0,rx:aF*.95,rz:aF*.90},{y:fAH*.30,rx:aF*1.04,rz:aF*.98},{y:fAH*.70,rx:aF*.88,rz:aF*.84},{y:fAH,rx:aW,rz:aW*.88}],14,skin,false,false);
+      far_.position.set(elbX+s*Math.sin(Math.abs(fa))*fAH*.5,elbY-Math.cos(fa)*fAH*.5,0); far_.rotation.z=fa; far_.castShadow=true; bodyGroup.add(far_);
+      const hx=elbX+s*Math.sin(Math.abs(fa))*fAH,hy=elbY-fAH;
       const hand=new THREE.Mesh(new THREE.SphereGeometry(aW*1.18,14,10),skin);
       hand.scale.set(1.12,.60,1.32); hand.position.set(hx,hy,0); bodyGroup.add(hand);
-
-      // Dedos (4)
       for(let f=0;f<4;f++){
-        const fo=(f-1.5)*aW*.40, fl=aW*(f===1||f===2?.72:.58);
+        const fo=(f-1.5)*aW*.40,fl=aW*(f===1||f===2?.72:.58);
         const fin=new THREE.Mesh(new THREE.CylinderGeometry(aW*.10,aW*.11,fl,8),skin);
-        fin.position.set(hx+fo, hy-aW*.36-fl*.5, aW*.14); bodyGroup.add(fin);
+        fin.position.set(hx+fo,hy-aW*.36-fl*.5,aW*.14); bodyGroup.add(fin);
       }
     });
 
-    // Línea de costura central (seam) — detalle profesional
-    const seamMat=new THREE.LineBasicMaterial({color:0xd8d0c4,opacity:.6,transparent:true});
-    const seamPts=[
-      new THREE.Vector3(0,yCro,rH*.98),
-      new THREE.Vector3(0,yWai,rW*.90),
-      new THREE.Vector3(0,yBus+rB*.14,rB*.96),
-      new THREE.Vector3(0,yNkB,rN*1.38),
-    ];
-    bodyGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(seamPts),seamMat));
-    // Línea de costura lateral
-    [-1,1].forEach(s=>{
-      const latPts=[
-        new THREE.Vector3(s*rH*.98,yCro,0),
-        new THREE.Vector3(s*rH,yHip,0),
-        new THREE.Vector3(s*rW*.98,yWai,0),
-        new THREE.Vector3(s*rB*.98,yBus,0),
-        new THREE.Vector3(s*rS*.98,yShl,0),
-      ];
-      bodyGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(latPts),seamMat));
-    });
+    // Líneas de costura del dressform
+    const sm=new THREE.LineBasicMaterial({color:0xd0c8bc,opacity:.55,transparent:true});
+    bodyGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,yCro,rH*.97),new THREE.Vector3(0,yWai,rW*.88),new THREE.Vector3(0,yBus+rB*.14,rB*.95),new THREE.Vector3(0,yNkB,rN*1.35)]),sm));
+    [-1,1].forEach(s=>{bodyGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(s*rH*.97,yCro,0),new THREE.Vector3(s*rH,yHip,0),new THREE.Vector3(s*rW*.97,yWai,0),new THREE.Vector3(s*rB*.97,yBus,0),new THREE.Vector3(s*rS*.97,yShl,0)]),sm));});
 
-    return {rBust:rB,rWaist:rW,rHip:rH,rNeck:rN,rShoulder:rS,
-      h:{bust:yBus,waist:yWai,hip:yHip,shoulder:yShl,neckBase:yNkB,crotch:yCro,underbust:yBus-rB*.1,armpit:yArm}};
+    return {rBust:rB,rWaist:rW,rHip:rH,rNeck:rN,rShoulder:rS,h:{bust:yBus,waist:yWai,hip:yHip,shoulder:yShl,neckBase:yNkB,crotch:yCro,underbust:yBus-rB*.1,armpit:yArm}};
   }
 
   // ════════════════════════════════════════════════════════════
@@ -788,39 +824,39 @@ PAT.Mannequin3D = (function () {
   function _buildGarment(gt,r,m){
     while(garmentGroup.children.length){const c=garmentGroup.children[0];c.geometry?.dispose();c.material?.dispose();garmentGroup.remove(c);}
     const{rBust:rB,rWaist:rW,rHip:rH,rNeck:rN,rShoulder:rS,h}=r;
-    const E=0.012, isF=(_bodyType==='woman'||_bodyType==='girl');
+    const E=0.012,isF=(_bodyType==='woman'||_bodyType==='girl');
     const gc={franela:0x6d28d9,blusa:0x9333ea,camisa:0x1d4ed8,falda:0xbe185d,vestido:0x7c3aed};
     const gm=new THREE.MeshStandardMaterial({color:gc[gt]||0x6d28d9,roughness:.50,metalness:.04,transparent:true,opacity:.88,side:THREE.DoubleSide,wireframe:_isWireframe});
-    const ht2=BT[_bodyType].ht, skL=m.skirtLength/100*ht2, sL=m.sleeveLength/100*ht2;
-    const tH=h.neckBase-h.crotch, wRel=(h.waist-h.crotch)/tH, bRel=(h.bust-h.crotch)/tH;
+    const ht2=BT[_bodyType].ht,skL=m.skirtLength/100*ht2,sL=m.sleeveLength/100*ht2;
+    const tH=h.neckBase-h.crotch,wRel=(h.waist-h.crotch)/tH,bRel=(h.bust-h.crotch)/tH;
 
     function torso(){
       const s=isF?[
-        {y:0,               rx:rH*1.01+E,rz:rH*.90+E, cz:-rH*.06},
-        {y:tH*.08,          rx:rH*.98+E, rz:rH*.87+E, cz:-rH*.04},
-        {y:tH*(wRel-.05),   rx:rW*1.08+E,rz:rW*.96+E, cz:-rH*.01},
-        {y:tH*wRel,         rx:rW*1.02+E,rz:rW*.92+E, cz:0},
-        {y:tH*(wRel+.06),   rx:rW*1.06+E,rz:rW*.96+E, cz:rB*.03},
-        {y:tH*(bRel-.12),   rx:rB*.92+E, rz:rB*.88+E, cz:rB*.07},
-        {y:tH*(bRel-.04),   rx:rB*.99+E, rz:rB*.93+E, cz:rB*.12},
-        {y:tH*bRel,         rx:rB*1.02+E,rz:rB*.96+E, cz:rB*.15},
-        {y:tH*(bRel+.06),   rx:rB*.98+E, rz:rB*.90+E, cz:rB*.09},
-        {y:tH*.90,          rx:rS*1.02+E,rz:rS*.86+E, cz:0},
-        {y:tH,              rx:rN*1.42+E,rz:rN*1.25+E,cz:0},
+        {y:0,             rx:rH*1.01+E,rz:rH*.90+E,cz:-rH*.06},
+        {y:tH*.08,        rx:rH*.98+E, rz:rH*.87+E,cz:-rH*.04},
+        {y:tH*(wRel-.05), rx:rW*1.08+E,rz:rW*.96+E,cz:-rH*.01},
+        {y:tH*wRel,       rx:rW*1.02+E,rz:rW*.92+E,cz:0},
+        {y:tH*(wRel+.06), rx:rW*1.06+E,rz:rW*.96+E,cz:rB*.03},
+        {y:tH*(bRel-.12), rx:rB*.92+E, rz:rB*.88+E,cz:rB*.07},
+        {y:tH*(bRel-.04), rx:rB*.99+E, rz:rB*.93+E,cz:rB*.12},
+        {y:tH*bRel,       rx:rB*1.02+E,rz:rB*.96+E,cz:rB*.15},
+        {y:tH*(bRel+.06), rx:rB*.98+E, rz:rB*.90+E,cz:rB*.09},
+        {y:tH*.90,        rx:rS*1.02+E,rz:rS*.86+E,cz:0},
+        {y:tH,            rx:rN*1.42+E,rz:rN*1.25+E,cz:0},
       ]:[
-        {y:0,               rx:rH*1.00+E,rz:rH*.90+E, cz:-rH*.04},
-        {y:tH*.12,          rx:rH*.95+E, rz:rH*.88+E},
-        {y:tH*wRel,         rx:rW*1.05+E,rz:rW*.95+E},
-        {y:tH*(wRel+.10),   rx:rW*1.08+E,rz:rW*.98+E, cz:rB*.03},
-        {y:tH*(bRel-.08),   rx:rB*.98+E, rz:rB*.90+E, cz:rB*.06},
-        {y:tH*bRel,         rx:rB*1.04+E,rz:rB*.92+E, cz:rB*.07},
-        {y:tH*.90,          rx:rS*1.08+E,rz:rS*.88+E, cz:0},
-        {y:tH,              rx:rN*1.46+E,rz:rN*1.28+E,cz:0},
+        {y:0,             rx:rH*1.00+E,rz:rH*.90+E,cz:-rH*.04},
+        {y:tH*.12,        rx:rH*.95+E, rz:rH*.88+E},
+        {y:tH*wRel,       rx:rW*1.05+E,rz:rW*.95+E},
+        {y:tH*(wRel+.10), rx:rW*1.08+E,rz:rW*.98+E,cz:rB*.03},
+        {y:tH*(bRel-.08), rx:rB*.98+E, rz:rB*.90+E,cz:rB*.06},
+        {y:tH*bRel,       rx:rB*1.04+E,rz:rB*.92+E,cz:rB*.07},
+        {y:tH*.90,        rx:rS*1.08+E,rz:rS*.88+E,cz:0},
+        {y:tH,            rx:rN*1.46+E,rz:rN*1.28+E,cz:0},
       ];
       const mg=loftMesh(s,48,gm); mg.position.y=h.crotch; mg.castShadow=true; garmentGroup.add(mg);
     }
     function sleeve(long_){
-      const len=long_?sL:(h.shoulder-h.armpit)*.65, ang=.27;
+      const len=long_?sL:(h.shoulder-h.armpit)*.65,ang=.27;
       [-1,1].forEach(s=>{
         const sec=long_?[{y:0,rx:rB*.50+E,rz:rB*.46+E},{y:len*.40,rx:rB*.34+E,rz:rB*.32+E},{y:len*.76,rx:rB*.25+E,rz:rB*.24+E},{y:len,rx:rB*.20+E,rz:rB*.19+E}]:[{y:0,rx:rB*.50+E,rz:rB*.46+E},{y:len,rx:rB*.23+E,rz:rB*.22+E}];
         const mg=loftMesh(sec,18,gm);
@@ -830,7 +866,7 @@ PAT.Mannequin3D = (function () {
     }
     function skirt(yBase){
       const sec=[{y:0,rx:rW+E,rz:(rW+E)*.90}];
-      for(let i=1;i<=18;i++){const t=i/18;const r2=_lerp(rW+E,rH+E*.8,Math.min(t*2.5,1));sec.push({y:-t*skL,rx:r2,rz:r2*.94,cz:-(r2-rW)*.05});}
+      for(let i=1;i<=18;i++){const t=i/18;const r2=_L(rW+E,rH+E*.8,Math.min(t*2.5,1));sec.push({y:-t*skL,rx:r2,rz:r2*.94,cz:-(r2-rW)*.05});}
       const mg=loftMesh(sec,44,gm); mg.position.y=yBase; mg.castShadow=true; garmentGroup.add(mg);
     }
     switch(gt){
@@ -842,10 +878,10 @@ PAT.Mannequin3D = (function () {
       case'vestido':torso();skirt(h.crotch);break;
     }
   }
-  function _lerp(a,b,t){return a+(b-a)*Math.min(Math.max(t,0),1);}
+  function _L(a,b,t){return a+(b-a)*Math.min(Math.max(t,0),1);}
 
   // ════════════════════════════════════════════════════════════
-  // MEDIDAS
+  // LÍNEAS DE MEDIDA
   // ════════════════════════════════════════════════════════════
   function _buildML(m,r){
     while(measureGroup.children.length){const c=measureGroup.children[0];c.geometry?.dispose();c.material?.dispose();measureGroup.remove(c);}
@@ -854,8 +890,22 @@ PAT.Mannequin3D = (function () {
       const isA=l.k===_activeMeasureLine;
       const pts=[];for(let i=0;i<=64;i++){const a=i/64*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*l.r,l.y,Math.sin(a)*l.r));}
       measureGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:isA?0xfbbf24:l.c,opacity:isA?1:.45,transparent:true})));
-      if(isA){const lp=[new THREE.Vector3(-l.r*1.9,l.y,0),new THREE.Vector3(l.r*1.9,l.y,0)];measureGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp),new THREE.LineBasicMaterial({color:0xfbbf24})));}
+      if(isA){const lp=[new THREE.Vector3(-l.r*2,l.y,0),new THREE.Vector3(l.r*2,l.y,0)];measureGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp),new THREE.LineBasicMaterial({color:0xfbbf24})));}
     });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // LOADER UI
+  // ════════════════════════════════════════════════════════════
+  function _showLoader(show, txt){
+    let el=document.getElementById('m3d-loading');
+    if(!el && show){
+      el=document.createElement('div'); el.id='m3d-loading';
+      el.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(6,6,14,.90);z-index:50;';
+      el.innerHTML='<div style="font-size:38px;margin-bottom:14px;animation:m3spin 1s linear infinite">⟳</div><div id="m3d-ltxt" style="font-family:monospace;font-size:12px;color:#a78bfa;text-align:center"></div><style>@keyframes m3spin{to{transform:rotate(360deg)}}</style>';
+      const v=document.getElementById('view-3d'); if(v)v.appendChild(el);
+    }
+    if(el){el.style.display=show?'flex':'none';const t=document.getElementById('m3d-ltxt');if(t&&txt)t.textContent=txt;}
   }
 
   // ════════════════════════════════════════════════════════════
@@ -870,8 +920,8 @@ PAT.Mannequin3D = (function () {
     const panel=document.createElement('div');panel.id='m3d-panel';
     panel.innerHTML=`<div id="m3d-hd"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Medidas de Avatar</div><div id="m3d-gen">${Object.entries(BT).map(([k,v])=>`<button class="m3g${k==='woman'?' on':''}" data-btype="${k}">${v.e} ${v.l}</button>`).join('')}</div><div id="m3d-lbl"></div><div id="m3d-bd"><div class="m3s">Contornos</div><div class="m3r" data-mk="bust"><div class="m3dot" style="background:#f59e0b"></div><span class="m3n">Busto</span><span class="m3v" id="m3v-bust">88</span><span class="m3u">cm</span></div><div class="m3r" data-mk="waist"><div class="m3dot" style="background:#f59e0b"></div><span class="m3n">Cintura</span><span class="m3v" id="m3v-waist">68</span><span class="m3u">cm</span></div><div class="m3r" data-mk="hip"><div class="m3dot" style="background:#f59e0b"></div><span class="m3n">Cadera</span><span class="m3v" id="m3v-hip">94</span><span class="m3u">cm</span></div><div class="m3s">Anchuras</div><div class="m3r" data-mk="shoulder"><div class="m3dot" style="background:#60a5fa"></div><span class="m3n">Hombros</span><span class="m3v" id="m3v-shoulder">38</span><span class="m3u">cm</span></div><div class="m3r" data-mk="neck"><div class="m3dot" style="background:#60a5fa"></div><span class="m3n">Cuello</span><span class="m3v" id="m3v-neck">36</span><span class="m3u">cm</span></div><div class="m3s">Largos</div><div class="m3r" data-mk="backLength"><div class="m3dot" style="background:#34d399"></div><span class="m3n">Talle esp.</span><span class="m3v" id="m3v-backLength">40</span><span class="m3u">cm</span></div><div class="m3r" data-mk="sleeveLength"><div class="m3dot" style="background:#34d399"></div><span class="m3n">Manga</span><span class="m3v" id="m3v-sleeveLength">60</span><span class="m3u">cm</span></div></div><div id="m3d-ft"><button class="m3b m3sim" id="m3d-sim">▶ Simular tela</button><button class="m3b" id="m3d-wire">⬡ Wireframe</button><button class="m3b" id="m3d-cam">⌂ Reset cámara</button></div>`;
     const view=document.getElementById('view-3d');if(view){view.style.position='relative';view.appendChild(panel);}
-    panel.querySelectorAll('.m3g').forEach(btn=>{btn.addEventListener('click',function(){_bodyType=this.dataset.btype;panel.querySelectorAll('.m3g').forEach(b=>b.classList.remove('on'));this.classList.add('on');if(Object.keys(_currentMeasures).length)_rebuildAll();});});
     const names={bust:'Busto',waist:'Cintura',hip:'Cadera',shoulder:'Hombros',neck:'Cuello',backLength:'Talle esp.',sleeveLength:'Manga'};
+    panel.querySelectorAll('.m3g').forEach(btn=>{btn.addEventListener('click',function(){_bodyType=this.dataset.btype;panel.querySelectorAll('.m3g').forEach(b=>b.classList.remove('on'));this.classList.add('on');if(Object.keys(_currentMeasures).length)_rebuildAll();});});
     panel.querySelectorAll('.m3r').forEach(row=>{
       row.addEventListener('mouseenter',function(){_activeMeasureLine=this.dataset.mk;if(_currentRadii)_buildML(_currentMeasures,_currentRadii);document.querySelectorAll('.m3r').forEach(r=>r.classList.remove('active'));this.classList.add('active');const l=document.getElementById('m3d-lbl');if(l&&_currentMeasures[this.dataset.mk]){l.textContent=`${names[this.dataset.mk]}: ${_currentMeasures[this.dataset.mk]}cm`;l.style.display='block';}});
       row.addEventListener('mouseleave',function(){_activeMeasureLine=null;if(_currentRadii)_buildML(_currentMeasures,_currentRadii);document.querySelectorAll('.m3r').forEach(r=>r.classList.remove('active'));const l=document.getElementById('m3d-lbl');if(l)l.style.display='none';});
@@ -884,7 +934,15 @@ PAT.Mannequin3D = (function () {
 
   function _rebuildAll(){
     const m=Object.assign({bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,skirtLength:60,hipDepth:20},_currentMeasures);
-    const r=_buildBody(m);_currentRadii=r;_buildGarment(_lastGarment,r,m);_buildML(m,r);
+    // Construir dressform procedural de inmediato
+    const r=_buildDressform(m); _currentRadii=r;
+    _buildGarment(_lastGarment,r,m); _buildML(m,r);
+    // Intentar cargar GLB real (reemplaza si existe)
+    if(typeof THREE.GLTFLoader!=='undefined'){
+      _loadGLBModel(_bodyType, function(ok){
+        if(ok){ _buildGarment(_lastGarment,_currentRadii,_currentMeasures); _buildML(_currentMeasures,_currentRadii); }
+      });
+    }
   }
 
   let _simStep=0,_simRunning=false;
@@ -894,16 +952,22 @@ PAT.Mannequin3D = (function () {
 
   function updateGarment(gt,measures){
     const m=Object.assign({bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,wrist:16,skirtLength:60,hipDepth:20},measures);
-    _currentMeasures=m;_lastGarment=gt;
+    _currentMeasures=m; _lastGarment=gt;
     ['bust','waist','hip','shoulder','neck','backLength','sleeveLength'].forEach(k=>{const e=document.getElementById('m3v-'+k);if(e&&m[k]!==undefined)e.textContent=m[k];});
-    const r=_buildBody(m);_currentRadii=r;_buildGarment(gt,r,m);_buildML(m,r);
+    const r=_buildDressform(m); _currentRadii=r;
+    _buildGarment(gt,r,m); _buildML(m,r);
+    if(typeof THREE.GLTFLoader!=='undefined' && !_glbLoaded){
+      _loadGLBModel(_bodyType,function(ok){if(ok){_buildGarment(gt,_currentRadii,m);_buildML(m,_currentRadii);}});
+    }
   }
+
   function resize(w,h){if(!renderer||!camera)return;if(!w||!h){const el=document.getElementById('three-canvas');if(el){w=el.clientWidth;h=el.clientHeight;}}if(w&&h){camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);}}
   function toggleWireframe(){_isWireframe=!_isWireframe;garmentGroup.traverse(c=>{if(c.isMesh)c.material.wireframe=_isWireframe;});}
   function resetCamera(){camera.position.set(0,.95,2.8);controls.target.set(0,.82,0);controls.update();}
   function _onResize(){if(!_canvas||!renderer)return;const p=_canvas.parentElement||document.getElementById('view-3d')||_canvas;const w=_canvas.clientWidth||p.clientWidth||800,h=_canvas.clientHeight||p.clientHeight||600;if(!w||!h)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);}
   function _animate(){_animId=requestAnimationFrame(_animate);_simTick();if(controls)controls.update();if(renderer&&scene&&camera)renderer.render(scene,camera);}
   function destroy(){if(_animId)cancelAnimationFrame(_animId);window.removeEventListener('resize',_onResize);if(renderer)renderer.dispose();_initialized=false;}
+
   return{init,updateGarment,toggleWireframe,resetCamera,destroy,resize};
 })();
 
