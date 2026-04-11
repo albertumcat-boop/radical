@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PatrónAI Pro — Sistema de Patronaje Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06060d;--s1:#0c0c1a;--s2:#12121f;
+  --acc:#8b5cf6;--acc2:#a78bfa;--gold:#c9a84c;--gold2:#e8c97a;
+  --tx:#f0ecff;--tx2:#9490b0;--tx3:#3d3a55;
+  --brd:rgba(139,92,246,.15);--brd2:rgba(139,92,246,.06);
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Syne',sans-serif;--mono:'DM Mono',monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);overflow-x:hidden}
+
+/* ── NOISE OVERLAY ── */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+  opacity:.4;
+}
+
+/* ── GRID LINES ── */
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(139,92,246,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(139,92,246,.04) 1px,transparent 1px);
+  background-size:80px 80px;
+}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 48px;
+  background:linear-gradient(to bottom,rgba(6,6,13,.95),rgba(6,6,13,.0));
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(139,92,246,.06);
+}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.nav-logo-mark{
+  width:36px;height:36px;border-radius:8px;
+  background:linear-gradient(135deg,#8b5cf6,#6d28d9);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:0 0 20px rgba(139,92,246,.4);
+}
+.nav-logo-name{font-family:var(--sans);font-size:16px;font-weight:800;letter-spacing:-.5px}
+.nav-logo-tag{font-family:var(--mono);font-size:9px;color:var(--acc2);letter-spacing:2px;text-transform:uppercase}
+.nav-links{display:flex;align-items:center;gap:32px}
+.nav-links a{font-family:var(--mono);font-size:11px;color:var(--tx2);text-decoration:none;letter-spacing:.5px;transition:color .2s}
+.nav-links a:hover{color:var(--tx)}
+.nav-cta{
+  background:linear-gradient(135deg,#8b5cf6,#6d28d9);
+  color:#fff;padding:10px 22px;border-radius:8px;
+  font-family:var(--mono);font-size:12px;font-weight:500;
+  text-decoration:none;letter-spacing:.3px;
+  box-shadow:0 2px 20px rgba(139,92,246,.35);
+  transition:all .2s var(--ease);
+}
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(139,92,246,.5)}
+
+/* ── HERO ── */
+.hero{
+  position:relative;z-index:1;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:120px 24px 80px;
+  overflow:hidden;
+}
+
+/* Orbs de luz */
+.orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
+.orb1{width:500px;height:500px;background:rgba(109,40,217,.25);top:-100px;right:-100px}
+.orb2{width:400px;height:400px;background:rgba(139,92,246,.15);bottom:0;left:-80px}
+.orb3{width:250px;height:250px;background:rgba(201,168,76,.08);top:40%;left:50%;transform:translate(-50%,-50%)}
+
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);
+  border-radius:20px;padding:6px 16px;
+  font-family:var(--mono);font-size:10px;color:var(--acc2);letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:28px;
+  animation:fadeUp .8s var(--ease) both;
+}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--acc2);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.hero-headline{
+  font-family:var(--serif);
+  font-size:clamp(52px,8vw,110px);
+  font-weight:300;line-height:.95;letter-spacing:-2px;
+  animation:fadeUp .9s .1s var(--ease) both;
+}
+.hero-headline em{font-style:italic;color:var(--acc2)}
+.hero-headline .gold{color:var(--gold2)}
+
+.hero-sub{
+  font-family:var(--mono);font-size:13px;color:var(--tx2);
+  max-width:500px;line-height:1.8;margin:24px auto 0;letter-spacing:.2px;
+  animation:fadeUp .9s .2s var(--ease) both;
+}
+
+.hero-actions{
+  display:flex;gap:14px;justify-content:center;flex-wrap:wrap;
+  margin-top:44px;animation:fadeUp .9s .3s var(--ease) both;
+}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,#8b5cf6,#6d28d9);
+  color:#fff;padding:16px 32px;border-radius:10px;
+  font-family:var(--mono);font-size:13px;font-weight:500;
+  text-decoration:none;letter-spacing:.3px;
+  box-shadow:0 4px 30px rgba(139,92,246,.4);
+  transition:all .25s var(--ease);
+}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 8px 40px rgba(139,92,246,.55)}
+.btn-secondary{
+  display:inline-flex;align-items:center;gap:10px;
+  background:transparent;color:var(--tx);
+  padding:16px 28px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.1);
+  font-family:var(--mono);font-size:13px;
+  text-decoration:none;letter-spacing:.3px;
+  transition:all .25s var(--ease);
+}
+.btn-secondary:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.2)}
+
+/* Mockup del app */
+.hero-mockup{
+  position:relative;margin-top:72px;width:100%;max-width:1000px;
+  animation:fadeUp .9s .4s var(--ease) both;
+}
+.mockup-frame{
+  background:var(--s1);border:1px solid rgba(139,92,246,.2);border-radius:16px;
+  overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.6),0 0 0 1px rgba(139,92,246,.1);
+}
+.mockup-topbar{
+  display:flex;align-items:center;gap:8px;padding:12px 20px;
+  background:var(--s2);border-bottom:1px solid rgba(139,92,246,.08);
+}
+.mockup-dot{width:10px;height:10px;border-radius:50%}
+.mockup-body{display:flex;height:360px}
+.mockup-sidebar{width:220px;flex-shrink:0;background:var(--s2);border-right:1px solid rgba(139,92,246,.08);padding:16px}
+.mockup-main{flex:1;background:var(--bg);position:relative;overflow:hidden}
+/* Grilla animada en el mockup */
+.mockup-main::after{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(139,92,246,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.05) 1px,transparent 1px);
+  background-size:30px 30px;
+}
+.mockup-pattern{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1}
+
+/* Patrón SVG animado */
+svg.pattern-demo{width:280px;height:220px;overflow:visible}
+.p-line{stroke:#a78bfa;stroke-width:1;fill:rgba(139,92,246,.05);animation:draw 2s var(--ease) both}
+.p-dot{fill:#8b5cf6;animation:popIn .5s var(--ease) both}
+.p-curve{stroke:#60a5fa;stroke-width:1.5;fill:none;animation:draw 2s .3s var(--ease) both}
+.p-fold{stroke:#f87171;stroke-width:1;stroke-dasharray:6,3;fill:none}
+@keyframes draw{from{stroke-dashoffset:1000;stroke-dasharray:1000}to{stroke-dashoffset:0;stroke-dasharray:1000}}
+@keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+.mockup-panel{width:180px;flex-shrink:0;background:var(--s2);border-left:1px solid rgba(139,92,246,.08);padding:12px}
+.mockup-row{height:8px;border-radius:4px;background:rgba(139,92,246,.15);margin-bottom:8px}
+.mockup-row.accent{background:rgba(139,92,246,.35)}
+.mockup-row.short{width:60%}
+.mockup-3d-preview{
+  width:100%;aspect-ratio:1;background:radial-gradient(circle at 60% 40%,rgba(109,40,217,.3),rgba(6,6,13,.9));
+  border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;
+  font-size:48px;
+}
+
+/* Marquee de features */
+.marquee-wrap{position:relative;overflow:hidden;margin-top:64px;padding:0}
+.marquee-track{display:flex;gap:0;width:max-content;animation:marquee 25s linear infinite}
+.marquee-item{
+  white-space:nowrap;padding:0 32px;
+  font-family:var(--mono);font-size:11px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;
+  border-left:1px solid var(--tx3);
+}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── SECTION WRAPPER ── */
+section{position:relative;z-index:1}
+.container{max-width:1100px;margin:0 auto;padding:0 32px}
+
+/* ── FEATURES ── */
+.features{padding:100px 0 80px}
+.section-header{text-align:center;margin-bottom:72px}
+.section-tag{
+  font-family:var(--mono);font-size:10px;color:var(--acc2);letter-spacing:2px;text-transform:uppercase;
+  display:inline-block;margin-bottom:16px;
+}
+.section-title{font-family:var(--serif);font-size:clamp(36px,5vw,58px);font-weight:300;line-height:1.1}
+.section-title em{font-style:italic;color:var(--acc2)}
+
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+@media(max-width:768px){.features-grid{grid-template-columns:1fr}}
+.feat-card{
+  background:var(--s1);padding:36px 32px;
+  border:1px solid rgba(139,92,246,.08);
+  position:relative;overflow:hidden;
+  transition:all .3s var(--ease);
+}
+.feat-card:hover{background:var(--s2);border-color:rgba(139,92,246,.2)}
+.feat-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at top left,rgba(139,92,246,.06),transparent 60%);
+  opacity:0;transition:opacity .3s;
+}
+.feat-card:hover::before{opacity:1}
+.feat-icon{font-size:32px;margin-bottom:20px;display:block}
+.feat-name{font-family:var(--sans);font-size:14px;font-weight:700;margin-bottom:8px;letter-spacing:-.2px}
+.feat-desc{font-family:var(--mono);font-size:11px;color:var(--tx2);line-height:1.8}
+.feat-tag{
+  position:absolute;top:16px;right:16px;
+  font-family:var(--mono);font-size:9px;color:var(--acc2);letter-spacing:.8px;
+  text-transform:uppercase;
+}
+
+/* ── SPLIT DEMO ── */
+.split-demo{padding:80px 0;background:var(--s1);border-top:1px solid var(--brd);border-bottom:1px solid var(--brd)}
+.split-demo-inner{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+@media(max-width:768px){.split-demo-inner{grid-template-columns:1fr}}
+.split-text{}
+.split-text .section-title{text-align:left;margin-bottom:20px}
+.split-text p{font-family:var(--mono);font-size:12px;color:var(--tx2);line-height:1.9;margin-bottom:16px}
+.split-text ul{list-style:none}
+.split-text li{font-family:var(--mono);font-size:11px;color:var(--tx2);padding:8px 0;border-bottom:1px solid var(--brd2);display:flex;align-items:center;gap:12px}
+.split-text li::before{content:'✦';color:var(--acc2);font-size:10px}
+.split-visual{background:var(--bg);border:1px solid var(--brd);border-radius:12px;padding:24px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.split-visual-inner{width:100%;height:100%;display:flex;gap:2px}
+.sv-left,.sv-right{flex:1;border-radius:8px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.sv-left{background:radial-gradient(ellipse at center,rgba(139,92,246,.12),transparent 70%),var(--s1)}
+.sv-right{background:radial-gradient(ellipse at center,rgba(109,40,217,.2),rgba(6,6,13,.9)),#08080f}
+.sv-label{position:absolute;top:8px;left:8px;font-family:var(--mono);font-size:8px;color:var(--tx3);letter-spacing:.8px;text-transform:uppercase}
+.sv-mannequin{font-size:48px;opacity:.7}
+.sv-pattern-mini svg{width:80px;height:80px}
+
+/* ── TIERS ── */
+.tiers{padding:100px 0}
+.tiers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:60px}
+@media(max-width:768px){.tiers-grid{grid-template-columns:1fr}}
+.tier{background:var(--s1);border:1px solid rgba(139,92,246,.08);padding:36px;position:relative;overflow:hidden}
+.tier.featured{background:var(--s2);border-color:rgba(139,92,246,.3)}
+.tier.featured::before{content:'Más popular';position:absolute;top:0;right:0;background:var(--acc);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.8px;text-transform:uppercase;padding:6px 14px}
+.tier-name{font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.tier-price{font-family:var(--serif);font-size:48px;font-weight:300;line-height:1;margin-bottom:4px}
+.tier-price sup{font-size:20px;vertical-align:super;font-family:var(--mono)}
+.tier-period{font-family:var(--mono);font-size:11px;color:var(--tx3);margin-bottom:28px}
+.tier-divider{height:1px;background:rgba(139,92,246,.1);margin-bottom:24px}
+.tier-feat{font-family:var(--mono);font-size:11px;color:var(--tx2);padding:7px 0;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(139,92,246,.05)}
+.tier-feat::before{content:'—';color:var(--acc2);font-size:10px}
+.tier-feat.hi{color:var(--tx)}
+.tier-btn{
+  display:block;text-align:center;margin-top:28px;padding:12px;
+  border-radius:8px;font-family:var(--mono);font-size:12px;
+  text-decoration:none;letter-spacing:.3px;transition:all .2s;
+}
+.tier-btn.solid{background:var(--acc);color:#fff}
+.tier-btn.solid:hover{background:#7c3aed}
+.tier-btn.outline{border:1px solid rgba(139,92,246,.3);color:var(--acc2)}
+.tier-btn.outline:hover{background:rgba(139,92,246,.1)}
+
+/* ── ATELIER SECTION ── */
+.atelier{padding:80px 0;background:var(--s1);border-top:1px solid var(--brd)}
+.atelier-inner{display:grid;grid-template-columns:1fr 1.2fr;gap:64px;align-items:center}
+@media(max-width:768px){.atelier-inner{grid-template-columns:1fr}}
+.atelier-form{background:var(--bg);border:1px solid var(--brd);border-radius:12px;padding:28px;font-family:var(--mono);font-size:11px}
+.af-title{font-size:12px;font-weight:500;color:var(--tx);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.af-group{margin-bottom:14px}
+.af-label{color:var(--tx3);margin-bottom:4px;display:block;font-size:10px;letter-spacing:.5px;text-transform:uppercase}
+.af-input{width:100%;background:var(--s2);border:1px solid rgba(139,92,246,.12);color:var(--tx);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:11px;outline:none}
+.af-input:focus{border-color:var(--acc)}
+.af-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.af-chip{background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);color:var(--acc2);border-radius:12px;padding:3px 10px;font-size:10px;cursor:pointer;transition:all .12s}
+.af-chip:hover{background:rgba(139,92,246,.2)}
+.af-btn{width:100%;margin-top:16px;padding:10px;background:var(--acc);color:#fff;border:none;border-radius:6px;font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:.3px}
+
+/* ── WORKFLOW ── */
+.workflow{padding:80px 0}
+.workflow-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:60px}
+@media(max-width:768px){.workflow-steps{grid-template-columns:1fr 1fr}}
+.ws{text-align:center;padding:32px 24px;position:relative}
+.ws:not(:last-child)::after{content:'→';position:absolute;right:-12px;top:50px;color:var(--tx3);font-size:18px}
+.ws-num{font-family:var(--mono);font-size:11px;color:var(--acc2);letter-spacing:1px;margin-bottom:12px}
+.ws-icon{font-size:36px;margin-bottom:12px}
+.ws-name{font-family:var(--sans);font-size:13px;font-weight:700;margin-bottom:6px}
+.ws-desc{font-family:var(--mono);font-size:10px;color:var(--tx2);line-height:1.7}
+
+/* ── TESTIMONIALS ── */
+.testimonials{padding:80px 0;background:var(--s1);border-top:1px solid var(--brd)}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:60px}
+@media(max-width:768px){.testi-grid{grid-template-columns:1fr}}
+.testi{background:var(--bg);border:1px solid rgba(139,92,246,.08);padding:28px}
+.testi-quote{font-family:var(--serif);font-size:16px;font-style:italic;color:var(--tx);line-height:1.7;margin-bottom:20px}
+.testi-author{font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:.5px}
+.testi-author strong{color:var(--tx2);display:block;margin-bottom:2px}
+
+/* ── CTA FINAL ── */
+.cta-final{
+  padding:120px 0;text-align:center;
+  background:radial-gradient(ellipse at center top,rgba(139,92,246,.15),transparent 60%);
+}
+.cta-final .section-title{margin-bottom:16px}
+.cta-final p{font-family:var(--mono);font-size:12px;color:var(--tx2);max-width:400px;margin:0 auto 40px;line-height:1.8}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--brd);padding:40px 48px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+  font-family:var(--mono);font-size:10px;color:var(--tx3);
+}
+footer a{color:var(--tx3);text-decoration:none}
+footer a:hover{color:var(--tx2)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  nav{padding:16px 20px}
+  .nav-links{display:none}
+  .mockup-body{height:200px}
+  .mockup-panel{display:none}
+  .split-demo-inner,.atelier-inner,.tiers-grid,.features-grid,.workflow-steps,.testi-grid{grid-template-columns:1fr}
+  .ws:not(:last-child)::after{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-mark">✂</div>
+    <div>
+      <div class="nav-logo-name">PatrónAI</div>
+      <div class="nav-logo-tag">Pro</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Funciones</a>
+    <a href="#workflow">Flujo</a>
+    <a href="#tiers">Planes</a>
+    <a href="#atelier">Atelier</a>
+  </div>
+  <a href="index.html" class="nav-cta">Abrir App →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
+  <div class="hero-badge">
+    <span></span> Nuevo — Editor Visual v6 · Split View
+  </div>
+
+  <h1 class="hero-headline">
+    Patronaje<br>
+    <em>digital</em><br>
+    <span class="gold">inteligente</span>
+  </h1>
+
+  <p class="hero-sub">
+    Del trazo a la tela. Sistema paramétrico de patronaje con IA,
+    visualización 3D en tiempo real y exportación PDF a escala 1:1.
+  </p>
+
+  <div class="hero-actions">
+    <a href="index.html" class="btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Comenzar ahora
+    </a>
+    <a href="#features" class="btn-secondary">
+      Ver funciones
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+  </div>
+
+  <!-- App Mockup -->
+  <div class="hero-mockup">
+    <div class="mockup-frame">
+      <div class="mockup-topbar">
+        <div class="mockup-dot" style="background:#f87171"></div>
+        <div class="mockup-dot" style="background:#fbbf24"></div>
+        <div class="mockup-dot" style="background:#34d399"></div>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--tx3);margin-left:12px">PatrónAI Pro — Blusa Básica 88cm</span>
+      </div>
+      <div class="mockup-body">
+        <!-- Sidebar izq -->
+        <div class="mockup-sidebar">
+          <div class="mockup-row accent" style="margin-bottom:16px;height:12px"></div>
+          <div class="mockup-row" style="width:80%"></div>
+          <div class="mockup-row short"></div>
+          <div class="mockup-row" style="width:90%"></div>
+          <div class="mockup-row short"></div>
+          <div class="mockup-row" style="margin-top:16px;height:10px;background:rgba(139,92,246,.3)"></div>
+          <div class="mockup-row" style="width:75%"></div>
+          <div class="mockup-row" style="width:85%"></div>
+          <div class="mockup-row short"></div>
+          <div class="mockup-row" style="width:70%"></div>
+        </div>
+        <!-- Canvas central con patrón SVG -->
+        <div class="mockup-main">
+          <div class="mockup-pattern">
+            <svg class="pattern-demo" viewBox="0 0 280 220" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="arr" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+                  <path d="M0,0 L0,5 L5,2.5 z" fill="#8b5cf6"/>
+                </marker>
+              </defs>
+              <!-- Pieza trasera blusa -->
+              <path class="p-line" d="M30,20 L160,20 L160,180 L30,180 Z" stroke-dasharray="1000" stroke-dashoffset="1000" style="animation:draw 2s .2s var(--ease) forwards"/>
+              <!-- Sisa curva -->
+              <path class="p-curve" d="M30,20 Q 20,50 40,90" stroke-dasharray="1000" stroke-dashoffset="1000" style="animation:draw 1.5s .5s var(--ease) forwards"/>
+              <!-- Cuello curva -->
+              <path class="p-curve" d="M30,20 Q 60,10 80,18" stroke-dasharray="1000" stroke-dashoffset="1000" style="animation:draw 1.5s .7s var(--ease) forwards;stroke:#a78bfa"/>
+              <!-- Hombro -->
+              <line x1="80" y1="18" x2="135" y2="28" stroke="#a78bfa" stroke-width="1" opacity=".8"/>
+              <!-- Sisa der -->
+              <path class="p-curve" d="M135,28 Q 165,55 155,90" stroke-dasharray="1000" stroke-dashoffset="1000" style="animation:draw 1.5s .9s var(--ease) forwards"/>
+              <!-- Doblez CB -->
+              <line x1="30" y1="20" x2="30" y2="180" stroke="#f87171" stroke-width="1.2" stroke-dasharray="6,3"/>
+              <!-- Hilo recto -->
+              <line x1="90" y1="30" x2="90" y2="170" stroke="#60a5fa" stroke-width="1" marker-end="url(#arr)"/>
+              <!-- Medidas -->
+              <text x="85" y="200" font-family="monospace" font-size="7" fill="#5a5678">220mm = B4</text>
+              <text x="165" y="100" font-family="monospace" font-size="7" fill="#5a5678">400mm</text>
+              <!-- Puntos -->
+              <circle class="p-dot" cx="30" cy="20" r="3" style="animation-delay:.2s"/>
+              <circle class="p-dot" cx="160" cy="20" r="3" style="animation-delay:.3s"/>
+              <circle class="p-dot" cx="160" cy="180" r="3" style="animation-delay:.4s"/>
+              <circle class="p-dot" cx="30" cy="180" r="3" style="animation-delay:.5s"/>
+              <circle class="p-dot" cx="80" cy="18" r="3" style="fill:#fbbf24;animation-delay:.6s"/>
+              <circle class="p-dot" cx="135" cy="28" r="3" style="animation-delay:.7s"/>
+              <!-- Labels -->
+              <text x="22" y="17" font-family="Arial" font-size="8" font-weight="bold" fill="#a78bfa">A</text>
+              <text x="162" y="17" font-family="Arial" font-size="8" font-weight="bold" fill="#a78bfa">B</text>
+              <text x="162" y="185" font-family="Arial" font-size="8" font-weight="bold" fill="#a78bfa">C</text>
+              <text x="22" y="185" font-family="Arial" font-size="8" font-weight="bold" fill="#a78bfa">D</text>
+              <text x="76" y="14" font-family="Arial" font-size="8" font-weight="bold" fill="#fbbf24">1</text>
+              <text x="137" y="24" font-family="Arial" font-size="8" font-weight="bold" fill="#a78bfa">3</text>
+              <!-- Pieza manga (a la derecha) -->
+              <path d="M195,60 Q 230,30 265,60 L 255,180 L 205,180 Z" stroke="#a78bfa" stroke-width="1" fill="rgba(139,92,246,.04)" style="animation:draw 2s 1s var(--ease) forwards;stroke-dasharray:1000;stroke-dashoffset:1000"/>
+              <text x="218" y="125" font-family="Arial" font-size="7" fill="#5a5678">Manga</text>
+            </svg>
+          </div>
+        </div>
+        <!-- Panel derecho -->
+        <div class="mockup-panel">
+          <div class="mockup-3d-preview">🧍</div>
+          <div class="mockup-row accent"></div>
+          <div class="mockup-row"></div>
+          <div class="mockup-row short"></div>
+          <div class="mockup-row"></div>
+          <div class="mockup-row short"></div>
+          <div class="mockup-row"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Marquee -->
+  <div class="marquee-wrap" style="width:100%;margin-top:48px">
+    <div class="marquee-track">
+      <span class="marquee-item">Patronaje paramétrico</span>
+      <span class="marquee-item">Exportación PDF 1:1</span>
+      <span class="marquee-item">Vista 3D en tiempo real</span>
+      <span class="marquee-item">Sistema Müller & Sohn</span>
+      <span class="marquee-item">Gradación de tallas</span>
+      <span class="marquee-item">Editor visual CLO-style</span>
+      <span class="marquee-item">Panel de atelier</span>
+      <span class="marquee-item">Pinzas y sisas</span>
+      <span class="marquee-item">Curvas Bézier</span>
+      <span class="marquee-item">Patronaje paramétrico</span>
+      <span class="marquee-item">Exportación PDF 1:1</span>
+      <span class="marquee-item">Vista 3D en tiempo real</span>
+      <span class="marquee-item">Sistema Müller & Sohn</span>
+      <span class="marquee-item">Gradación de tallas</span>
+      <span class="marquee-item">Editor visual CLO-style</span>
+      <span class="marquee-item">Panel de atelier</span>
+      <span class="marquee-item">Pinzas y sisas</span>
+      <span class="marquee-item">Curvas Bézier</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Funcionalidades</div>
+      <h2 class="section-title">Todo lo que<br><em>necesitas trazar</em></h2>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <span class="feat-icon">✏️</span>
+        <div class="feat-name">Editor Visual Interactivo</div>
+        <p class="feat-desc">Canvas grande con drag & drop. Coloca puntos, nómbralos libremente, conéctalos con líneas rectas o curvas Bézier ajustables desde cualquier punto de la trayectoria.</p>
+        <div class="feat-tag">NUEVO v6</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">📐</span>
+        <div class="feat-name">Patronaje Paramétrico</div>
+        <p class="feat-desc">Las piezas se generan automáticamente desde tus medidas. Cambia el busto de 88 a 92cm y todo el patrón se recalcula. Fórmulas tipo B4, TALLE_ESP, E2.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">🎭</span>
+        <div class="feat-name">Vista 3D + Split View</div>
+        <p class="feat-desc">Maniquí 3D realista con selección de género: Mujer, Hombre, Niña, Niño. Vista split CLO-style: patrón 2D + simulación 3D lado a lado.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">📌</span>
+        <div class="feat-name">Pinzas y Sisas</div>
+        <p class="feat-desc">Herramienta dedicada para insertar pinzas de busto, pinzas de cintura y marcar sisas. La sisa de la manga coincide automáticamente con la sisa del torso.</p>
+        <div class="feat-tag">NUEVO</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">⊞</span>
+        <div class="feat-name">Escuadra Digital</div>
+        <p class="feat-desc">Guías de alineación automáticas desde cualquier punto seleccionado. Snap a grilla de 5mm. Coloca un punto a exactamente la misma altura que otro punto.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">📄</span>
+        <div class="feat-name">PDF Escala 1:1</div>
+        <p class="feat-desc">Exporta a papel Carta o A4 con solapamiento de 10mm para ensamblar. El patrón imprimido mide exactamente igual que el trazado. Marca de agua en versión Free.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">↩</span>
+        <div class="feat-name">Undo / Redo Ilimitado</div>
+        <p class="feat-desc">Hasta 60 pasos de historial. Ctrl+Z y Ctrl+Y. Nunca pierdas un trazado por error. Auto-guardado en el navegador.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">🔍</span>
+        <div class="feat-name">Verificación de Patrón</div>
+        <p class="feat-desc">Analiza automáticamente si el patrón es coherente con las medidas. Advierte si la sisa no coincide con la referencia, si hay puntos desconectados o proporciones incorrectas.</p>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">📏</span>
+        <div class="feat-name">Escalar a Otras Tallas</div>
+        <p class="feat-desc">Gradación automática: ingresa las medidas de la nueva talla y el patrón se escala. Los puntos con fórmulas se recalculan exactamente. Los demás escalan proporcionalmente.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPLIT DEMO -->
+<section class="split-demo">
+  <div class="container">
+    <div class="split-demo-inner">
+      <div class="split-text">
+        <div class="section-tag">Split View</div>
+        <h2 class="section-title">Patrón y maniquí<br><em>al mismo tiempo</em></h2>
+        <p>Activa la vista split y trabaja con el patrón 2D en la izquierda mientras ves la prenda en el maniquí 3D en tiempo real, exactamente como en CLO 3D.</p>
+        <ul>
+          <li>Patrón 2D editable a la izquierda</li>
+          <li>Maniquí 3D con la prenda a la derecha</li>
+          <li>Paredes de fondo para contexto espacial</li>
+          <li>Medidas del cuerpo con líneas amarillas al hover</li>
+          <li>Simular caída de la tela con animación</li>
+        </ul>
+      </div>
+      <div class="split-visual">
+        <div class="split-visual-inner">
+          <div class="sv-left">
+            <div class="sv-label">Patrón 2D</div>
+            <div class="sv-pattern-mini">
+              <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10,10 L60,10 L60,70 L10,70 Z" stroke="#8b5cf6" stroke-width="1.5" fill="rgba(139,92,246,.08)"/>
+                <path d="M10,10 Q 5,25 15,45" stroke="#60a5fa" stroke-width="1.5" fill="none"/>
+                <path d="M10,10 Q 25,5 35,12" stroke="#a78bfa" stroke-width="1.5" fill="none"/>
+                <line x1="10" y1="10" x2="10" y2="70" stroke="#f87171" stroke-width="1" stroke-dasharray="4,2"/>
+                <circle cx="10" cy="10" r="2.5" fill="#8b5cf6"/>
+                <circle cx="60" cy="10" r="2.5" fill="#8b5cf6"/>
+                <circle cx="60" cy="70" r="2.5" fill="#8b5cf6"/>
+                <circle cx="10" cy="70" r="2.5" fill="#8b5cf6"/>
+              </svg>
+            </div>
+          </div>
+          <div style="width:2px;background:rgba(139,92,246,.3)"></div>
+          <div class="sv-right">
+            <div class="sv-label">Vista 3D</div>
+            <div class="sv-mannequin">🧍‍♀️</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFLOW -->
+<section class="workflow" id="workflow">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Flujo de trabajo</div>
+      <h2 class="section-title">Del cuerpo<br><em>al papel</em></h2>
+    </div>
+    <div class="workflow-steps">
+      <div class="ws">
+        <div class="ws-num">01</div>
+        <div class="ws-icon">📏</div>
+        <div class="ws-name">Ingresar medidas</div>
+        <p class="ws-desc">Busto, cintura, cadera, talle espalda, manga. El sistema calcula todas las variables de patronaje.</p>
+      </div>
+      <div class="ws">
+        <div class="ws-num">02</div>
+        <div class="ws-icon">⬜</div>
+        <div class="ws-name">Rectángulo base</div>
+        <p class="ws-desc">El rectángulo base se crea automáticamente con las proporciones correctas B4 × TALLE_ESP.</p>
+      </div>
+      <div class="ws">
+        <div class="ws-num">03</div>
+        <div class="ws-icon">✏️</div>
+        <div class="ws-name">Trazar puntos y líneas</div>
+        <p class="ws-desc">Agrega puntos sobre el rectángulo, nómbralos, conecta con líneas rectas, curvas y doblezes.</p>
+      </div>
+      <div class="ws">
+        <div class="ws-num">04</div>
+        <div class="ws-icon">📄</div>
+        <div class="ws-name">Exportar PDF</div>
+        <p class="ws-desc">Exporta a escala 1:1, ensambla las hojas e imprime directamente en papel para cortar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ATELIER -->
+<section class="atelier" id="atelier">
+  <div class="container">
+    <div class="atelier-inner">
+      <div>
+        <div class="section-tag">Panel de Atelier</div>
+        <h2 class="section-title">Tu escuela,<br><em>tu método</em></h2>
+        <p style="font-family:var(--mono);font-size:12px;color:var(--tx2);line-height:1.9;margin-bottom:20px">
+          Registra tu atelier o escuela de costura. Define cómo tus alumnas calculan cada medida, qué sistema de patronaje usan y cómo nombran los puntos.
+        </p>
+        <ul style="list-style:none">
+          <li style="font-family:var(--mono);font-size:11px;color:var(--tx2);padding:8px 0;border-bottom:1px solid var(--brd2);display:flex;gap:12px;align-items:center"><span style="color:var(--acc2)">✦</span> Gestión de clientes con medidas individuales</li>
+          <li style="font-family:var(--mono);font-size:11px;color:var(--tx2);padding:8px 0;border-bottom:1px solid var(--brd2);display:flex;gap:12px;align-items:center"><span style="color:var(--acc2)">✦</span> Sistema de patronaje personalizado por atelier</li>
+          <li style="font-family:var(--mono);font-size:11px;color:var(--tx2);padding:8px 0;border-bottom:1px solid var(--brd2);display:flex;gap:12px;align-items:center"><span style="color:var(--acc2)">✦</span> Instrucciones propias de trazado por prenda</li>
+          <li style="font-family:var(--mono);font-size:11px;color:var(--tx2);padding:8px 0;border-bottom:1px solid var(--brd2);display:flex;gap:12px;align-items:center"><span style="color:var(--acc2)">✦</span> Código de afiliado con descuento para alumnas</li>
+          <li style="font-family:var(--mono);font-size:11px;color:var(--tx2);padding:8px 0;display:flex;gap:12px;align-items:center"><span style="color:var(--acc2)">✦</span> Panel EXPERT con analíticas de producción</li>
+        </ul>
+      </div>
+      <div class="atelier-form">
+        <div class="af-title">
+          <span>🏛</span> Registrar Atelier
+        </div>
+        <div class="af-group">
+          <label class="af-label">Nombre del atelier</label>
+          <input class="af-input" type="text" placeholder="Ej: Atelier Escuela Venezolana">
+        </div>
+        <div class="af-group">
+          <label class="af-label">Sistema de patronaje</label>
+          <div class="af-chips">
+            <span class="af-chip">Müller & Sohn</span>
+            <span class="af-chip">Aldrich</span>
+            <span class="af-chip">Propio</span>
+            <span class="af-chip">Atelier Escuela</span>
+          </div>
+        </div>
+        <div class="af-group">
+          <label class="af-label">Código de afiliado</label>
+          <input class="af-input" type="text" placeholder="Ej: ATELIER10" style="text-transform:uppercase">
+        </div>
+        <button class="af-btn">Solicitar acceso Expert →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIERS -->
+<section class="tiers" id="tiers">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Planes</div>
+      <h2 class="section-title">Para cada<br><em>patronista</em></h2>
+    </div>
+    <div class="tiers-grid">
+      <div class="tier">
+        <div class="tier-name">Free</div>
+        <div class="tier-price"><sup>$</sup>0</div>
+        <div class="tier-period">Para siempre</div>
+        <div class="tier-divider"></div>
+        <div class="tier-feat">Franela básica y falda</div>
+        <div class="tier-feat">Editor visual completo</div>
+        <div class="tier-feat">Vista 3D (mujer)</div>
+        <div class="tier-feat">PDF con marca de agua</div>
+        <div class="tier-feat">Undo / Redo 10 pasos</div>
+        <a href="index.html" class="tier-btn outline">Comenzar gratis</a>
+      </div>
+      <div class="tier featured">
+        <div class="tier-name">Pro</div>
+        <div class="tier-price"><sup>$</sup>9<span style="font-size:20px;font-family:var(--mono)">.99</span></div>
+        <div class="tier-period">por mes</div>
+        <div class="tier-divider"></div>
+        <div class="tier-feat hi">Todas las prendas</div>
+        <div class="tier-feat hi">PDF limpio sin marca</div>
+        <div class="tier-feat hi">Todos los géneros 3D</div>
+        <div class="tier-feat hi">Gradación de tallas</div>
+        <div class="tier-feat hi">Verificación de patrón</div>
+        <div class="tier-feat">Undo / Redo 60 pasos</div>
+        <div class="tier-feat">Guardado en la nube</div>
+        <a href="index.html" class="tier-btn solid">Comenzar Pro</a>
+      </div>
+      <div class="tier">
+        <div class="tier-name">Expert</div>
+        <div class="tier-price"><sup>$</sup>24<span style="font-size:20px;font-family:var(--mono)">.99</span></div>
+        <div class="tier-period">por mes</div>
+        <div class="tier-divider"></div>
+        <div class="tier-feat hi">Todo lo de Pro</div>
+        <div class="tier-feat hi">Panel de Atelier</div>
+        <div class="tier-feat hi">Gestión de clientes</div>
+        <div class="tier-feat hi">Sistema propio de patronaje</div>
+        <div class="tier-feat hi">Código de afiliado</div>
+        <div class="tier-feat hi">Exportar DXF (Seamly2D)</div>
+        <a href="index.html" class="tier-btn outline">Contactar</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Comunidad</div>
+      <h2 class="section-title">Lo que dicen<br><em>las patronistas</em></h2>
+    </div>
+    <div class="testi-grid">
+      <div class="testi">
+        <p class="testi-quote">"Por fin una herramienta que entiende el patronaje venezolano. El rectángulo base con B4 y TALLE_ESP me salió perfecto desde el primer intento."</p>
+        <div class="testi-author"><strong>María G.</strong>Diseñadora · Caracas</div>
+      </div>
+      <div class="testi">
+        <p class="testi-quote">"La curva de la sisa era mi pesadilla. Ahora la arrastro hasta donde quiero y el patrón queda perfecto. El PDF a escala 1:1 es increíble."</p>
+        <div class="testi-author"><strong>Luisa R.</strong>Atelier · Medellín</div>
+      </div>
+      <div class="testi">
+        <p class="testi-quote">"Uso el panel de Atelier para llevar las medidas de mis 30 alumnas. Cada una tiene su ficha y puedo generar el patrón a su talla en segundos."</p>
+        <div class="testi-author"><strong>Carmen T.</strong>Escuela de Costura · Bogotá</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-final">
+  <div class="container">
+    <div class="section-tag">Comienza hoy</div>
+    <h2 class="section-title">Tus patrones,<br><em>tu manera</em></h2>
+    <p>Gratis para siempre en el plan básico. Sin tarjeta de crédito. Abre el editor y traza tu primer patrón en minutos.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <a href="index.html" class="btn-primary">Abrir PatrónAI Pro →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span>✂</span>
+    <span style="color:var(--tx2)">PatrónAI Pro</span>
+    <span style="color:var(--tx3)">© 2026</span>
+  </div>
+  <div style="display:flex;gap:24px">
+    <a href="index.html">App</a>
+    <a href="#features">Funciones</a>
+    <a href="#tiers">Precios</a>
+    <a href="#atelier">Atelier</a>
+  </div>
+  <div style="color:var(--tx3)">Hecho con ✦ para patronistas</div>
+</footer>
+
+<script>
+// Animaciones on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.feat-card,.tier,.testi,.ws').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'opacity .6s ease, transform .6s ease';
+  observer.observe(el);
+});
+
+// Chips de atelier interactivos
+document.querySelectorAll('.af-chip').forEach(chip => {
+  chip.addEventListener('click', function() {
+    document.querySelectorAll('.af-chip').forEach(c => c.style.background = '');
+    this.style.background = 'rgba(139,92,246,.25)';
+  });
+});
+</script>
+</body>
+</html>
