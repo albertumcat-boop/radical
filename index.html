@@ -509,7 +509,8 @@ PAT.Mannequin3D = (function () {
   // ESCENA
   // ════════════════════════════════════════════════════════════
   function _buildScene(){
-    scene.add(Object.assign(new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMaterial({color:0x090918,roughness:0.98})),{rotation:{x:-Math.PI/2},receiveShadow:true}));
+    const _floor=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMaterial({color:0x090918,roughness:0.98}));
+    _floor.rotation.x=-Math.PI/2; _floor.receiveShadow=true; scene.add(_floor);
     scene.add(new THREE.GridHelper(6,30,0x14142a,0x0c0c1e));
     const wm=new THREE.MeshStandardMaterial({color:0x0b0b1e,roughness:0.95,side:THREE.FrontSide});
     const bw=new THREE.Mesh(new THREE.PlaneGeometry(7,4),wm);bw.position.set(0,2,-2.5);bw.receiveShadow=true;scene.add(bw);
@@ -519,12 +520,16 @@ PAT.Mannequin3D = (function () {
     key.position.set(1.5,3.5,2.5);key.castShadow=true;key.shadow.mapSize.set(2048,2048);
     key.shadow.camera.left=-2;key.shadow.camera.right=2;key.shadow.camera.top=3;key.shadow.camera.bottom=-1;
     scene.add(key);
-    scene.add(Object.assign(new THREE.DirectionalLight(0xb0c8ff,0.45),{position:new THREE.Vector3(-2,2,1)}));
-    scene.add(Object.assign(new THREE.DirectionalLight(0x7c3aed,0.28),{position:new THREE.Vector3(0,2.5,-3)}));
+    const _fill=new THREE.DirectionalLight(0xb0c8ff,0.45);
+    _fill.position.set(-2,2,1); scene.add(_fill);
+    const _back=new THREE.DirectionalLight(0x7c3aed,0.28);
+    _back.position.set(0,2.5,-3); scene.add(_back);
     scene.add(new THREE.HemisphereLight(0xeeeeff,0x111133,0.25));
     const bm=new THREE.MeshStandardMaterial({color:0x1a1a32,metalness:0.8,roughness:0.2});
-    scene.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,0.025,48),bm),{position:new THREE.Vector3(0,0.012,0)}));
-    scene.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.5,14),bm),{position:new THREE.Vector3(0,0.275,0)}));
+    const _disc=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,0.025,48),bm);
+    _disc.position.set(0,0.012,0); scene.add(_disc);
+    const _pole=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.5,14),bm);
+    _pole.position.set(0,0.275,0); scene.add(_pole);
   }
 
   // ════════════════════════════════════════════════════════════
@@ -897,7 +902,8 @@ PAT.Mannequin3D = (function () {
 
     switch(gt){
       case 'franela':case'blusa':garTorso();garSleeve(false);grainLines(rB+E,h.crotch,h.neckBase);break;
-      case 'camisa':garTorso();garSleeve(true);garmentGroup.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(rN+E*0.3,rN+E*0.35,0.04,24,1,true),gm),{position:new THREE.Vector3(0,h.neckBase+0.02,0)}));grainLines(rB+E,h.crotch,h.neckBase);break;
+      case 'camisa':garTorso();garSleeve(true);const _col=new THREE.Mesh(new THREE.CylinderGeometry(rN+E*0.3,rN+E*0.35,0.04,24,1,true),gm);
+      _col.position.set(0,h.neckBase+0.02,0); garmentGroup.add(_col);grainLines(rB+E,h.crotch,h.neckBase);break;
       case 'falda':garSkirt(h.waist);grainLines(rH+E,h.waist-skL,h.waist);break;
       case 'vestido':garTorso();garSkirt(h.crotch);grainLines(rB+E,h.crotch-skL,h.neckBase);break;
     }
