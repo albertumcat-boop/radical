@@ -129,19 +129,175 @@
   .c3-hint{font-size:11px;color:var(--tx3)}
 
   /* ── Modales ── */
-  .modal{position:fixed;inset:0;z-index:500;display:none;align-items:center;justify-content:center}
+  /* ═══════════════════════════════════════════════
+   SISTEMA DE MODALES — PatrónAI Pro
+   Todos los overlays/dialogs usan esta base
+   ═══════════════════════════════════════════════ */
+  .modal{
+    position:fixed;inset:0;z-index:600;
+    display:none;align-items:center;justify-content:center;
+    padding:16px;
+  }
   .modal.open{display:flex}
-  .m-ov{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px)}
-  .m-box{position:relative;z-index:1;background:var(--panel);border:1px solid var(--brd2);border-radius:var(--r2);width:min(420px,92vw);box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden}
-  .m-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--brd)}
-  .m-head h3{font-size:15px;font-weight:700}
-  .m-close{background:none;border:none;color:var(--tx3);font-size:16px;cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all var(--ease)}
-  .m-close:hover{background:var(--hov);color:var(--tx)}
-  .m-body{padding:20px}
-  .m-foot{padding:16px 20px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end}
-  .f-label{display:block;font-size:11px;color:var(--tx2);margin-bottom:8px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
-  .f-inp{width:100%;background:var(--inp);border:1.5px solid var(--brd);color:var(--tx);border-radius:var(--r);padding:9px 12px;font-size:13px;font-family:var(--font);outline:none;transition:border-color var(--ease)}
-  .f-inp:focus{border-color:var(--acc)}
+
+  /* Overlay de fondo — ENCIMA de todo el contenido */
+  .m-ov{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.82);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    z-index:0;
+  }
+
+  /* Caja del modal — fondo sólido, sin transparencias */
+  .m-box{
+    position:relative;
+    z-index:1;
+    background:#1c1c2a;           /* Color sólido — no depende de variable */
+    border:1px solid #3d3d58;
+    border-radius:12px;
+    width:min(440px,94vw);
+    max-height:88vh;
+    overflow-y:auto;
+    box-shadow:0 24px 64px rgba(0,0,0,.9), 0 0 0 1px rgba(139,92,246,.1);
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* Header del modal */
+  .m-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 20px;
+    border-bottom:1px solid #2e2e45;
+    background:rgba(139,92,246,.06);
+    flex-shrink:0;
+    border-radius:12px 12px 0 0;
+  }
+  .m-head h3{
+    font-size:15px;font-weight:700;color:#ede9fe;
+    display:flex;align-items:center;gap:8px;
+  }
+  .m-close{
+    background:rgba(255,255,255,.04);border:1px solid #2e2e45;
+    color:#9490b0;font-size:14px;cursor:pointer;
+    width:30px;height:30px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .15s;flex-shrink:0;
+  }
+  .m-close:hover{background:#2a2a3e;color:#ede9fe;border-color:#3d3d58}
+
+  /* Body del modal */
+  .m-body{
+    padding:20px;
+    flex:1;
+    overflow-y:auto;
+  }
+
+  /* Footer del modal */
+  .m-foot{
+    padding:14px 20px;
+    border-top:1px solid #2e2e45;
+    display:flex;gap:8px;justify-content:flex-end;
+    flex-shrink:0;
+    background:rgba(0,0,0,.15);
+    border-radius:0 0 12px 12px;
+  }
+
+  /* Formularios dentro de modales */
+  .f-label{
+    display:block;font-size:11px;color:#9490b0;
+    margin-bottom:6px;font-weight:600;
+    letter-spacing:.4px;text-transform:uppercase;
+  }
+  .f-inp{
+    width:100%;background:#232333;
+    border:1.5px solid #2e2e45;color:#ede9fe;
+    border-radius:8px;padding:10px 12px;
+    font-size:13px;font-family:var(--font,'Segoe UI');
+    outline:none;transition:border-color .15s;
+    display:block;
+  }
+  .f-inp:focus{border-color:#8b5cf6;background:#28283a}
+  .f-inp::placeholder{color:#5a5678}
+
+  /* Items de lista dentro de modales */
+  .pat-item{
+    display:flex;align-items:center;
+    justify-content:space-between;
+    padding:11px 12px;
+    border-radius:8px;
+    border:1px solid #2e2e45;
+    background:#141420;
+    margin-bottom:6px;
+    transition:all .15s;
+  }
+  .pat-item:hover{background:#1c1c2a;border-color:#3d3d58}
+  .pat-item-name{font-size:13px;color:#ede9fe;font-weight:600}
+  .pat-item-date{font-size:10px;color:#5a5678;font-family:monospace}
+  .pat-item-actions{display:flex;gap:6px}
+
+  /* ── Modales específicos más anchos ── */
+  .modal-upgrade .m-box,
+  .modal-atelier .m-box{width:min(860px,95vw)}
+  .modal-paywall .m-box{width:min(380px,94vw);text-align:center}
+
+  /* Tier cards dentro del modal de upgrade */
+  .tier-cards{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+    margin-top:4px;
+  }
+  @media(max-width:640px){.tier-cards{grid-template-columns:1fr}}
+  .tier-card{
+    background:#141420;border:1.5px solid #2e2e45;
+    border-radius:10px;padding:18px 14px;
+    display:flex;flex-direction:column;gap:6px;
+    transition:border-color .15s;
+  }
+  .tier-card.featured{border-color:#8b5cf6;background:rgba(139,92,246,.06)}
+  .tier-card:hover{border-color:#3d3d58}
+  .tier-card-name{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#5a5678}
+  .tier-card-price{font-size:28px;font-weight:800;color:#ede9fe}
+  .tier-card-price sup{font-size:14px;font-weight:400;color:#9490b0}
+  .tier-card-feat{font-size:11px;color:#9490b0;padding:4px 0;border-bottom:1px solid #1c1c2a;display:flex;align-items:center;gap:6px}
+  .tier-card-feat::before{content:"✦";color:#8b5cf6;font-size:9px}
+  .tier-card-feat.hi{color:#ede9fe}
+
+  /* Atelier panel dentro del modal */
+  .atelier-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:640px){.atelier-grid{grid-template-columns:1fr}}
+  .atelier-section-title{
+    font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    color:#5a5678;padding:12px 0 6px;border-bottom:1px solid #2e2e45;margin-bottom:10px;
+  }
+  .atelier-client-item{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;
+    border-radius:7px;background:#141420;border:1px solid #2e2e45;
+    margin-bottom:5px;cursor:pointer;transition:all .15s;
+  }
+  .atelier-client-item:hover{background:#1c1c2a;border-color:#3d3d58}
+
+  /* ── DrafterUI modal (editor visual) ── */
+  #dv6-modal .m-ov,
+  #dv6-modal ~ .m-ov{ z-index:0 }
+
+  /* ── Gradación de tallas ── */
+  .dv6-grade-modal{
+    position:fixed;inset:0;z-index:800;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  .dv6-grade-modal.open{display:flex}
+  .dv6-grade-box{
+    position:relative;z-index:1;
+    background:#1c1c2a;border:1px solid #3d3d58;border-radius:12px;
+    width:min(480px,94vw);max-height:82vh;overflow-y:auto;
+    padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.9);
+  }
+  .dv6-grade-title{font-size:14px;font-weight:800;color:#ede9fe;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .dv6-grade-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .dv6-grade-lbl{font-size:12px;color:#9490b0;width:140px;flex-shrink:0}
+  .dv6-grade-inp{flex:1;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:7px;padding:7px 10px;font-size:12px;font-family:monospace;outline:none;transition:border-color .15s}
+  .dv6-grade-inp:focus{border-color:#8b5cf6}
+  .dv6-grade-unit{font-size:11px;color:#5a5678;width:20px}
   #saved-list{max-height:320px;overflow-y:auto}
   .pat-item{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:6px;transition:all var(--ease)}
   .pat-item:hover{background:var(--hov);border-color:var(--brd2)}
@@ -247,7 +403,73 @@
   .m-row-v2:hover ~ * #dg-bust,
   .m-row-v2[data-measure-key=bust]:hover ~ .body-diagram #dg-bust { opacity:1!important; }
 
-  </style>
+  
+  /* ── Toast notifications mejorados ── */
+  #toasts{position:fixed;bottom:20px;right:20px;z-index:900;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .toast{
+    display:flex;align-items:center;gap:10px;
+    padding:12px 16px;border-radius:10px;
+    background:#1c1c2a;border:1px solid #3d3d58;
+    box-shadow:0 8px 24px rgba(0,0,0,.6);
+    font-size:12px;color:#ede9fe;font-weight:600;
+    pointer-events:all;cursor:pointer;
+    animation:toastIn .3s ease;
+    min-width:220px;max-width:320px;
+  }
+  .toast.success{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+  .toast.error{border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.08)}
+  .toast.info{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)}
+  @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ── Botones mejorados dentro de modales ── */
+  .btn-p{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--acc);color:#fff;border:none;
+    padding:9px 18px;border-radius:8px;
+    font-size:12px;font-weight:700;font-family:var(--font);
+    cursor:pointer;transition:all .15s;
+  }
+  .btn-p:hover{filter:brightness(1.12);transform:translateY(-1px)}
+  .btn-g{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#141420;color:#9490b0;
+    border:1px solid #3d3d58;
+    padding:9px 16px;border-radius:8px;
+    font-size:12px;font-weight:600;font-family:var(--font);
+    cursor:pointer;transition:all .15s;
+  }
+  .btn-g:hover{background:#2a2a3e;color:#ede9fe;border-color:#4d4d68}
+  .btn-s{
+    display:inline-flex;align-items:center;gap:6px;
+    background:rgba(52,211,153,.1);color:#34d399;
+    border:1px solid rgba(52,211,153,.3);
+    padding:9px 16px;border-radius:8px;
+    font-size:12px;font-weight:700;font-family:var(--font);
+    cursor:pointer;transition:all .15s;
+  }
+  .btn-s:hover{background:rgba(52,211,153,.18)}
+
+  /* ── Validation modal mejorado ── */
+  #dv6-vm .m-box, #dv6-vm > div:last-child {
+    background:#1c1c2a!important;
+    border:1px solid #3d3d58!important;
+    border-radius:12px!important;
+  }
+
+  /* ── Scrollbar en modales ── */
+  .m-box::-webkit-scrollbar,.m-body::-webkit-scrollbar{width:4px}
+  .m-box::-webkit-scrollbar-track,.m-body::-webkit-scrollbar-track{background:#141420}
+  .m-box::-webkit-scrollbar-thumb,.m-body::-webkit-scrollbar-thumb{background:#3d3d58;border-radius:2px}
+
+  /* ── Chip EXPERT en botones ── */
+  .chip-exp{
+    position:absolute;top:-6px;right:-4px;
+    background:linear-gradient(135deg,#f59e0b,#d97706);
+    color:#000;font-size:8px;font-weight:800;
+    padding:2px 5px;border-radius:8px;letter-spacing:.5px;
+  }
+
+</style>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
@@ -593,26 +815,50 @@
 
 <!-- Modal Guardar -->
 <div id="modal-save" class="modal">
-  <div class="m-ov"></div>
+  <div class="m-ov" onclick="document.getElementById('modal-save').classList.remove('open')"></div>
   <div class="m-box">
-    <div class="m-head"><h3>Guardar patrón</h3><button class="m-close" id="cancel-save">✕</button></div>
+    <div class="m-head">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Guardar patrón
+      </h3>
+      <button class="m-close" id="cancel-save">✕</button>
+    </div>
     <div class="m-body">
-      <label class="f-label">Nombre</label>
-      <input type="text" id="save-name" class="f-inp" placeholder="Ej: Franela talla M">
+      <label class="f-label">Nombre del patrón</label>
+      <input type="text" id="save-name" class="f-inp" placeholder="Ej: Franela talla M" autofocus>
+      <div style="margin-top:12px;font-size:11px;color:#5a5678;font-family:monospace">
+        💾 Se guardará en este dispositivo
+      </div>
     </div>
     <div class="m-foot">
-      <button class="btn-p" id="confirm-save">Guardar</button>
       <button class="btn-g" id="cancel-save2">Cancelar</button>
+      <button class="btn-p" id="confirm-save">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
+        Guardar
+      </button>
     </div>
   </div>
 </div>
 
 <!-- Modal Cargar -->
 <div id="modal-load" class="modal">
-  <div class="m-ov"></div>
+  <div class="m-ov" onclick="document.getElementById('modal-load').classList.remove('open')"></div>
   <div class="m-box">
-    <div class="m-head"><h3>Patrones guardados</h3><button class="m-close" id="cancel-load">✕</button></div>
-    <div class="m-body"><div id="saved-list"></div></div>
+    <div class="m-head">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Patrones guardados
+      </h3>
+      <button class="m-close" id="cancel-load">✕</button>
+    </div>
+    <div class="m-body">
+      <div id="saved-list-empty" style="text-align:center;padding:32px 0;color:#5a5678;font-size:12px;display:none">
+        <div style="font-size:32px;margin-bottom:10px">📂</div>
+        No hay patrones guardados aún
+      </div>
+      <div id="saved-list"></div>
+    </div>
   </div>
 </div>
 
