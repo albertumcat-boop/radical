@@ -197,6 +197,56 @@
     #main{height:48vh}
     .tb-info{display:none}
   }
+  
+  /* ── Patrondis-style sidebar improvements ── */
+  .step-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+    background:var(--acc);color:#fff;border-radius:50%;font-size:10px;font-weight:800;margin-right:4px;flex-shrink:0}
+
+  /* Garment grid v2 — tarjetas visuales */
+  .garment-grid-v2{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px}
+  .gv2-btn{background:var(--surface);border:1.5px solid var(--brd);border-radius:var(--r);
+    padding:8px 4px;cursor:pointer;transition:all .15s var(--ease);display:flex;flex-direction:column;
+    align-items:center;gap:3px}
+  .gv2-btn:hover{background:var(--hov);border-color:var(--brd2)}
+  .gv2-btn.active{background:var(--accbg);border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+  .gv2-icon{font-size:22px;line-height:1}
+  .gv2-lbl{font-size:9px;font-weight:600;color:var(--tx2);letter-spacing:.3px;text-transform:uppercase}
+  .gv2-btn.active .gv2-lbl{color:var(--acc2)}
+
+  /* Diagrama corporal */
+  .body-diagram{padding:6px 0;display:flex;justify-content:center}
+
+  /* Medidas v2 — con botones +/− */
+  .m-row-v2{display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+  .m-row-v2:last-child{border-bottom:none}
+  .m-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .m-row-v2 label{font-size:11px;color:var(--tx2);flex:1;cursor:default}
+  .m-input-wrap{display:flex;align-items:center;gap:2px;flex-shrink:0}
+  .m-input-wrap input[type=number]{width:44px;background:var(--inp);border:1px solid var(--brd);
+    color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);
+    text-align:center;outline:none;-moz-appearance:textfield}
+  .m-input-wrap input[type=number]::-webkit-inner-spin-button{display:none}
+  .m-input-wrap input[type=number]:focus{border-color:var(--acc)}
+  .m-step{width:20px;height:24px;background:var(--surface);border:1px solid var(--brd);
+    color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;transition:all .12s;line-height:1}
+  .m-step:hover{background:var(--hov);color:var(--tx);border-color:var(--acc)}
+  .m-step:active{transform:scale(.92)}
+
+  /* Botón AI Preview — estilo LOOK */
+  .btn-ai-preview{width:100%;padding:11px;border-radius:var(--r);border:none;cursor:pointer;
+    background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;
+    font-size:12px;font-weight:700;font-family:var(--font);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 4px 20px rgba(124,58,237,.4);transition:all .2s var(--ease);
+    margin-bottom:6px;letter-spacing:.2px}
+  .btn-ai-preview:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(124,58,237,.55);filter:brightness(1.1)}
+  .btn-ai-preview:active{transform:translateY(0)}
+
+  /* Diagrama — highlight al hover de medida */
+  .m-row-v2:hover ~ * #dg-bust,
+  .m-row-v2[data-measure-key=bust]:hover ~ .body-diagram #dg-bust { opacity:1!important; }
+
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
@@ -223,53 +273,194 @@
       <button id="sidebar-toggle" class="collapse-btn">‹</button>
     </div>
 
+    <!-- ── FLUJO TIPO PATRONDIS: pasos visuales ── -->
     <div class="sb-body">
+
+      <!-- PASO 1: Selector visual de prenda (tarjetas grandes) -->
       <div class="sb-sec">
-        <div class="sec-title">Tipo de prenda</div>
-        <div class="garment-grid">
-          <button class="garment-btn active" data-garment="franela"><span class="g-icon">👕</span><span class="g-label">Franela</span></button>
-          <button class="garment-btn" data-garment="blusa"><span class="g-icon">👚</span><span class="g-label">Blusa</span></button>
-          <button class="garment-btn" data-garment="camisa"><span class="g-icon">👔</span><span class="g-label">Camisa</span></button>
-          <button class="garment-btn" data-garment="falda"><span class="g-icon">👗</span><span class="g-label">Falda</span></button>
-          <button class="garment-btn" data-garment="vestido"><span class="g-icon">🥻</span><span class="g-label">Vestido</span></button>
+        <div class="sec-title">
+          <span class="step-badge">1</span> Tipo de prenda
+        </div>
+        <div class="garment-grid-v2">
+          <button class="gv2-btn active" data-garment="franela">
+            <div class="gv2-icon">👕</div>
+            <div class="gv2-lbl">Franela</div>
+          </button>
+          <button class="gv2-btn" data-garment="blusa">
+            <div class="gv2-icon">👚</div>
+            <div class="gv2-lbl">Blusa</div>
+          </button>
+          <button class="gv2-btn" data-garment="camisa">
+            <div class="gv2-icon">👔</div>
+            <div class="gv2-lbl">Camisa</div>
+          </button>
+          <button class="gv2-btn" data-garment="falda">
+            <div class="gv2-icon">🩱</div>
+            <div class="gv2-lbl">Falda</div>
+          </button>
+          <button class="gv2-btn" data-garment="vestido">
+            <div class="gv2-icon">👗</div>
+            <div class="gv2-lbl">Vestido</div>
+          </button>
+        </div>
+        <div id="shirt-options" style="display:none;margin-top:6px">
+          <div class="radio-grp">
+            <label class="radio-opt"><input type="radio" name="shirt-gender" value="dama" checked><span>Dama</span></label>
+            <label class="radio-opt"><input type="radio" name="shirt-gender" value="caballero"><span>Caballero</span></label>
+          </div>
         </div>
       </div>
 
-      <div class="sb-sec" id="shirt-options" style="display:none">
-        <div class="sec-title">Estilo</div>
-        <div class="radio-grp">
-          <label class="radio-opt"><input type="radio" name="shirt-gender" value="dama" checked><span>Dama</span></label>
-          <label class="radio-opt"><input type="radio" name="shirt-gender" value="caballero"><span>Caballero</span></label>
+      <!-- PASO 2: Medidas con diagrama visual -->
+      <div class="sb-sec">
+        <div class="sec-title">
+          <span class="step-badge">2</span> Tus medidas
+          <span class="badge-u">cm</span>
+        </div>
+
+        <!-- Diagrama del cuerpo con puntos de medida -->
+        <div class="body-diagram">
+          <svg viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:160px;display:block;margin:0 auto 8px">
+            <!-- Cuerpo simplificado -->
+            <ellipse cx="60" cy="28" rx="18" ry="22" fill="#2a2a3e" stroke="#3d3d58" stroke-width="1"/>
+            <!-- Torso -->
+            <path d="M32,55 Q20,70 22,95 Q24,115 30,125 Q45,135 60,136 Q75,135 90,125 Q96,115 98,95 Q100,70 88,55 Q75,48 60,46 Q45,48 32,55Z" fill="#2a2a3e" stroke="#3d3d58" stroke-width="1"/>
+            <!-- Brazos -->
+            <path d="M32,60 Q20,75 18,105 Q17,115 22,118" fill="none" stroke="#3d3d58" stroke-width="8" stroke-linecap="round"/>
+            <path d="M88,60 Q100,75 102,105 Q103,115 98,118" fill="none" stroke="#3d3d58" stroke-width="8" stroke-linecap="round"/>
+            <!-- Piernas -->
+            <rect x="35" y="136" width="22" height="75" rx="8" fill="#2a2a3e" stroke="#3d3d58" stroke-width="1"/>
+            <rect x="63" y="136" width="22" height="75" rx="8" fill="#2a2a3e" stroke="#3d3d58" stroke-width="1"/>
+            <!-- Líneas de medida activas (se actualizan con hover) -->
+            <!-- Busto -->
+            <line id="dg-bust"   x1="22" y1="72" x2="98" y2="72" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.6"/>
+            <!-- Cintura -->
+            <line id="dg-waist"  x1="25" y1="95" x2="95" y2="95" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.6"/>
+            <!-- Cadera -->
+            <line id="dg-hip"    x1="30" y1="118" x2="90" y2="118" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.6"/>
+            <!-- Hombros -->
+            <line id="dg-shoulder" x1="32" y1="55" x2="88" y2="55" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.6"/>
+          </svg>
+        </div>
+
+        <!-- Medidas agrupadas: resaltado visual al hacer focus -->
+        <div class="mgrp-title">📏 Contornos</div>
+        <div class="m-row-v2" data-measure-key="bust">
+          <div class="m-dot" style="background:#f59e0b"></div>
+          <label>Busto / Pecho</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="bust">−</button>
+            <input type="number" data-measure="bust" value="88" min="50" max="200" step="0.5">
+            <button class="m-step" data-dir="1" data-target="bust">+</button>
+          </div>
+        </div>
+        <div class="m-row-v2" data-measure-key="waist">
+          <div class="m-dot" style="background:#f59e0b"></div>
+          <label>Cintura</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="waist">−</button>
+            <input type="number" data-measure="waist" value="68" min="40" max="180" step="0.5">
+            <button class="m-step" data-dir="1" data-target="waist">+</button>
+          </div>
+        </div>
+        <div class="m-row-v2" data-measure-key="hip">
+          <div class="m-dot" style="background:#f59e0b"></div>
+          <label>Cadera</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="hip">−</button>
+            <input type="number" data-measure="hip" value="94" min="50" max="220" step="0.5">
+            <button class="m-step" data-dir="1" data-target="hip">+</button>
+          </div>
+        </div>
+        <div class="m-row-v2" data-measure-key="shoulder">
+          <div class="m-dot" style="background:#60a5fa"></div>
+          <label>Hombros</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="shoulder">−</button>
+            <input type="number" data-measure="shoulder" value="38" min="25" max="60" step="0.5">
+            <button class="m-step" data-dir="1" data-target="shoulder">+</button>
+          </div>
+        </div>
+        <div class="m-row-v2" data-measure-key="neck">
+          <div class="m-dot" style="background:#60a5fa"></div>
+          <label>Cuello</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="neck">−</button>
+            <input type="number" data-measure="neck" value="36" min="28" max="60" step="0.5">
+            <button class="m-step" data-dir="1" data-target="neck">+</button>
+          </div>
+        </div>
+
+        <div class="mgrp-title">📐 Largos</div>
+        <div class="m-row-v2">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo espalda</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="backLength">−</button>
+            <input type="number" data-measure="backLength" value="40" min="25" max="60" step="0.5">
+            <button class="m-step" data-dir="1" data-target="backLength">+</button>
+          </div>
+        </div>
+        <div class="m-row-v2">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo frente</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="frontLength">−</button>
+            <input type="number" data-measure="frontLength" value="42" min="25" max="65" step="0.5">
+            <button class="m-step" data-dir="1" data-target="frontLength">+</button>
+          </div>
+        </div>
+        <div class="m-row-v2">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo total</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="totalLength">−</button>
+            <input type="number" data-measure="totalLength" value="65" min="30" max="160" step="0.5">
+            <button class="m-step" data-dir="1" data-target="totalLength">+</button>
+          </div>
+        </div>
+        <div class="m-row-v2" id="row-sleeve-length">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo manga</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="sleeveLength">−</button>
+            <input type="number" data-measure="sleeveLength" value="60" min="10" max="80" step="0.5">
+            <button class="m-step" data-dir="1" data-target="sleeveLength">+</button>
+          </div>
+        </div>
+        <div class="m-row-v2" id="row-skirt-length">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo falda</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="skirtLength">−</button>
+            <input type="number" data-measure="skirtLength" value="60" min="25" max="120" step="0.5">
+            <button class="m-step" data-dir="1" data-target="skirtLength">+</button>
+          </div>
+        </div>
+        <div class="m-row-v2">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Prof. cadera</label>
+          <div class="m-input-wrap">
+            <button class="m-step" data-dir="-1" data-target="hipDepth">−</button>
+            <input type="number" data-measure="hipDepth" value="20" min="14" max="30" step="0.5">
+            <button class="m-step" data-dir="1" data-target="hipDepth">+</button>
+          </div>
         </div>
       </div>
 
+      <!-- PASO 3: Parámetros -->
       <div class="sb-sec">
-        <div class="sec-title">Medidas <span class="badge-u">cm</span></div>
-        <div class="mgrp-title">Contornos</div>
-        <div class="m-row"><label>Busto / Pecho</label><input type="number" data-measure="bust" value="88" min="50" max="200" step="0.5"></div>
-        <div class="m-row"><label>Cintura</label><input type="number" data-measure="waist" value="68" min="40" max="180" step="0.5"></div>
-        <div class="m-row"><label>Cadera</label><input type="number" data-measure="hip" value="94" min="50" max="220" step="0.5"></div>
-        <div class="m-row"><label>Hombros</label><input type="number" data-measure="shoulder" value="38" min="25" max="60" step="0.5"></div>
-        <div class="m-row"><label>Cuello</label><input type="number" data-measure="neck" value="36" min="28" max="60" step="0.5"></div>
-        <div class="mgrp-title">Largos</div>
-        <div class="m-row"><label>Largo espalda</label><input type="number" data-measure="backLength" value="40" min="25" max="60" step="0.5"></div>
-        <div class="m-row"><label>Largo frente</label><input type="number" data-measure="frontLength" value="42" min="25" max="65" step="0.5"></div>
-        <div class="m-row"><label>Largo total</label><input type="number" data-measure="totalLength" value="65" min="30" max="160" step="0.5"></div>
-        <div class="m-row" id="row-sleeve-length"><label>Largo manga</label><input type="number" data-measure="sleeveLength" value="60" min="10" max="80" step="0.5"></div>
-        <div class="m-row" id="row-wrist"><label>Muñeca</label><input type="number" data-measure="wrist" value="16" min="12" max="30" step="0.5"></div>
-        <div class="m-row" id="row-skirt-length"><label>Largo falda</label><input type="number" data-measure="skirtLength" value="60" min="25" max="120" step="0.5"></div>
-        <div class="m-row"><label>Prof. cadera</label><input type="number" data-measure="hipDepth" value="20" min="14" max="30" step="0.5"></div>
-      </div>
-
-      <div class="sb-sec">
-        <div class="sec-title">Parámetros</div>
+        <div class="sec-title">
+          <span class="step-badge">3</span> Parámetros
+        </div>
         <div class="m-row"><label>Margen <span class="badge-u">mm</span></label><input type="number" id="p-seam" data-param="seam" value="10" min="5" max="25" step="1"></div>
         <div class="m-row"><label>Facilidad <span class="badge-u">cm</span></label><input type="number" data-param="ease" value="6" min="0" max="20" step="0.5"></div>
         <div class="m-row"><label>Papel</label><select data-param="paper"><option value="letter">Carta</option><option value="a4">A4</option></select></div>
       </div>
 
+      <!-- Código atelier -->
       <div class="sb-sec">
-        <div class="sec-title">Código atelier <span class="badge-u">% OFF</span></div>
+        <div class="sec-title">Código Atelier <span class="badge-u">% OFF</span></div>
         <div class="aff-row">
           <input type="text" id="aff-input" placeholder="Ej: ATELIER10" autocomplete="off">
           <button id="aff-apply">✓</button>
@@ -277,7 +468,14 @@
         <div id="aff-msg"></div>
       </div>
 
+      <!-- ACCIONES principales -->
       <div class="sb-sec sb-actions">
+        <!-- ★ LOOK-style: botón Ver en maniquí prominente -->
+        <button class="btn-ai-preview" id="btn-3d-preview">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          Ver en maniquí 3D
+        </button>
+
         <button class="btn-g" id="btn-drafter" style="border-color:var(--acc);color:var(--acc2)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           Trazado manual
@@ -306,7 +504,7 @@
       <div class="scale-dot"></div>
       <span>Escala 1:1 garantizada</span>
     </div>
-  </aside>
+    </aside>
 
   <!-- MAIN -->
   <main id="main">
@@ -2747,7 +2945,77 @@ PAT.DrafterUI = (function () {
 <!-- EVENTOS — UN SOLO BLOQUE, AL FINAL                    -->
 <!-- ══════════════════════════════════════════════════════ -->
 <script>
-window.addEventListener('load', function() {
+
+  // ── Patrondis-style: botones +/- para medidas ──
+  document.querySelectorAll('.m-step').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const target = this.dataset.target;
+      const inp = document.querySelector('[data-measure="' + target + '"]');
+      if (!inp) return;
+      const step = parseFloat(inp.step) || 0.5;
+      const dir  = parseInt(this.dataset.dir);
+      let val = parseFloat(inp.value) + dir * step;
+      val = Math.min(Math.max(val, parseFloat(inp.min)||0), parseFloat(inp.max)||999);
+      inp.value = Math.round(val * 10) / 10;
+      inp.dispatchEvent(new Event('input', {bubbles:true}));
+    });
+  });
+
+  // ── Botón "Ver en maniquí 3D" — estilo LOOK ──
+  var btn3dPreview = document.getElementById('btn-3d-preview');
+  if (btn3dPreview) {
+    btn3dPreview.addEventListener('click', function() {
+      // Cambiar a vista 3D
+      var v3btn = document.querySelector('[data-view="viewer3d"]');
+      if (v3btn) v3btn.click();
+
+      // Inicializar si no está listo
+      var tc = document.getElementById('three-canvas');
+      if (tc && window.PAT && PAT.Mannequin3D && !tc._m3dInit) {
+        tc._m3dInit = true;
+        setTimeout(function() {
+          PAT.Mannequin3D.init(tc);
+          setTimeout(function() {
+            if (PAT.Mannequin3D.resize) PAT.Mannequin3D.resize();
+          }, 100);
+        }, 50);
+      }
+
+      // Animación del botón
+      this.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> ✓ Abriendo vista 3D...';
+      var self = this;
+      setTimeout(function() {
+        self.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> Ver en maniquí 3D';
+      }, 2000);
+    });
+  }
+
+  // ── Sync gv2 garment buttons with existing garment-btn ──
+  document.querySelectorAll('.gv2-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.gv2-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      // Trigger the existing garment-btn logic
+      var gt = this.dataset.garment;
+      var oldBtn = document.querySelector('.garment-btn[data-garment="' + gt + '"]');
+      if (oldBtn) oldBtn.click();
+    });
+  });
+  // Keep gv2 in sync when old buttons are clicked
+  document.querySelectorAll('.garment-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.gv2-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.garment === this.dataset.garment);
+      });
+    });
+  });
+
+  // ── Ocultar garment-grid original (usamos gv2) ──
+  var oldGrid = document.querySelector('.garment-grid');
+  if (oldGrid) oldGrid.style.display = 'none';
+
+
+  window.addEventListener('load', function() {
 
   // ── Vista Split CLO 3D ──
   var _splitMode = false;
