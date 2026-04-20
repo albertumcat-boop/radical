@@ -479,22 +479,105 @@
   }
 
 
-  /* Prevent atelier content floating on canvas */
-  .atelier-content:not(#atelier-shell-content .atelier-content){
-    display:none!important;
+  /* Atelier panel - se muestra dentro de modal */
+  .atelier-content{
+    background:#1c1c2a!important;
+    border:1px solid #3d3d58!important;
+    border-radius:12px!important;
+    box-shadow:0 24px 64px rgba(0,0,0,.9)!important;
+    overflow:hidden!important;
+    max-height:88vh!important;
+    width:min(900px,96vw)!important;
   }
-  /* Stats panel from atelier */
-  .at-stats{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
-    padding:16px 22px;border-bottom:1px solid #2e2e45;
-    background:rgba(0,0,0,.2);
+  .at-head{
+    background:rgba(139,92,246,.06)!important;
+    border-bottom:1px solid #2e2e45!important;
+    border-radius:12px 12px 0 0!important;
   }
-  .at-stat-box{
-    background:#141420;border:1px solid #2e2e45;border-radius:8px;
-    padding:12px;text-align:center;
+
+
+  /* ═══ ATELIER PANEL - Fix completo ═══ */
+  /* El modal que crea atelier-panel.js */
+  .modal:has(.atelier-content),
+  .modal:has(.at-head) {
+    z-index: 2000 !important;
   }
-  .at-stat-val{font-size:22px;font-weight:800;color:#ede9fe;font-family:monospace}
-  .at-stat-lbl{font-size:10px;color:#5a5678;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+  .modal:has(.atelier-content) .m-ov,
+  .modal:has(.at-head) .m-ov {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0,0,0,.85) !important;
+    backdrop-filter: blur(8px) !important;
+    z-index: 0 !important;
+  }
+  .modal:has(.atelier-content) .atelier-content,
+  .modal:has(.at-head) .atelier-content {
+    position: relative !important;
+    z-index: 1 !important;
+    background: #1c1c2a !important;
+    border: 1px solid #3d3d58 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 24px 64px rgba(0,0,0,.92) !important;
+    max-height: 88vh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  /* Fallback para browsers sin :has() */
+  .atelier-content {
+    background: #1c1c2a !important;
+    border: 1px solid #3d3d58 !important;
+    border-radius: 12px !important;
+  }
+  .at-head {
+    background: rgba(139,92,246,.07) !important;
+    border-bottom: 1px solid #2e2e45 !important;
+    padding: 18px 22px !important;
+    flex-shrink: 0 !important;
+  }
+  .at-clients {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 16px 22px !important;
+    background: #1c1c2a !important;
+  }
+  .at-sidebar {
+    background: #141420 !important;
+    border-left: 1px solid #2e2e45 !important;
+  }
+  .client-card {
+    background: #141420 !important;
+    border: 1px solid #2e2e45 !important;
+    border-radius: 8px !important;
+    margin-bottom: 6px !important;
+  }
+  .client-card:hover {
+    background: #1c1c2a !important;
+    border-color: #3d3d58 !important;
+  }
+  /* Stats bar */
+  .at-stats {
+    background: rgba(0,0,0,.2) !important;
+    border-bottom: 1px solid #2e2e45 !important;
+    padding: 12px 22px !important;
+  }
+  .at-stat {
+    background: #141420 !important;
+    border: 1px solid #2e2e45 !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    text-align: center !important;
+  }
+  .at-stat-val {
+    color: #ede9fe !important;
+    font-family: monospace !important;
+    font-weight: 800 !important;
+  }
+  .at-stat-lbl {
+    color: #5a5678 !important;
+    font-size: 10px !important;
+    text-transform: uppercase !important;
+  }
 
 </style>
 
@@ -891,12 +974,38 @@
 
 <div id="toasts"></div>
 
-<!-- ═══ MODAL ATELIER (wrapper correcto) ═══ -->
-<div id="modal-atelier-shell" class="modal">
-  <div class="m-ov" id="atelier-ov"></div>
-  <div class="m-box" style="width:min(900px,96vw);max-height:92vh;overflow:hidden;padding:0">
-    <div id="atelier-shell-content">
-      <!-- El contenido de atelier-panel.js se moverá aquí -->
+<!-- Atelier modal handled by CSS + atelier-panel.js -->
+
+<!-- ═══ MODAL TABLA DE TALLAS ═══ -->
+<div id="dv6-tallas-modal" style="position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px)">
+  <div style="background:#1c1c2a;border:1px solid #3d3d58;border-radius:12px;width:min(700px,96vw);max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.9)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2e2e45;background:rgba(139,92,246,.06);flex-shrink:0">
+      <div style="font-size:14px;font-weight:800;color:#ede9fe;display:flex;align-items:center;gap:8px">
+        📊 Tabla de tallas estándar (Mujer)
+      </div>
+      <button onclick="document.getElementById('dv6-tallas-modal').style.display='none'" style="background:rgba(255,255,255,.06);border:1px solid #2e2e45;color:#9490b0;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px">✕</button>
+    </div>
+    <div style="overflow-y:auto;padding:16px 20px">
+      <p style="font-size:11px;color:#5a5678;margin-bottom:12px;font-family:monospace">Medidas en centímetros. Haz clic en una talla para cargarla automáticamente.</p>
+      <table id="tallas-table" style="width:100%;border-collapse:collapse;font-size:11px;font-family:monospace">
+        <thead>
+          <tr style="background:rgba(139,92,246,.1)">
+            <th style="padding:8px 10px;text-align:left;color:#a78bfa;border:1px solid #2e2e45">Talla</th>
+            <th style="padding:8px 10px;color:#f59e0b;border:1px solid #2e2e45">Busto</th>
+            <th style="padding:8px 10px;color:#f59e0b;border:1px solid #2e2e45">Cintura</th>
+            <th style="padding:8px 10px;color:#f59e0b;border:1px solid #2e2e45">Cadera</th>
+            <th style="padding:8px 10px;color:#60a5fa;border:1px solid #2e2e45">Hombros</th>
+            <th style="padding:8px 10px;color:#34d399;border:1px solid #2e2e45">T.Esp.</th>
+            <th style="padding:8px 10px;color:#34d399;border:1px solid #2e2e45">Manga</th>
+          </tr>
+        </thead>
+        <tbody id="tallas-body"></tbody>
+      </table>
+      <div style="margin-top:16px;padding:12px;background:rgba(139,92,246,.06);border-radius:8px;border:1px solid rgba(139,92,246,.15)">
+        <p style="font-size:10px;color:#5a5678;font-family:monospace">
+          💡 Estas medidas son referencias estándar internacionales (ISO 8559). Cada cuerpo es diferente — usa las medidas reales de tu clienta para mayor precisión.
+        </p>
+      </div>
     </div>
   </div>
 </div>
@@ -919,13 +1028,16 @@
 <script src="js/patterns/vestido.js"></script>
 <script src="js/pattern-engine.js"></script>
 <script src="js/pdf-export.js"></script>
-<!-- mannequin-3d v14 -->
+<!-- mannequin-3d v15 -->
 <script>
 /**
- * mannequin-3d.js v14 — PatrónAI Pro
- * Mannequin 100% procedural que cambia dimensiones con las medidas.
- * Materiales realistas: piel cálida, specular, sombras suaves.
- * Si existe /Animated%20Woman.glb lo usa para la cabeza solamente.
+ * mannequin-3d.js v15 — PatrónAI Pro
+ * Maniquí hiperrealista con:
+ * - Piel con múltiples capas de color y specular
+ * - Anatomía femenina/masculina detallada
+ * - Líneas de medida estilo CLO con etiquetas flotantes
+ * - Panel de medidas interactivo
+ * - Garment fit ajustado al cuerpo
  */
 'use strict';
 window.PAT = window.PAT || {};
@@ -933,32 +1045,40 @@ window.PAT = window.PAT || {};
 PAT.Mannequin3D = (function () {
 
   let scene, camera, renderer, controls;
-  let bodyGroup, garmentGroup, measureGroup;
+  let bodyGroup, garmentGroup, measureGroup, labelGroup;
   let _canvas=null, _animId=null, _initialized=false;
-  let _currentMeasures={}, _activeMeasureLine=null;
-  let _isWireframe=false, _bodyType='woman', _lastGarment='franela';
-  let _currentRadii=null;
+  let _measures={}, _activeLine=null, _bodyType='woman', _lastGarment='franela';
+  let _radii=null, _isWire=false;
 
   const BT = {
-    woman:{ l:'Mujer',  e:'👩', bM:1.00, wM:0.78, hM:1.00, sM:0.88, nM:0.94, ht:1.00, skin:0xd4956a },
-    man:  { l:'Hombre', e:'👨', bM:1.14, wM:0.95, hM:0.86, sM:1.12, nM:1.08, ht:1.06, skin:0xc07848 },
-    girl: { l:'Niña',   e:'👧', bM:0.58, wM:0.63, hM:0.56, sM:0.60, nM:0.70, ht:0.70, skin:0xdca878 },
-    boy:  { l:'Niño',   e:'👦', bM:0.56, wM:0.61, hM:0.54, sM:0.63, nM:0.68, ht:0.68, skin:0xc88060 },
+    woman:{ l:'Mujer',  e:'👩', bM:1.00, wM:0.78, hM:1.00, sM:0.88, nM:0.94, ht:1.00,
+            skin:0xd4956a, skinD:0xc07848, lip:0xc05858, hair:0x2a1206 },
+    man:  { l:'Hombre', e:'👨', bM:1.14, wM:0.95, hM:0.86, sM:1.12, nM:1.08, ht:1.06,
+            skin:0xc08050, skinD:0xa86030, lip:0xa05840, hair:0x150a02 },
+    girl: { l:'Niña',   e:'👧', bM:0.58, wM:0.63, hM:0.56, sM:0.60, nM:0.70, ht:0.70,
+            skin:0xdcb090, skinD:0xc89070, lip:0xc07070, hair:0x8a4010 },
+    boy:  { l:'Niño',   e:'👦', bM:0.56, wM:0.61, hM:0.54, sM:0.63, nM:0.68, ht:0.68,
+            skin:0xc89472, skinD:0xb07050, lip:0xa06050, hair:0x241004 },
   };
 
   function cmR(c){ return c/(2*Math.PI*100); }
   function L(a,b,t){ return a+(b-a)*Math.min(Math.max(t,0),1); }
 
   // ════════════════════════════════════════════════════════════
-  // LOFT MESH — secciones elípticas
+  // LOFT MESH — secciones elípticas para silueta real
   // ════════════════════════════════════════════════════════════
   function loft(secs, segs, mat, capB, capT){
-    segs=segs||32;
-    const pos=[],idx=[];
+    segs = segs||32;
+    const pos=[], nrm=[], idx=[];
     secs.forEach(s=>{
       for(let i=0;i<=segs;i++){
         const a=i/segs*Math.PI*2;
-        pos.push((s.cx||0)+s.rx*Math.cos(a), s.y, (s.cz||0)+s.rz*Math.sin(a));
+        const ca=Math.cos(a), sa=Math.sin(a);
+        pos.push((s.cx||0)+s.rx*ca, s.y, (s.cz||0)+s.rz*sa);
+        // Normal apuntando hacia afuera (elíptica)
+        const nx=ca/s.rx, nz=sa/s.rz;
+        const nl=Math.hypot(nx,nz)||1;
+        nrm.push(nx/nl, 0, nz/nl);
       }
     });
     for(let s=0;s<secs.length-1;s++){
@@ -969,10 +1089,12 @@ PAT.Mannequin3D = (function () {
     }
     function cap(sec,inv){
       const ci=pos.length/3;
-      pos.push(sec.cx||0, sec.y, sec.cz||0);
+      pos.push(sec.cx||0,sec.y,sec.cz||0);
+      nrm.push(0,inv?-1:1,0);
       for(let i=0;i<=segs;i++){
         const a=i/segs*Math.PI*2;
-        pos.push((sec.cx||0)+sec.rx*Math.cos(a), sec.y, (sec.cz||0)+sec.rz*Math.sin(a));
+        pos.push((sec.cx||0)+sec.rx*Math.cos(a),sec.y,(sec.cz||0)+sec.rz*Math.sin(a));
+        nrm.push(0,inv?-1:1,0);
       }
       for(let i=0;i<segs;i++) inv?idx.push(ci,ci+i+2,ci+i+1):idx.push(ci,ci+i+1,ci+i+2);
     }
@@ -980,14 +1102,14 @@ PAT.Mannequin3D = (function () {
     if(capT) cap(secs[secs.length-1],false);
     const geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-    geo.setIndex(idx); geo.computeVertexNormals();
+    geo.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals(); // suavizar normales
     const m=new THREE.Mesh(geo,mat);
     m.castShadow=true; m.receiveShadow=true;
     return m;
   }
 
-  // ════════════════════════════════════════════════════════════
-  // INIT
   // ════════════════════════════════════════════════════════════
   function init(el){
     if(_initialized||!el)return; _canvas=el;
@@ -1000,23 +1122,23 @@ PAT.Mannequin3D = (function () {
     renderer.setClearColor(0x06060e,1);
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    renderer.physicallyCorrectLights=true;
 
     scene=new THREE.Scene();
-    scene.fog=new THREE.FogExp2(0x06060e,0.06);
+    scene.fog=new THREE.FogExp2(0x06060e,0.055);
 
-    camera=new THREE.PerspectiveCamera(36,W/H,0.01,30);
-    camera.position.set(0,1.0,2.8);
+    camera=new THREE.PerspectiveCamera(34,W/H,0.01,30);
+    camera.position.set(0,1.0,2.9);
 
     controls=new THREE.OrbitControls(camera,renderer.domElement);
-    controls.enableDamping=true; controls.dampingFactor=0.06;
+    controls.enableDamping=true; controls.dampingFactor=0.05;
     controls.minDistance=0.3; controls.maxDistance=7;
-    controls.target.set(0,0.85,0); controls.update();
+    controls.target.set(0,0.88,0); controls.update();
 
     bodyGroup=new THREE.Group();
     garmentGroup=new THREE.Group();
     measureGroup=new THREE.Group();
-    scene.add(bodyGroup,garmentGroup,measureGroup);
+    labelGroup=new THREE.Group();
+    scene.add(bodyGroup,garmentGroup,measureGroup,labelGroup);
 
     _buildScene();
     _injectPanel();
@@ -1025,449 +1147,838 @@ PAT.Mannequin3D = (function () {
   }
 
   // ════════════════════════════════════════════════════════════
-  // ESCENA
+  // ESCENA PROFESIONAL
   // ════════════════════════════════════════════════════════════
   function _buildScene(){
-    // Suelo
-    const floorMat=new THREE.MeshStandardMaterial({color:0x0a0a18,roughness:0.98,metalness:0});
+    // Suelo con reflejo sutil
+    const floorMat=new THREE.MeshStandardMaterial({
+      color:0x0a0a18, roughness:0.95, metalness:0.05
+    });
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,8),floorMat);
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-    scene.add(new THREE.GridHelper(6,30,0x14142a,0x0c0c1e));
+    scene.add(new THREE.GridHelper(6,24,0x16162e,0x0e0e22));
 
-    // Paredes
-    const wm=new THREE.MeshStandardMaterial({color:0x0d0d22,roughness:0.95,side:THREE.FrontSide});
+    // Paredes esquina
+    const wm=new THREE.MeshStandardMaterial({color:0x0d0d22,roughness:0.94,side:THREE.FrontSide});
     const bw=new THREE.Mesh(new THREE.PlaneGeometry(7,4),wm);
     bw.position.set(0,2,-2.5); bw.receiveShadow=true; scene.add(bw);
     const sw=new THREE.Mesh(new THREE.PlaneGeometry(7,4),wm.clone());
     sw.position.set(-2.5,2,0); sw.rotation.y=Math.PI/2; sw.receiveShadow=true; scene.add(sw);
 
-    // Luces — setup cinematográfico
-    scene.add(new THREE.AmbientLight(0xfff0e0,0.35));
+    // ── ILUMINACIÓN ESTUDIO FOTOGRÁFICO ──
+    // Luz ambiental muy suave
+    scene.add(new THREE.AmbientLight(0xfff0e8,0.30));
 
-    // Key light (principal — desde arriba-derecha-frente)
-    const key=new THREE.DirectionalLight(0xfff5e8,1.4);
-    key.position.set(1.2,3.5,2.2); key.castShadow=true;
+    // Key light principal (desde arriba-derecha-frente)
+    const key=new THREE.DirectionalLight(0xfff5ee,1.45);
+    key.position.set(1.2,3.8,2.4); key.castShadow=true;
     key.shadow.mapSize.set(2048,2048);
-    key.shadow.camera.left=-1.5; key.shadow.camera.right=1.5;
-    key.shadow.camera.top=2.5; key.shadow.camera.bottom=-0.5;
-    key.shadow.bias=-0.001; scene.add(key);
+    key.shadow.camera.left=-1.8; key.shadow.camera.right=1.8;
+    key.shadow.camera.top=2.8; key.shadow.camera.bottom=-0.5;
+    key.shadow.bias=-0.0005; key.shadow.normalBias=0.02;
+    scene.add(key);
 
-    // Fill light (relleno — desde izquierda)
-    const fill=new THREE.DirectionalLight(0xc8d8ff,0.50);
-    fill.position.set(-2,1.5,1); scene.add(fill);
+    // Fill light (izquierda, azulado)
+    const fill=new THREE.DirectionalLight(0xa0c0ff,0.42);
+    fill.position.set(-2.5,1.8,1.2); scene.add(fill);
 
-    // Back light (contraluz — desde atrás, color violeta sutil)
-    const back=new THREE.DirectionalLight(0x9966cc,0.40);
-    back.position.set(0.5,2,-2.5); scene.add(back);
+    // Back rim light (contraluz violeta — da profundidad)
+    const rim=new THREE.DirectionalLight(0x9955dd,0.55);
+    rim.position.set(0.8,2.2,-2.8); scene.add(rim);
 
-    // Luz de suelo (rebote)
-    scene.add(new THREE.HemisphereLight(0xfff0d0,0x112233,0.30));
+    // Bajo fill (rebote desde suelo)
+    const bounce=new THREE.DirectionalLight(0xffd8a0,0.18);
+    bounce.position.set(0,-1,0.5); scene.add(bounce);
 
-    // Base metálica del maniquí
-    const bm=new THREE.MeshStandardMaterial({color:0x1a1a32,metalness:0.85,roughness:0.18});
-    const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,0.025,48),bm);
-    disc.position.set(0,0.012,0); disc.receiveShadow=true; scene.add(disc);
-    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.5,14),bm);
-    pole.position.set(0,0.275,0); scene.add(pole);
-    const joint=new THREE.Mesh(new THREE.SphereGeometry(0.022,12,10),bm);
-    joint.position.set(0,0.52,0); scene.add(joint);
+    // Hemisférica (cielo/suelo)
+    scene.add(new THREE.HemisphereLight(0xddeeff,0x221100,0.22));
+
+    // Base metálica
+    const bm=new THREE.MeshStandardMaterial({color:0x1c1c38,metalness:0.90,roughness:0.15,
+      envMapIntensity:0.5});
+    const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,0.025,64),bm);
+    disc.position.set(0,0.012,0); disc.castShadow=true; scene.add(disc);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.013,0.013,0.52,16),bm);
+    pole.position.set(0,0.285,0); scene.add(pole);
+    const joint=new THREE.Mesh(new THREE.SphereGeometry(0.024,14,12),bm);
+    joint.position.set(0,0.53,0); scene.add(joint);
   }
 
   // ════════════════════════════════════════════════════════════
-  // CUERPO — procedural que cambia con las medidas
+  // CUERPO HUMANO HIPERREALISTA
   // ════════════════════════════════════════════════════════════
   function _buildBody(m){
     while(bodyGroup.children.length){
-      const c=bodyGroup.children[0];
-      c.geometry?.dispose(); c.material?.dispose(); bodyGroup.remove(c);
+      const c=bodyGroup.children[0]; c.geometry?.dispose();
+      if(c.material) Array.isArray(c.material)?c.material.forEach(x=>x.dispose()):c.material.dispose();
+      bodyGroup.remove(c);
     }
 
     const bt=BT[_bodyType]||BT.woman;
     const ht=bt.ht;
-    const isF=(_bodyType==='woman'||_bodyType==='girl');
-    const isM=_bodyType==='man';
+    const isF=(_bodyType==='woman'||_bodyType==='girl'), isM=_bodyType==='man';
 
-    // Radios calculados de las medidas ingresadas
-    const rB=cmR(m.bust)*bt.bM;
-    const rW=cmR(m.waist)*bt.wM;
-    const rH=cmR(m.hip)*bt.hM;
-    const rN=cmR(m.neck)*bt.nM;
+    // ── Radios de medidas reales ──
+    const rB=cmR(m.bust)*bt.bM, rW=cmR(m.waist)*bt.wM;
+    const rH=cmR(m.hip)*bt.hM,  rN=cmR(m.neck)*bt.nM;
     const rS=(m.shoulder/100)/2*bt.sM;
 
-    // Alturas estándar
-    const T=1.68*ht;
-    const yAnk=T*.048, yKne=T*.268, yCro=T*.478;
-    const yHip=T*.535, yWai=T*.622, yBus=T*.732;
-    const yArm=T*.758, yShl=T*.820, yNkB=T*.862;
-    const yNkT=T*.900, yHdC=T*.972;
+    // ── Proporciones del cuerpo humano (OMS) ──
+    const T=1.70*ht;
+    const yAnk=T*.046, yKne=T*.265, yCro=T*.475, yHip=T*.530;
+    const yWai=T*.618, yBus=T*.728, yArm=T*.755, yShl=T*.818;
+    const yNkB=T*.858, yNkT=T*.898, yHdC=T*.970;
 
-    // Material de piel — realista con especular
-    const skinCol = bt.skin;
-    const skin = new THREE.MeshStandardMaterial({
-      color: skinCol,
-      roughness: 0.58,
-      metalness: 0.02,
+    // ── MATERIALES REALISTAS ──
+    // Piel principal — cálida con specular real
+    const skin=new THREE.MeshStandardMaterial({
+      color:bt.skin, roughness:0.58, metalness:0.01,
     });
-    const skinDark = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(skinCol).multiplyScalar(0.82),
-      roughness: 0.65, metalness: 0.01,
+    // Piel oscura (zonas interiores, sombras)
+    const skinD=new THREE.MeshStandardMaterial({
+      color:bt.skinD, roughness:0.68, metalness:0.01,
     });
-    const hairCol = {woman:0x2a1206,man:0x150a02,girl:0x8a4a10,boy:0x241004}[_bodyType];
-    const hairMat = new THREE.MeshStandardMaterial({color:hairCol,roughness:0.88,metalness:0.02});
-    const eyeWhiteMat = new THREE.MeshStandardMaterial({color:0xf8f5f0,roughness:0.3});
-    const irisMat = new THREE.MeshStandardMaterial({color:isM?0x1a1208:isF?0x3a2416:0x1a2a40,roughness:0.2});
-    const pupilMat = new THREE.MeshStandardMaterial({color:0x050302,roughness:0.1});
-    const lipMat = new THREE.MeshStandardMaterial({color:isF?0xc06058:0x9a6050,roughness:0.5});
+    // Labios
+    const lipMat=new THREE.MeshStandardMaterial({color:bt.lip, roughness:0.42, metalness:0.0});
+    // Ojos
+    const eyeWhite=new THREE.MeshStandardMaterial({color:0xf5f0ea, roughness:0.15, metalness:0.0});
+    const irisMat =new THREE.MeshStandardMaterial({color:isM?0x1a1206:isF?0x3a2010:0x1a2a40, roughness:0.1});
+    const pupilMat=new THREE.MeshStandardMaterial({color:0x030202, roughness:0.0, metalness:0.1});
+    const scleraMat=new THREE.MeshStandardMaterial({color:0xe8e0d8, roughness:0.2});
+    // Cabello
+    const hairMat=new THREE.MeshStandardMaterial({color:bt.hair, roughness:0.85, metalness:0.04});
+    // Uñas
+    const nailMat=new THREE.MeshStandardMaterial({color:isF?0xd09090:0xc0a080, roughness:0.25, metalness:0.05});
 
-    function addTo(geo,mat,x,y,z,sx,sy,sz){
+    function add(geo,mat,x,y,z,sx,sy,sz,rx,ry,rz){
       const ms=new THREE.Mesh(geo,mat||skin);
       ms.position.set(x||0,y||0,z||0);
       if(sx!==undefined) ms.scale.set(sx,sy||sx,sz||sx);
+      if(rx!==undefined) ms.rotation.set(rx||0,ry||0,rz||0);
       ms.castShadow=true; ms.receiveShadow=true;
       bodyGroup.add(ms); return ms;
     }
 
-    // ── PIERNAS ──
-    const legSep=rH*(isM?.45:.50);
+    // ════════════════════════════════════════
+    // PIERNAS — perfil anatómico real
+    // ════════════════════════════════════════
+    const legSep=rH*(isM?.445:.498);
     [-1,1].forEach(s=>{
       const lx=s*legSep;
-      // Pie
-      const ft=new THREE.Mesh(new THREE.BoxGeometry(rH*.50,yAnk*.72,rH*1.45),skin);
-      ft.position.set(lx,yAnk*.36,rH*.24); ft.castShadow=true; bodyGroup.add(ft);
+
+      // Pie detallado
+      const footGeo=new THREE.BoxGeometry(rH*.50,yAnk*.72,rH*1.48);
+      const foot=new THREE.Mesh(footGeo,skin);
+      foot.position.set(lx,yAnk*.36,rH*.25); foot.castShadow=true; bodyGroup.add(foot);
+      // Talón redondeado
+      add(new THREE.SphereGeometry(rH*.22,14,10),skin,lx,yAnk*.40,-rH*.48,1.0,0.7,1.1);
       // Tobillo
-      addTo(new THREE.SphereGeometry(rH*.228,16,12),null,lx,yAnk*.88);
-      // Pantorrilla
-      const calf=loft([
-        {y:0,           rx:rH*.225,rz:rH*.258},
-        {y:(yKne-yAnk)*.18,rx:rH*.318,rz:rH*.382,cz:rH*.035},
-        {y:(yKne-yAnk)*.42,rx:rH*.332,rz:rH*.398,cz:rH*.042},
-        {y:(yKne-yAnk)*.68,rx:rH*.308,rz:rH*.360,cz:rH*.018},
-        {y:(yKne-yAnk)*.88,rx:rH*.285,rz:rH*.328},
-        {y:(yKne-yAnk),    rx:rH*.298,rz:rH*.318},
-      ],26,skin,true);
+      add(new THREE.SphereGeometry(rH*.225,16,12),skin,lx,yAnk*.86);
+
+      // Pantorrilla — perfil real con vientre muscular
+      const calfSecs=[
+        {y:0,           rx:rH*.220,rz:rH*.252},
+        {y:(yKne-yAnk)*.12,rx:rH*.295,rz:rH*.340,cz:rH*.020},
+        {y:(yKne-yAnk)*.28,rx:rH*.325,rz:rH*.395,cz:rH*.038},  // max pantorrilla
+        {y:(yKne-yAnk)*.50,rx:rH*.318,rz:rH*.380,cz:rH*.030},
+        {y:(yKne-yAnk)*.72,rx:rH*.295,rz:rH*.348,cz:rH*.015},
+        {y:(yKne-yAnk)*.90,rx:rH*.280,rz:rH*.322},
+        {y:(yKne-yAnk),    rx:rH*.298,rz:rH*.315},
+      ];
+      const calf=loft(calfSecs,26,skin,true);
       calf.position.set(lx,yAnk,0); bodyGroup.add(calf);
-      // Rodilla
-      addTo(new THREE.SphereGeometry(rH*.312,16,12),null,lx,yKne);
-      // Muslo
-      const thigh=loft([
-        {y:0,              rx:rH*.308,rz:rH*.328},
-        {y:(yCro-yKne)*.18,rx:rH*.498,rz:rH*.522,cz:rH*.030},
-        {y:(yCro-yKne)*.44,rx:rH*.575,rz:rH*.568,cz:rH*.035},
-        {y:(yCro-yKne)*.68,rx:rH*.552,rz:rH*.542,cz:rH*.020},
-        {y:(yCro-yKne)*.88,rx:rH*.518,rz:rH*.505},
-        {y:(yCro-yKne),    rx:rH*.495,rz:rH*.478},
-      ],28,skin);
+
+      // Rodilla — esferoide aplastado
+      add(new THREE.SphereGeometry(rH*.315,18,14),skin,lx,yKne,0, 1.0,0.88,1.05);
+
+      // Muslo — ancho, protruye adelante, más grueso en zona superior
+      const thighSecs=[
+        {y:0,              rx:rH*.310,rz:rH*.328},
+        {y:(yCro-yKne)*.15,rx:rH*.492,rz:rH*.515,cz:rH*.025},
+        {y:(yCro-yKne)*.38,rx:rH*.572,rz:rH*.568,cz:rH*.032},  // max muslo
+        {y:(yCro-yKne)*.60,rx:rH*.558,rz:rH*.548,cz:rH*.022},
+        {y:(yCro-yKne)*.80,rx:rH*.528,rz:rH*.510,cz:rH*.010},
+        {y:(yCro-yKne),    rx:rH*.498,rz:rH*.475},
+      ];
+      const thigh=loft(thighSecs,28,skin);
       thigh.position.set(lx,yKne,0); bodyGroup.add(thigh);
     });
 
-    // ── PELVIS ── (cadera más ancha que profunda; glúteos atrás)
-    const pelvis=loft([
-      {y:0,              rx:rH*.80,rz:rH*.70,cz:-rH*.06},
-      {y:(yHip-yCro)*.22,rx:rH*.90,rz:rH*.82,cz:-rH*.09},
-      {y:(yHip-yCro)*.50,rx:rH*1.01,rz:rH*.92,cz:-rH*.12},
-      {y:(yHip-yCro)*.72,rx:rH*.99,rz:rH*.89,cz:-rH*.08},
-      {y:(yHip-yCro)*.90,rx:rW*1.04,rz:rW*.94,cz:-rH*.03},
-      {y:(yWai-yCro),    rx:rW,    rz:rW*.90,cz:0},
-    ],42,skin);
+    // ════════════════════════════════════════
+    // PELVIS — cadera con glúteos 3D
+    // ════════════════════════════════════════
+    const pelvSecs=[
+      {y:0,              rx:rH*.788,rz:rH*.695,cz:-rH*.055},
+      {y:(yHip-yCro)*.20,rx:rH*.895,rz:rH*.818,cz:-rH*.085},
+      {y:(yHip-yCro)*.45,rx:rH*1.012,rz:rH*.922,cz:-rH*.115},  // max cadera
+      {y:(yHip-yCro)*.68,rx:rH*.998,rz:rH*.895,cz:-rH*.082},
+      {y:(yHip-yCro)*.85,rx:rW*1.045,rz:rW*.945,cz:-rH*.035},
+      {y:(yWai-yCro),    rx:rW,     rz:rW*.898, cz:0},
+    ];
+    const pelvis=loft(pelvSecs,44,skin);
     pelvis.position.y=yCro; bodyGroup.add(pelvis);
 
-    // ── TORSO ── (la pieza que más cambia con las medidas)
-    const tH=yNkB-yWai;
-    const wRel=(yWai-yWai)/tH, bRel=(yBus-yWai)/tH; // 0 y proporcional
-    const tSecs = isF ? [
-      {y:0,         rx:rW,      rz:rW*.90,  cz:0},          // cintura
-      {y:tH*.10,    rx:rW*1.02, rz:rW*.92,  cz:rB*.02},
-      {y:tH*.22,    rx:rB*.86,  rz:rB*.82,  cz:rB*.05},
-      {y:tH*.38,    rx:rB*.94,  rz:rB*.90,  cz:rB*.10},
-      {y:tH*.52,    rx:rB*1.00, rz:rB*.96,  cz:rB*.15},     // busto MAX — protruye adelante
-      {y:tH*.64,    rx:rB*.97,  rz:rB*.91,  cz:rB*.10},
-      {y:tH*.76,    rx:rB*.91,  rz:rB*.84,  cz:rB*.04},
-      {y:tH*.87,    rx:rS*1.02, rz:rS*.84,  cz:0},
-      {y:tH*.95,    rx:rN*1.40, rz:rN*1.25, cz:0},
-      {y:tH,        rx:rN*1.32, rz:rN*1.18, cz:0},
-    ] : isM ? [
-      {y:0,         rx:rW*1.02, rz:rW*.92,  cz:0},
-      {y:tH*.18,    rx:rW*1.05, rz:rW*.96,  cz:rB*.02},
-      {y:tH*.36,    rx:rB*.94,  rz:rB*.86,  cz:rB*.04},
-      {y:tH*.54,    rx:rB*1.05, rz:rB*.92,  cz:rB*.07},     // pecho masculino
-      {y:tH*.70,    rx:rB*1.04, rz:rB*.88,  cz:rB*.04},
-      {y:tH*.84,    rx:rS*1.10, rz:rS*.90,  cz:0},           // hombros anchos
-      {y:tH*.95,    rx:rN*1.48, rz:rN*1.30, cz:0},
-      {y:tH,        rx:rN*1.40, rz:rN*1.22, cz:0},
-    ] : [
-      {y:0,         rx:rW*.98,  rz:rW*.88,  cz:0},
-      {y:tH*.28,    rx:rB*.90,  rz:rB*.86,  cz:rB*.03},
-      {y:tH*.55,    rx:rB*.96,  rz:rB*.91,  cz:rB*.05},
-      {y:tH*.80,    rx:rS*.98,  rz:rS*.82,  cz:0},
-      {y:tH,        rx:rN*1.35, rz:rN*1.18, cz:0},
-    ];
-    const torso=loft(tSecs,48,skin);
-    torso.position.y=yWai; bodyGroup.add(torso);
-
-    // Busto femenino 3D
-    if(isF && _bodyType==='woman'){
-      [-1,1].forEach(s=>{
-        const b=new THREE.Mesh(new THREE.SphereGeometry(rB*.27,22,18,0,Math.PI*2,0,Math.PI*.72),skin);
-        b.scale.set(.90,.94,1.0);
-        b.position.set(s*rB*.44, yBus+rB*.04, rB*.70);
-        b.rotation.x=-.28; b.castShadow=true; bodyGroup.add(b);
-      });
-    }
-
-    // ── CUELLO ──
-    const neck=loft([
-      {y:0,             rx:rN*1.30,rz:rN*1.14},
-      {y:(yNkT-yNkB)*.38,rx:rN*1.08,rz:rN*.96},
-      {y:(yNkT-yNkB),   rx:rN*.95, rz:rN*.82},
-    ],22,skin,false,true);
-    neck.position.y=yNkB; bodyGroup.add(neck);
-
-    // ── CABEZA ──
-    const hR=rN*2.12;
-    const head=new THREE.Mesh(new THREE.SphereGeometry(hR,40,30),skin);
-    head.scale.set(.88,1.04,.82); head.position.set(0,yHdC,0); head.castShadow=true; bodyGroup.add(head);
-    // Mandíbula
-    const jaw=new THREE.Mesh(new THREE.SphereGeometry(hR*.72,28,18,0,Math.PI*2,Math.PI*.52,Math.PI*.22),skinDark);
-    jaw.scale.set(isM?.90:.84,isM?.52:.46,isM?.80:.74);
-    jaw.position.set(0,yHdC-hR*.10,hR*.05); bodyGroup.add(jaw);
-
-    // Cabello
-    const hairGeo=new THREE.SphereGeometry(hR*1.058,32,22,0,Math.PI*2,0,isM?Math.PI*.43:Math.PI*.54);
-    const hair=new THREE.Mesh(hairGeo,hairMat);
-    hair.scale.set(.88,1.04,.84); hair.position.set(0,yHdC+hR*.04,0); bodyGroup.add(hair);
+    // Glúteos (mujer) — dos esferas traseras
     if(isF){
       [-1,1].forEach(s=>{
-        const st=new THREE.Mesh(new THREE.CylinderGeometry(hR*.23,hR*.10,hR*1.0,14),hairMat);
-        st.position.set(s*hR*.86,yHdC-hR*.24,0); st.rotation.z=s*.09; bodyGroup.add(st);
+        const glt=new THREE.Mesh(new THREE.SphereGeometry(rH*.42,22,18,0,Math.PI*2,0,Math.PI*.68),skin);
+        glt.scale.set(.88,.90,1.0);
+        glt.position.set(s*rH*.38,yCro+(yHip-yCro)*.42,-rH*.60);
+        glt.rotation.x=0.32; glt.castShadow=true; bodyGroup.add(glt);
       });
     }
 
-    // ── OJOS ──
-    const eyeY=yHdC+hR*.08, eyeZ=hR*.80;
+    // ════════════════════════════════════════
+    // TORSO — silueta en S real
+    // ════════════════════════════════════════
+    const tH=yNkB-yWai;
+    const wR=(yWai-yWai)/tH, bR=(yBus-yWai)/tH;
+
+    const torsoSecs = isF ? [
+      {y:0,        rx:rW,      rz:rW*.895, cz:0},          // cintura
+      {y:tH*.08,   rx:rW*1.02, rz:rW*.915, cz:rB*.018},
+      {y:tH*.20,   rx:rB*.862, rz:rB*.828, cz:rB*.048},
+      {y:tH*.35,   rx:rB*.938, rz:rB*.898, cz:rB*.098},
+      {y:tH*.50,   rx:rB*1.00, rz:rB*.958, cz:rB*.148},   // MAX busto — adelante
+      {y:tH*.62,   rx:rB*.975, rz:rB*.915, cz:rB*.108},
+      {y:tH*.74,   rx:rB*.918, rz:rB*.848, cz:rB*.048},
+      {y:tH*.86,   rx:rS*1.025,rz:rS*.845, cz:0},
+      {y:tH*.95,   rx:rN*1.40, rz:rN*1.24, cz:0},
+      {y:tH,       rx:rN*1.32, rz:rN*1.18, cz:0},
+    ] : isM ? [
+      {y:0,        rx:rW*1.02, rz:rW*.922, cz:0},
+      {y:tH*.18,   rx:rW*1.05, rz:rW*.958, cz:rB*.022},
+      {y:tH*.35,   rx:rB*.945, rz:rB*.862, cz:rB*.042},
+      {y:tH*.52,   rx:rB*1.052,rz:rB*.922, cz:rB*.068},   // pecho masculino
+      {y:tH*.68,   rx:rB*1.038,rz:rB*.888, cz:rB*.042},
+      {y:tH*.84,   rx:rS*1.108,rz:rS*.888, cz:0},          // hombros anchos
+      {y:tH*.95,   rx:rN*1.48, rz:rN*1.30, cz:0},
+      {y:tH,       rx:rN*1.40, rz:rN*1.22, cz:0},
+    ] : [
+      {y:0,        rx:rW*.982, rz:rW*.882, cz:0},
+      {y:tH*.28,   rx:rB*.905, rz:rB*.862, cz:rB*.032},
+      {y:tH*.55,   rx:rB*.962, rz:rB*.912, cz:rB*.052},
+      {y:tH*.80,   rx:rS*.985, rz:rS*.825, cz:0},
+      {y:tH,       rx:rN*1.352,rz:rN*1.182,cz:0},
+    ];
+
+    const torso=loft(torsoSecs,52,skin);
+    torso.position.y=yWai; bodyGroup.add(torso);
+
+    // Busto femenino 3D — detallado
+    if(isF && _bodyType==='woman'){
+      [-1,1].forEach(s=>{
+        const bst=new THREE.Mesh(new THREE.SphereGeometry(rB*.275,24,20,0,Math.PI*2,0,Math.PI*.72),skin);
+        bst.scale.set(.90,.955,1.02);
+        bst.position.set(s*rB*.440, yBus+rB*.038, rB*.705);
+        bst.rotation.x=-0.275; bst.castShadow=true; bodyGroup.add(bst);
+        // Pezón (muy sutil)
+        const nip=new THREE.Mesh(new THREE.SphereGeometry(rB*.025,8,6),skinD);
+        nip.position.set(s*rB*.460, yBus+rB*.065, rB*.965);
+        bodyGroup.add(nip);
+      });
+    }
+
+    // Pectorales masculinos
+    if(isM){
+      [-1,1].forEach(s=>{
+        const pct=new THREE.Mesh(new THREE.SphereGeometry(rB*.225,18,14,0,Math.PI*2,0,Math.PI*.62),skin);
+        pct.scale.set(1.08,.82,.92);
+        pct.position.set(s*rB*.418,yBus+0.018,rB*.635);
+        pct.rotation.x=-0.22; bodyGroup.add(pct);
+      });
+    }
+
+    // ════════════════════════════════════════
+    // CUELLO
+    // ════════════════════════════════════════
+    const neckSecs=[
+      {y:0,             rx:rN*1.30,rz:rN*1.15},
+      {y:(yNkT-yNkB)*.35,rx:rN*1.10,rz:rN*.97},
+      {y:(yNkT-yNkB)*.70,rx:rN*.98, rz:rN*.86},
+      {y:(yNkT-yNkB),   rx:rN*.94, rz:rN*.82},
+    ];
+    const neck=loft(neckSecs,24,skin,false,false);
+    neck.position.y=yNkB; bodyGroup.add(neck);
+
+    // Nuez de Adán (hombre)
+    if(isM){
+      const adam=new THREE.Mesh(new THREE.SphereGeometry(rN*.15,10,8),skinD);
+      adam.scale.set(0.5,0.6,0.4);
+      adam.position.set(0,yNkB+(yNkT-yNkB)*.35,rN*.88); bodyGroup.add(adam);
+    }
+
+    // ════════════════════════════════════════
+    // CABEZA — forma real del cráneo humano
+    // ════════════════════════════════════════
+    const hR=rN*2.12;
+
+    // Cráneo (esferoide más largo que ancho)
+    const head=new THREE.Mesh(new THREE.SphereGeometry(hR,44,32),skin);
+    head.scale.set(0.885,1.05,0.838);
+    head.position.set(0,yHdC,0); head.castShadow=true; bodyGroup.add(head);
+
+    // Mejillas (cheekbones) — sutiles
     [-1,1].forEach(s=>{
-      const ex=s*hR*.30;
-      // Blanco
-      const ew=new THREE.Mesh(new THREE.SphereGeometry(hR*.082,14,10),eyeWhiteMat);
-      ew.scale.set(1.08,.75,.52); ew.position.set(ex,eyeY,eyeZ); bodyGroup.add(ew);
+      const chk=new THREE.Mesh(new THREE.SphereGeometry(hR*.32,12,10),skin);
+      chk.scale.set(0.8,0.55,0.5);
+      chk.position.set(s*hR*.68,yHdC-hR*.12,hR*.55); bodyGroup.add(chk);
+    });
+
+    // Frente
+    const forehead=new THREE.Mesh(new THREE.SphereGeometry(hR*.88,20,14,0,Math.PI*2,0,Math.PI*.38),skin);
+    forehead.scale.set(.92,1,0.85);
+    forehead.position.set(0,yHdC+hR*.18,hR*.18); bodyGroup.add(forehead);
+
+    // Mandíbula
+    const jaw=new THREE.Mesh(new THREE.SphereGeometry(hR*.72,28,18,0,Math.PI*2,Math.PI*.52,Math.PI*.22),skinD);
+    jaw.scale.set(isM?.898:.845,isM?.520:.468,isM?.808:.748);
+    jaw.position.set(0,yHdC-hR*.105,hR*.055); bodyGroup.add(jaw);
+
+    // ── CABELLO detallado ──
+    const hairH=isM?Math.PI*.40:Math.PI*.53;
+    const hair=new THREE.Mesh(new THREE.SphereGeometry(hR*1.062,32,24,0,Math.PI*2,0,hairH),hairMat);
+    hair.scale.set(0.885,1.04,0.840);
+    hair.position.set(0,yHdC+hR*.045,0); bodyGroup.add(hair);
+
+    if(isF){
+      // Cabello lateral (volumen)
+      [-1,1].forEach(s=>{
+        const side=new THREE.Mesh(new THREE.SphereGeometry(hR*.32,14,10),hairMat);
+        side.scale.set(0.6,1.2,0.7);
+        side.position.set(s*hR*.88,yHdC-hR*.18,hR*.0); bodyGroup.add(side);
+        // Mechón que cae
+        const fall=new THREE.Mesh(new THREE.CylinderGeometry(hR*.18,hR*.08,hR*1.1,12),hairMat);
+        fall.position.set(s*hR*.88,yHdC-hR*.28-hR*.55,0);
+        fall.rotation.z=s*.08; bodyGroup.add(fall);
+      });
+      // Flequillo
+      const bang=new THREE.Mesh(new THREE.SphereGeometry(hR*.72,18,12,0,Math.PI*2,0,Math.PI*.28),hairMat);
+      bang.scale.set(.92,0.45,0.68);
+      bang.position.set(0,yHdC+hR*.02,hR*.62); bodyGroup.add(bang);
+    } else if(isM){
+      // Línea de barba/sombra
+      const beard=new THREE.Mesh(new THREE.SphereGeometry(hR*.72,20,14,0,Math.PI*2,Math.PI*.60,Math.PI*.18),
+        new THREE.MeshStandardMaterial({color:new THREE.Color(bt.hair).multiplyScalar(1.8),roughness:.90}));
+      beard.scale.set(.90,.42,.82);
+      beard.position.set(0,yHdC-hR*.18,hR*.04); bodyGroup.add(beard);
+    }
+
+    // ── OJOS REALISTAS ──
+    const eyeY=yHdC+hR*.078, eyeZ=hR*.790;
+    [-1,1].forEach(s=>{
+      const ex=s*hR*.302;
+
+      // Esclerótica (blanco del ojo)
+      const sc=new THREE.Mesh(new THREE.SphereGeometry(hR*.088,16,12),eyeWhite);
+      sc.scale.set(1.10,0.77,0.55); sc.position.set(ex,eyeY,eyeZ); bodyGroup.add(sc);
+
       // Iris
-      const ir=new THREE.Mesh(new THREE.CircleGeometry(hR*.060,12),irisMat);
-      ir.position.set(ex,eyeY,eyeZ+hR*.014); bodyGroup.add(ir);
+      const ir=new THREE.Mesh(new THREE.CircleGeometry(hR*.062,14),irisMat);
+      ir.position.set(ex,eyeY,eyeZ+hR*.016); bodyGroup.add(ir);
+
       // Pupila
-      const pu=new THREE.Mesh(new THREE.CircleGeometry(hR*.030,10),pupilMat);
-      pu.position.set(ex,eyeY,eyeZ+hR*.016); bodyGroup.add(pu);
+      const pu=new THREE.Mesh(new THREE.CircleGeometry(hR*.030,12),pupilMat);
+      pu.position.set(ex,eyeY,eyeZ+hR*.018); bodyGroup.add(pu);
+
+      // Reflejo en el ojo (punto brillante)
+      const refl=new THREE.Mesh(new THREE.CircleGeometry(hR*.008,8),
+        new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.8}));
+      refl.position.set(ex+hR*.018,eyeY+hR*.022,eyeZ+hR*.020); bodyGroup.add(refl);
+
+      // Párpado superior
+      const lidMat=new THREE.MeshStandardMaterial({color:new THREE.Color(bt.skin).multiplyScalar(.88),roughness:.72});
+      const lid=new THREE.Mesh(new THREE.SphereGeometry(hR*.095,16,10,0,Math.PI*2,0,Math.PI*.28),lidMat);
+      lid.scale.set(1.12,0.48,0.60);
+      lid.position.set(ex,eyeY+hR*.048,eyeZ-hR*.012); lid.rotation.x=0.12; bodyGroup.add(lid);
+
       // Ceja
-      const brow=new THREE.Mesh(new THREE.BoxGeometry(hR*.20,hR*.025,hR*.032),hairMat);
-      brow.position.set(ex,eyeY+hR*.155,eyeZ+hR*.016); brow.rotation.z=s*.07; bodyGroup.add(brow);
+      const browCol=new THREE.Color(bt.hair).multiplyScalar(1.5);
+      const brow=new THREE.Mesh(new THREE.BoxGeometry(hR*.195,hR*.024,hR*.030),
+        new THREE.MeshStandardMaterial({color:browCol,roughness:.88}));
+      brow.position.set(ex,eyeY+hR*.160,eyeZ+hR*.018);
+      brow.rotation.z=s*(isF?.04:.06); bodyGroup.add(brow);
     });
 
-    // Nariz
-    const noseMat=new THREE.MeshStandardMaterial({color:new THREE.Color(skinCol).multiplyScalar(.92),roughness:.65});
-    const nose=new THREE.Mesh(new THREE.SphereGeometry(hR*.080,12,10),noseMat);
-    nose.scale.set(.64,.52,1.12); nose.position.set(0,yHdC-hR*.10,eyeZ+hR*.14); bodyGroup.add(nose);
-
-    // Labios
-    [{dy:.27,sy:.42},{dy:.33,sy:.38}].forEach((l,i)=>{
-      const lb=new THREE.Mesh(new THREE.SphereGeometry(hR*.110,12,8,0,Math.PI),lipMat);
-      lb.scale.set(isM?1.0:1.14,l.sy,.58);
-      lb.position.set(0,yHdC-hR*l.dy,eyeZ+hR*.07); bodyGroup.add(lb);
-    });
-
-    // Orejas
-    const earMat=new THREE.MeshStandardMaterial({color:new THREE.Color(skinCol).multiplyScalar(.90),roughness:.68});
+    // ── NARIZ ──
+    const noseMat=new THREE.MeshStandardMaterial({color:new THREE.Color(bt.skin).multiplyScalar(.91),roughness:.66});
+    const nose=new THREE.Mesh(new THREE.SphereGeometry(hR*.088,14,10),noseMat);
+    nose.scale.set(isM?.72:.62,isM?.56:.52,1.18);
+    nose.position.set(0,yHdC-hR*.110,eyeZ+hR*.148); bodyGroup.add(nose);
+    // Fosas nasales
     [-1,1].forEach(s=>{
-      const e=new THREE.Mesh(new THREE.SphereGeometry(hR*.135,12,10),earMat);
-      e.scale.set(.44,.66,.32); e.position.set(s*hR*.87,yHdC-hR*.05,0); bodyGroup.add(e);
+      const nost=new THREE.Mesh(new THREE.SphereGeometry(hR*.030,8,6),noseMat);
+      nost.scale.set(0.8,0.5,0.6);
+      nost.position.set(s*hR*.048,yHdC-hR*.148,eyeZ+hR*.118); bodyGroup.add(nost);
     });
 
-    // ── HOMBROS ──
-    [-1,1].forEach(s=>{
-      const shR=rB*(isM?.195:.170);
-      const sh=new THREE.Mesh(new THREE.SphereGeometry(shR,18,14),skin);
-      sh.scale.set(1.0,.80,.86); sh.position.set(s*rS*1.02,yShl,0); sh.castShadow=true; bodyGroup.add(sh);
+    // ── LABIOS ──
+    [{dy:.272,sy:isF?.44:.38,sx:isF?1.18:1.02},{dy:.332,sy:isF?.40:.36,sx:isF?1.05:.98}].forEach((l,i)=>{
+      const lb=new THREE.Mesh(new THREE.SphereGeometry(hR*.115,14,10,0,Math.PI),lipMat);
+      lb.scale.set(l.sx,l.sy,.60);
+      lb.position.set(0,yHdC-hR*l.dy,eyeZ+hR*.072); bodyGroup.add(lb);
     });
 
-    // ── BRAZOS ──
-    const aT=rB*(isM?.312:.260), aM=rB*(isM?.292:.238);
-    const aF=rB*(isM?.268:.212), aW=rB*(isM?.202:.178);
-    const uAH=(yShl-yArm)*.94, fAH=uAH*.90, ang=isM?.22:.28;
+    // ── OREJAS ──
+    const earMat=new THREE.MeshStandardMaterial({color:new THREE.Color(bt.skin).multiplyScalar(.90),roughness:.70});
     [-1,1].forEach(s=>{
-      const ax=s*rS, elbX=ax+s*Math.sin(ang)*uAH, elbY=yShl-Math.cos(ang)*uAH;
-      // Brazo superior
-      const ua=loft([
-        {y:0,       rx:aT,      rz:aT},
-        {y:uAH*.28, rx:aM*1.08, rz:aM*1.06, cz:isM?aM*.04:aM*.02},
-        {y:uAH*.55, rx:aM*1.04, rz:aM*.98},
-        {y:uAH*.80, rx:aF*1.04, rz:aF*.98},
-        {y:uAH,     rx:aF,      rz:aF*.92},
-      ],16,skin);
+      const ear=new THREE.Mesh(new THREE.SphereGeometry(hR*.138,14,10),earMat);
+      ear.scale.set(.44,.68,.34); ear.position.set(s*hR*.875,yHdC-hR*.048,0); bodyGroup.add(ear);
+      // Lóbulo
+      const lob=new THREE.Mesh(new THREE.SphereGeometry(hR*.065,10,8),earMat);
+      lob.position.set(s*hR*.870,yHdC-hR*.195,hR*.015); bodyGroup.add(lob);
+    });
+
+    // ════════════════════════════════════════
+    // HOMBROS
+    // ════════════════════════════════════════
+    [-1,1].forEach(s=>{
+      const shR=rB*(isM?.198:.172);
+      const sh=new THREE.Mesh(new THREE.SphereGeometry(shR,20,16),skin);
+      sh.scale.set(1.02,.82,.88); sh.position.set(s*rS*1.022,yShl,0); bodyGroup.add(sh);
+    });
+
+    // ════════════════════════════════════════
+    // BRAZOS — anatomía muscular real
+    // ════════════════════════════════════════
+    const aT=rB*(isM?.315:.262), aM=rB*(isM?.295:.240);
+    const aF=rB*(isM?.270:.215), aW=rB*(isM?.202:.178);
+    const uAH=(yShl-yArm)*.95, fAH=uAH*.92, ang=isM?.22:.28;
+
+    [-1,1].forEach(s=>{
+      const ax=s*rS;
+      const elbX=ax+s*Math.sin(ang)*uAH, elbY=yShl-Math.cos(ang)*uAH;
+
+      // Brazo superior con bícep prominente
+      const uaSecs=[
+        {y:0,       rx:aT,        rz:aT},
+        {y:uAH*.26, rx:aM*1.092,  rz:aM*1.068, cz:isM?aM*.045:aM*.022},
+        {y:uAH*.50, rx:aM*1.060,  rz:aM*.982},
+        {y:uAH*.76, rx:aF*1.048,  rz:aF*.985},
+        {y:uAH,     rx:aF,        rz:aF*.938},
+      ];
+      const ua=loft(uaSecs,18,skin);
       ua.position.set(ax+s*Math.sin(ang)*uAH*.5, yShl-Math.cos(ang)*uAH*.5, 0);
       ua.rotation.z=s*ang; bodyGroup.add(ua);
+
       // Codo
-      addTo(new THREE.SphereGeometry(aF*1.0,14,10),null,elbX,elbY);
+      add(new THREE.SphereGeometry(aF*1.02,16,12),skinD,elbX,elbY,0, 1.0,0.88,1.08);
+
       // Antebrazo
-      const fa=s*.12;
-      const far_=loft([
-        {y:0,       rx:aF*.95, rz:aF*.90},
-        {y:fAH*.28, rx:aF*1.04,rz:aF*.98},
-        {y:fAH*.62, rx:aF*.90, rz:aF*.86},
-        {y:fAH*.88, rx:aW*1.18,rz:aW*1.10},
-        {y:fAH,     rx:aW,     rz:aW*.88},
-      ],14,skin);
-      far_.position.set(elbX+s*Math.sin(Math.abs(fa))*fAH*.5, elbY-Math.cos(fa)*fAH*.5, 0);
-      far_.rotation.z=fa; bodyGroup.add(far_);
-      // Mano
+      const fa=s*.125;
+      const faSecs=[
+        {y:0,       rx:aF*.955, rz:aF*.912},
+        {y:fAH*.26, rx:aF*1.048,rz:aF*.998},
+        {y:fAH*.55, rx:aF*.908, rz:aF*.868},
+        {y:fAH*.82, rx:aW*1.195,rz:aW*1.108},
+        {y:fAH,     rx:aW,      rz:aW*.885},
+      ];
+      const fa_=loft(faSecs,16,skin);
+      fa_.position.set(elbX+s*Math.sin(Math.abs(fa))*fAH*.5, elbY-Math.cos(fa)*fAH*.5, 0);
+      fa_.rotation.z=fa; bodyGroup.add(fa_);
+
+      // Muñeca + Mano
       const hx=elbX+s*Math.sin(Math.abs(fa))*fAH, hy=elbY-fAH;
-      const hand=new THREE.Mesh(new THREE.SphereGeometry(aW*1.18,14,10),skin);
-      hand.scale.set(1.12,.60,1.32); hand.position.set(hx,hy,0); bodyGroup.add(hand);
-      // Dedos
+      const hand=new THREE.Mesh(new THREE.SphereGeometry(aW*1.22,16,12),skin);
+      hand.scale.set(1.14,.618,1.35); hand.position.set(hx,hy,0); bodyGroup.add(hand);
+
+      // Dedos (4 + pulgar)
+      const fingerLens=[.68,.72,.65,.55];
       for(let f=0;f<4;f++){
-        const fo=(f-1.5)*aW*.40, fl=aW*(f===1||f===2?.72:.58);
-        const fin=new THREE.Mesh(new THREE.CylinderGeometry(aW*.10,aW*.11,fl,8),skin);
-        fin.position.set(hx+fo, hy-aW*.36-fl*.5, aW*.14); bodyGroup.add(fin);
+        const fo=(f-1.5)*aW*.415;
+        const fl=aW*fingerLens[f];
+        // Segmento 1
+        const f1=new THREE.Mesh(new THREE.CylinderGeometry(aW*.10,aW*.115,fl*.5,8),skin);
+        f1.position.set(hx+fo,hy-aW*.32-fl*.25,aW*.145); bodyGroup.add(f1);
+        // Segmento 2
+        const f2=new THREE.Mesh(new THREE.CylinderGeometry(aW*.088,aW*.10,fl*.45,8),skin);
+        f2.position.set(hx+fo,hy-aW*.32-fl*.5-fl*.225,aW*.12); bodyGroup.add(f2);
+        // Uña
+        const nail=new THREE.Mesh(new THREE.BoxGeometry(aW*.095,aW*.022,aW*.12),nailMat);
+        nail.position.set(hx+fo,hy-aW*.32-fl*.5-fl*.45,aW*.10); bodyGroup.add(nail);
       }
       // Pulgar
-      const th=new THREE.Mesh(new THREE.CylinderGeometry(aW*.10,aW*.12,aW*.52,8),skin);
-      th.position.set(hx+s*aW*.60, hy-aW*.22, 0); th.rotation.z=s*.58; th.rotation.x=.34; bodyGroup.add(th);
+      const th=new THREE.Mesh(new THREE.CylinderGeometry(aW*.105,aW*.12,aW*.52,8),skin);
+      th.position.set(hx+s*aW*.615,hy-aW*.225,aW*.025);
+      th.rotation.z=s*.58; th.rotation.x=.36; bodyGroup.add(th);
     });
 
-    return {
-      rBust:rB, rWaist:rW, rHip:rH, rNeck:rN, rShoulder:rS,
-      h:{ bust:yBus, waist:yWai, hip:yHip, shoulder:yShl,
-          neckBase:yNkB, crotch:yCro, underbust:yBus-rB*.10, armpit:yArm }
-    };
+    return{rBust:rB,rWaist:rW,rHip:rH,rNeck:rN,rShoulder:rS,
+      h:{bust:yBus,waist:yWai,hip:yHip,shoulder:yShl,neckBase:yNkB,crotch:yCro,underbust:yBus-rB*.1,armpit:yArm}};
   }
 
   // ════════════════════════════════════════════════════════════
-  // PRENDA
+  // PRENDA — ajustada con facilidad real
   // ════════════════════════════════════════════════════════════
   function _buildGarment(gt,r,m){
     while(garmentGroup.children.length){
       const c=garmentGroup.children[0]; c.geometry?.dispose(); c.material?.dispose(); garmentGroup.remove(c);
     }
     const{rBust:rB,rWaist:rW,rHip:rH,rNeck:rN,rShoulder:rS,h}=r;
-    const E=0.012, isF=(_bodyType==='woman'||_bodyType==='girl');
+    const E=0.013, isF=(_bodyType==='woman'||_bodyType==='girl');
     const gc={franela:0x6d28d9,blusa:0x9333ea,camisa:0x1d4ed8,falda:0xbe185d,vestido:0x7c3aed};
     const gm=new THREE.MeshStandardMaterial({
-      color:gc[gt]||0x6d28d9, roughness:.48, metalness:.05,
-      transparent:true, opacity:.88, side:THREE.DoubleSide, wireframe:_isWireframe
+      color:gc[gt]||0x6d28d9, roughness:.48, metalness:.06,
+      transparent:true, opacity:.88, side:THREE.DoubleSide, wireframe:_isWire
     });
     const ht2=BT[_bodyType].ht, skL=m.skirtLength/100*ht2, sL=m.sleeveLength/100*ht2;
     const tH=h.neckBase-h.crotch, wRel=(h.waist-h.crotch)/tH, bRel=(h.bust-h.crotch)/tH;
 
     function torso(){
       const s=isF?[
-        {y:0,             rx:rH*1.01+E,rz:rH*.90+E,cz:-rH*.06},
-        {y:tH*.08,        rx:rH*.98+E, rz:rH*.87+E,cz:-rH*.04},
-        {y:tH*(wRel-.05), rx:rW*1.08+E,rz:rW*.96+E,cz:-rH*.01},
-        {y:tH*wRel,       rx:rW*1.02+E,rz:rW*.92+E,cz:0},
-        {y:tH*(wRel+.06), rx:rW*1.06+E,rz:rW*.96+E,cz:rB*.03},
-        {y:tH*(bRel-.12), rx:rB*.92+E, rz:rB*.88+E,cz:rB*.07},
-        {y:tH*(bRel-.04), rx:rB*.99+E, rz:rB*.93+E,cz:rB*.12},
-        {y:tH*bRel,       rx:rB*1.02+E,rz:rB*.96+E,cz:rB*.15},
-        {y:tH*(bRel+.06), rx:rB*.98+E, rz:rB*.90+E,cz:rB*.09},
-        {y:tH*.90,        rx:rS*1.02+E,rz:rS*.86+E,cz:0},
-        {y:tH,            rx:rN*1.42+E,rz:rN*1.25+E,cz:0},
+        {y:0,            rx:rH*1.012+E,rz:rH*.902+E,cz:-rH*.062},
+        {y:tH*.08,       rx:rH*.982+E, rz:rH*.872+E,cz:-rH*.042},
+        {y:tH*(wRel-.05),rx:rW*1.082+E,rz:rW*.962+E,cz:-rH*.012},
+        {y:tH*wRel,      rx:rW*1.022+E,rz:rW*.922+E,cz:0},
+        {y:tH*(wRel+.06),rx:rW*1.062+E,rz:rW*.962+E,cz:rB*.032},
+        {y:tH*(bRel-.12),rx:rB*.922+E, rz:rB*.882+E,cz:rB*.072},
+        {y:tH*(bRel-.04),rx:rB*.992+E, rz:rB*.932+E,cz:rB*.122},
+        {y:tH*bRel,      rx:rB*1.022+E,rz:rB*.962+E,cz:rB*.152},
+        {y:tH*(bRel+.06),rx:rB*.982+E, rz:rB*.902+E,cz:rB*.092},
+        {y:tH*.90,       rx:rS*1.022+E,rz:rS*.862+E,cz:0},
+        {y:tH,           rx:rN*1.422+E,rz:rN*1.252+E,cz:0},
       ]:[
-        {y:0,             rx:rH*1.00+E,rz:rH*.90+E,cz:-rH*.04},
-        {y:tH*.12,        rx:rH*.95+E, rz:rH*.88+E},
-        {y:tH*wRel,       rx:rW*1.05+E,rz:rW*.95+E},
-        {y:tH*(wRel+.10), rx:rW*1.08+E,rz:rW*.98+E,cz:rB*.03},
-        {y:tH*(bRel-.08), rx:rB*.98+E, rz:rB*.90+E,cz:rB*.06},
-        {y:tH*bRel,       rx:rB*1.04+E,rz:rB*.92+E,cz:rB*.07},
-        {y:tH*.90,        rx:rS*1.08+E,rz:rS*.88+E,cz:0},
-        {y:tH,            rx:rN*1.46+E,rz:rN*1.28+E,cz:0},
+        {y:0,            rx:rH*1.002+E,rz:rH*.902+E,cz:-rH*.042},
+        {y:tH*.12,       rx:rH*.952+E, rz:rH*.882+E},
+        {y:tH*wRel,      rx:rW*1.052+E,rz:rW*.952+E},
+        {y:tH*(wRel+.10),rx:rW*1.082+E,rz:rW*.982+E,cz:rB*.032},
+        {y:tH*(bRel-.08),rx:rB*.982+E, rz:rB*.902+E,cz:rB*.062},
+        {y:tH*bRel,      rx:rB*1.042+E,rz:rB*.922+E,cz:rB*.072},
+        {y:tH*.90,       rx:rS*1.082+E,rz:rS*.882+E,cz:0},
+        {y:tH,           rx:rN*1.462+E,rz:rN*1.282+E,cz:0},
       ];
-      const mg=loft(s,48,gm); mg.position.y=h.crotch; garmentGroup.add(mg);
+      const mg=loft(s,52,gm); mg.position.y=h.crotch; garmentGroup.add(mg);
     }
     function sleeve(long_){
-      const len=long_?sL:(h.shoulder-h.armpit)*.65, ang=.27;
+      const len=long_?sL:(h.shoulder-h.armpit)*.66, ang=.275;
       [-1,1].forEach(s=>{
         const sec=long_?[
-          {y:0,    rx:rB*.50+E,rz:rB*.46+E},{y:len*.40,rx:rB*.34+E,rz:rB*.32+E},
-          {y:len*.76,rx:rB*.25+E,rz:rB*.24+E},{y:len,rx:rB*.20+E,rz:rB*.19+E},
-        ]:[{y:0,rx:rB*.50+E,rz:rB*.46+E},{y:len,rx:rB*.23+E,rz:rB*.22+E}];
-        const mg=loft(sec,18,gm);
-        mg.position.set(s*(rS+rB*.10+Math.sin(ang)*len*.5),h.shoulder-Math.cos(ang)*len*.5,0);
+          {y:0,    rx:rB*.502+E,rz:rB*.462+E},
+          {y:len*.40,rx:rB*.342+E,rz:rB*.322+E},
+          {y:len*.76,rx:rB*.252+E,rz:rB*.242+E},
+          {y:len,  rx:rB*.202+E,rz:rB*.192+E},
+        ]:[{y:0,rx:rB*.502+E,rz:rB*.462+E},{y:len,rx:rB*.232+E,rz:rB*.222+E}];
+        const mg=loft(sec,20,gm);
+        mg.position.set(s*(rS+rB*.102+Math.sin(ang)*len*.5),h.shoulder-Math.cos(ang)*len*.5,0);
         mg.rotation.z=s*ang; garmentGroup.add(mg);
       });
     }
     function skirt(yBase){
-      const sec=[{y:0,rx:rW+E,rz:(rW+E)*.90}];
-      for(let i=1;i<=20;i++){
-        const t=i/20, r2=L(rW+E,rH+E*.8,Math.min(t*2.5,1));
-        sec.push({y:-t*skL,rx:r2,rz:r2*.94,cz:-(r2-rW)*.05});
-      }
-      const mg=loft(sec,44,gm); mg.position.y=yBase; garmentGroup.add(mg);
+      const sec=[{y:0,rx:rW+E,rz:(rW+E)*.902}];
+      for(let i=1;i<=22;i++){const t=i/22;const r2=L(rW+E,rH+E*.8,Math.min(t*2.5,1));sec.push({y:-t*skL,rx:r2,rz:r2*.942,cz:-(r2-rW)*.052});}
+      const mg=loft(sec,48,gm); mg.position.y=yBase; garmentGroup.add(mg);
     }
-
     switch(gt){
       case'franela':case'blusa':torso();sleeve(false);break;
-      case'camisa':
-        torso();sleeve(true);
-        const col=new THREE.Mesh(new THREE.CylinderGeometry(rN+E*.3,rN+E*.35,.04,24,1,true),gm);
-        col.position.set(0,h.neckBase+.02,0); garmentGroup.add(col);
-        break;
+      case'camisa':torso();sleeve(true);
+        const col=new THREE.Mesh(new THREE.CylinderGeometry(rN+E*.32,rN+E*.38,.042,26,1,true),gm);
+        col.position.set(0,h.neckBase+.022,0); garmentGroup.add(col); break;
       case'falda':skirt(h.waist);break;
       case'vestido':torso();skirt(h.crotch);break;
     }
   }
 
   // ════════════════════════════════════════════════════════════
-  // LÍNEAS DE MEDIDA
+  // LÍNEAS DE MEDIDA — estilo CLO 3D con etiquetas
   // ════════════════════════════════════════════════════════════
-  function _buildML(m,r){
-    while(measureGroup.children.length){
-      const c=measureGroup.children[0]; c.geometry?.dispose(); c.material?.dispose(); measureGroup.remove(c);
-    }
+  function _buildMeasureLines(m,r){
+    while(measureGroup.children.length){const c=measureGroup.children[0];c.geometry?.dispose();c.material?.dispose();measureGroup.remove(c);}
+    while(labelGroup.children.length){const c=labelGroup.children[0];labelGroup.remove(c);}
+
     const{rBust:rB,rWaist:rW,rHip:rH,rShoulder:rS,h}=r;
-    [{k:'bust',y:h.bust,r:rB,c:0xf59e0b},{k:'waist',y:h.waist,r:rW,c:0xf59e0b},
-     {k:'hip',y:h.hip,r:rH,c:0xf59e0b},{k:'shoulder',y:h.shoulder,r:rS,c:0x60a5fa}].forEach(l=>{
-      const isA=l.k===_activeMeasureLine;
+    const lines=[
+      {k:'bust',    y:h.bust,    r:rB,  c:0xf59e0b, l:'Busto',   v:m.bust},
+      {k:'waist',   y:h.waist,   r:rW,  c:0xf59e0b, l:'Cintura', v:m.waist},
+      {k:'hip',     y:h.hip,     r:rH,  c:0xf59e0b, l:'Cadera',  v:m.hip},
+      {k:'shoulder',y:h.shoulder,r:rS,  c:0x60a5fa, l:'Hombros', v:m.shoulder},
+    ];
+
+    lines.forEach(ln=>{
+      const isA=ln.k===_activeLine;
+      const col=isA?0xfbbf24:ln.c;
+      const opacity=isA?1.0:0.50;
+      const lineW=isA?2.2:1.2;
+
+      // Círculo de medida
       const pts=[];
-      for(let i=0;i<=64;i++){const a=i/64*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*l.r,l.y,Math.sin(a)*l.r));}
-      measureGroup.add(new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({color:isA?0xfbbf24:l.c,opacity:isA?1:.45,transparent:true})
-      ));
+      for(let i=0;i<=128;i++){const a=i/128*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*ln.r,ln.y,Math.sin(a)*ln.r));}
+      const lineMat=new THREE.LineBasicMaterial({color:col,opacity,transparent:true});
+      const circle=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lineMat);
+      measureGroup.add(circle);
+
+      // Línea horizontal de cota (si está activa)
       if(isA){
-        const lp=[new THREE.Vector3(-l.r*2,l.y,0),new THREE.Vector3(l.r*2,l.y,0)];
-        measureGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp),new THREE.LineBasicMaterial({color:0xfbbf24})));
+        const cotaPts=[new THREE.Vector3(-ln.r*2.2,ln.y,0),new THREE.Vector3(ln.r*2.2,ln.y,0)];
+        const cotaMat=new THREE.LineDashedMaterial({color:0xfbbf24,dashSize:.04,gapSize:.02,opacity:.7,transparent:true});
+        const cota=new THREE.Line(new THREE.BufferGeometry().setFromPoints(cotaPts),cotaMat);
+        cota.computeLineDistances();
+        measureGroup.add(cota);
+      }
+
+      // Ticker marks (marcas pequeñas) alrededor del círculo
+      for(let i=0;i<8;i++){
+        const a=i/8*Math.PI*2;
+        const tickPts=[
+          new THREE.Vector3(Math.cos(a)*ln.r, ln.y, Math.sin(a)*ln.r),
+          new THREE.Vector3(Math.cos(a)*(ln.r+0.022), ln.y, Math.sin(a)*(ln.r+0.022)),
+        ];
+        const tickMat=new THREE.LineBasicMaterial({color:col,opacity:opacity*.8,transparent:true});
+        measureGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(tickPts),tickMat));
+      }
+
+      // Etiqueta CSS2D-style (sprite en canvas)
+      if(isA){
+        const canvas=document.createElement('canvas');
+        canvas.width=200; canvas.height=56;
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='rgba(251,191,36,0.92)';
+        ctx.roundRect?ctx.roundRect(4,4,192,48,10):ctx.fillRect(4,4,192,48);
+        ctx.fill();
+        ctx.fillStyle='#0a0a18';
+        ctx.font='bold 18px monospace';
+        ctx.textAlign='center';
+        ctx.fillText(`${ln.l}: ${ln.v}cm`, 100, 26);
+        ctx.font='13px monospace';
+        ctx.fillText(`(${(ln.v/Math.PI).toFixed(1)}cm radio)`, 100, 44);
+        const tex=new THREE.CanvasTexture(canvas);
+        const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
+        sprite.scale.set(0.30,0.085,1);
+        sprite.position.set(ln.r*1.5,ln.y+0.04,0);
+        labelGroup.add(sprite);
       }
     });
   }
 
   // ════════════════════════════════════════════════════════════
-  // PANEL UI
+  // PANEL UI — diseño profesional tipo CLO
   // ════════════════════════════════════════════════════════════
   function _injectPanel(){
     document.getElementById('m3d-panel')?.remove();
     document.getElementById('m3d-css')?.remove();
-    const css=document.createElement('style'); css.id='m3d-css';
-    css.textContent=`#m3d-panel{position:absolute;right:0;top:0;bottom:0;width:200px;background:rgba(7,7,15,.95);border-left:1px solid #2e2e45;display:flex;flex-direction:column;z-index:10;overflow:hidden}#m3d-hd{padding:9px 13px 7px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#a78bfa;border-bottom:1px solid #2e2e45;flex-shrink:0;display:flex;align-items:center;gap:6px}#m3d-gen{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:6px 9px;border-bottom:1px solid #2e2e45;flex-shrink:0}.m3g{padding:5px 3px;border-radius:6px;border:1.5px solid #2e2e45;background:#141420;color:#9490b0;cursor:pointer;font-size:11px;font-family:var(--font,'Segoe UI');transition:all .15s;text-align:center}.m3g:hover{background:#2a2a3e;color:#ede9fe}.m3g.on{background:rgba(139,92,246,.2);color:#a78bfa;border-color:#8b5cf6}#m3d-lbl{margin:5px 8px;padding:7px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:6px;font-size:12px;font-weight:800;color:#fbbf24;text-align:center;display:none;font-family:monospace}#m3d-bd{flex:1;overflow-y:auto;padding:4px 7px}.m3s{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#5a5678;padding:6px 4px 3px}.m3r{display:flex;align-items:center;padding:5px 7px;border-radius:5px;cursor:pointer;transition:all .15s;margin-bottom:2px;border:1.5px solid transparent}.m3r:hover{background:#1c1c2a;border-color:#2e2e45}.m3r.active{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.3)}.m3dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}.m3n{font-size:11px;color:#9490b0;flex:1;margin-left:6px}.m3v{font-size:12px;font-weight:700;color:#ede9fe;font-family:monospace}.m3u{font-size:9px;color:#5a5678;margin-left:2px}#m3d-ft{padding:7px 8px;border-top:1px solid #2e2e45;display:flex;flex-direction:column;gap:5px;flex-shrink:0}.m3b{width:100%;padding:7px;border:1px solid #3d3d58;background:transparent;color:#9490b0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font,'Segoe UI');transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}.m3b:hover{background:#2a2a3e;color:#ede9fe}.m3sim{border-color:rgba(52,211,153,.4);color:#34d399;font-size:12px;font-weight:700}.m3sim:hover{background:rgba(52,211,153,.15)}.m3sim.running{border-color:rgba(251,191,36,.4);color:#fbbf24;animation:m3p 1s ease-in-out infinite}@keyframes m3p{0%,100%{opacity:1}50%{opacity:.6}}#three-canvas{width:calc(100% - 200px)!important}#ctrl-3d{display:none!important}`;
+
+    const css=document.createElement('style');css.id='m3d-css';
+    css.textContent=`
+    #m3d-panel{
+      position:absolute;right:0;top:0;bottom:0;width:212px;
+      background:rgba(8,8,20,.96);
+      border-left:1px solid #252540;
+      display:flex;flex-direction:column;z-index:10;
+      overflow:hidden;
+      font-family:'Segoe UI',system-ui,sans-serif;
+    }
+    #m3d-hd{
+      padding:11px 14px 9px;font-size:10px;font-weight:700;
+      letter-spacing:1.2px;text-transform:uppercase;color:#a78bfa;
+      border-bottom:1px solid #252540;flex-shrink:0;
+      display:flex;align-items:center;gap:7px;
+      background:linear-gradient(135deg,rgba(139,92,246,.08),transparent);
+    }
+    #m3d-gen{
+      display:grid;grid-template-columns:1fr 1fr;gap:5px;
+      padding:8px 10px;border-bottom:1px solid #252540;flex-shrink:0;
+    }
+    .m3g{
+      padding:6px 4px;border-radius:7px;border:1.5px solid #252540;
+      background:#141428;color:#9490b0;cursor:pointer;font-size:11px;
+      transition:all .15s;text-align:center;display:flex;
+      align-items:center;justify-content:center;gap:4px;
+    }
+    .m3g:hover{background:#2a2a42;color:#ede9fe;border-color:#3d3d5a}
+    .m3g.on{
+      background:rgba(139,92,246,.18);color:#c4b5fd;
+      border-color:#8b5cf6;
+      box-shadow:0 0 0 1px rgba(139,92,246,.3);
+    }
+    #m3d-lbl{
+      margin:6px 9px;padding:8px 10px;
+      background:rgba(251,191,36,.12);
+      border:1px solid rgba(251,191,36,.35);
+      border-radius:7px;font-size:13px;font-weight:800;
+      color:#fbbf24;text-align:center;display:none;
+      font-family:monospace;line-height:1.3;
+    }
+    #m3d-bd{flex:1;overflow-y:auto;padding:5px 8px}
+    .m3s{
+      font-size:9px;font-weight:700;letter-spacing:.9px;
+      text-transform:uppercase;color:#4a4868;
+      padding:8px 5px 4px;
+    }
+    .m3r{
+      display:flex;align-items:center;padding:6px 8px;
+      border-radius:6px;cursor:pointer;transition:all .15s;
+      margin-bottom:3px;border:1.5px solid transparent;
+      position:relative;
+    }
+    .m3r:hover{background:#1a1a30;border-color:#2e2e48}
+    .m3r.active{
+      background:rgba(251,191,36,.08);
+      border-color:rgba(251,191,36,.40);
+    }
+    .m3r.active::before{
+      content:'';position:absolute;left:-1px;top:50%;
+      transform:translateY(-50%);width:3px;height:70%;
+      background:#fbbf24;border-radius:0 2px 2px 0;
+    }
+    .m3dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;box-shadow:0 0 4px currentColor}
+    .m3n{font-size:11px;color:#9490b0;flex:1;margin-left:7px}
+    .m3v{font-size:13px;font-weight:800;color:#ede9fe;font-family:monospace}
+    .m3u{font-size:9px;color:#4a4868;margin-left:2px}
+    .m3bar{
+      height:3px;background:#252540;border-radius:2px;
+      margin:2px 8px 0;overflow:hidden;display:none;
+    }
+    .m3bar-fill{height:100%;border-radius:2px;transition:width .3s}
+    .m3r.active .m3bar{display:block}
+    #m3d-ft{
+      padding:8px 9px;border-top:1px solid #252540;
+      display:flex;flex-direction:column;gap:5px;flex-shrink:0;
+    }
+    .m3b{
+      width:100%;padding:8px;border:1px solid #3d3d5a;
+      background:transparent;color:#9490b0;border-radius:7px;
+      font-size:11px;font-weight:600;cursor:pointer;
+      font-family:'Segoe UI',system-ui;
+      transition:all .15s;display:flex;align-items:center;
+      justify-content:center;gap:6px;
+    }
+    .m3b:hover{background:#2a2a42;color:#ede9fe;border-color:#4d4d68}
+    .m3sim{
+      border-color:rgba(52,211,153,.45);color:#34d399;
+      font-size:12px;font-weight:700;
+      background:rgba(52,211,153,.05);
+    }
+    .m3sim:hover{background:rgba(52,211,153,.14)}
+    .m3sim.running{
+      border-color:rgba(251,191,36,.5);color:#fbbf24;
+      background:rgba(251,191,36,.06);
+      animation:m3p 1.2s ease-in-out infinite;
+    }
+    @keyframes m3p{0%,100%{opacity:1}50%{opacity:.55}}
+    #three-canvas{width:calc(100% - 212px)!important}
+    #ctrl-3d{display:none!important}
+    `;
     document.head.appendChild(css);
 
-    const panel=document.createElement('div'); panel.id='m3d-panel';
-    panel.innerHTML=`<div id="m3d-hd"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Medidas de Avatar</div><div id="m3d-gen">${Object.entries(BT).map(([k,v])=>`<button class="m3g${k==='woman'?' on':''}" data-btype="${k}">${v.e} ${v.l}</button>`).join('')}</div><div id="m3d-lbl"></div><div id="m3d-bd"><div class="m3s">Contornos</div><div class="m3r" data-mk="bust"><div class="m3dot" style="background:#f59e0b"></div><span class="m3n">Busto</span><span class="m3v" id="m3v-bust">88</span><span class="m3u">cm</span></div><div class="m3r" data-mk="waist"><div class="m3dot" style="background:#f59e0b"></div><span class="m3n">Cintura</span><span class="m3v" id="m3v-waist">68</span><span class="m3u">cm</span></div><div class="m3r" data-mk="hip"><div class="m3dot" style="background:#f59e0b"></div><span class="m3n">Cadera</span><span class="m3v" id="m3v-hip">94</span><span class="m3u">cm</span></div><div class="m3s">Anchuras</div><div class="m3r" data-mk="shoulder"><div class="m3dot" style="background:#60a5fa"></div><span class="m3n">Hombros</span><span class="m3v" id="m3v-shoulder">38</span><span class="m3u">cm</span></div><div class="m3r" data-mk="neck"><div class="m3dot" style="background:#60a5fa"></div><span class="m3n">Cuello</span><span class="m3v" id="m3v-neck">36</span><span class="m3u">cm</span></div><div class="m3s">Largos</div><div class="m3r" data-mk="backLength"><div class="m3dot" style="background:#34d399"></div><span class="m3n">Talle esp.</span><span class="m3v" id="m3v-backLength">40</span><span class="m3u">cm</span></div><div class="m3r" data-mk="sleeveLength"><div class="m3dot" style="background:#34d399"></div><span class="m3n">Manga</span><span class="m3v" id="m3v-sleeveLength">60</span><span class="m3u">cm</span></div></div><div id="m3d-ft"><button class="m3b m3sim" id="m3d-sim">▶ Simular tela</button><button class="m3b" id="m3d-wire">⬡ Wireframe</button><button class="m3b" id="m3d-cam">⌂ Reset cámara</button></div>`;
+    const panel=document.createElement('div');panel.id='m3d-panel';
+    panel.innerHTML=`
+    <div id="m3d-hd">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+      Medidas de Avatar
+    </div>
+    <div id="m3d-gen">
+      ${Object.entries(BT).map(([k,v])=>`
+        <button class="m3g${k==='woman'?' on':''}" data-btype="${k}" title="${v.l}">
+          <span>${v.e}</span><span>${v.l}</span>
+        </button>`).join('')}
+    </div>
+    <div id="m3d-lbl"></div>
+    <div id="m3d-bd">
+      <div class="m3s">● Contornos</div>
+      ${[
+        {k:'bust',    c:'#f59e0b', l:'Busto',    id:'m3v-bust',    v:88,  max:180},
+        {k:'waist',   c:'#f59e0b', l:'Cintura',  id:'m3v-waist',   v:68,  max:160},
+        {k:'hip',     c:'#f59e0b', l:'Cadera',   id:'m3v-hip',     v:94,  max:200},
+      ].map(r=>`
+        <div class="m3r" data-mk="${r.k}">
+          <div class="m3dot" style="background:${r.c};color:${r.c}"></div>
+          <span class="m3n">${r.l}</span>
+          <span class="m3v" id="${r.id}">${r.v}</span>
+          <span class="m3u">cm</span>
+          <div class="m3bar">
+            <div class="m3bar-fill" id="bar-${r.k}" style="background:${r.c};width:${r.v/r.max*100}%"></div>
+          </div>
+        </div>`).join('')}
+      <div class="m3s">◆ Anchuras</div>
+      ${[
+        {k:'shoulder',c:'#60a5fa', l:'Hombros',  id:'m3v-shoulder',v:38, max:70},
+        {k:'neck',    c:'#60a5fa', l:'Cuello',   id:'m3v-neck',    v:36, max:60},
+      ].map(r=>`
+        <div class="m3r" data-mk="${r.k}">
+          <div class="m3dot" style="background:${r.c};color:${r.c}"></div>
+          <span class="m3n">${r.l}</span>
+          <span class="m3v" id="${r.id}">${r.v}</span>
+          <span class="m3u">cm</span>
+        </div>`).join('')}
+      <div class="m3s">▼ Largos</div>
+      ${[
+        {k:'backLength',  c:'#34d399',l:'Talle esp.',  id:'m3v-backLength',  v:40, max:65},
+        {k:'sleeveLength',c:'#34d399',l:'Manga',        id:'m3v-sleeveLength',v:60, max:80},
+      ].map(r=>`
+        <div class="m3r" data-mk="${r.k}">
+          <div class="m3dot" style="background:${r.c};color:${r.c}"></div>
+          <span class="m3n">${r.l}</span>
+          <span class="m3v" id="${r.id}">${r.v}</span>
+          <span class="m3u">cm</span>
+        </div>`).join('')}
+    </div>
+    <div id="m3d-ft">
+      <button class="m3b m3sim" id="m3d-sim">▶ Simular tela</button>
+      <button class="m3b" id="m3d-wire">⬡ Wireframe</button>
+      <button class="m3b" id="m3d-cam">⌂ Reset cámara</button>
+    </div>`;
 
     const view=document.getElementById('view-3d');
     if(view){view.style.position='relative';view.appendChild(panel);}
 
     const names={bust:'Busto',waist:'Cintura',hip:'Cadera',shoulder:'Hombros',neck:'Cuello',backLength:'Talle esp.',sleeveLength:'Manga'};
-    panel.querySelectorAll('.m3g').forEach(btn=>{btn.addEventListener('click',function(){_bodyType=this.dataset.btype;panel.querySelectorAll('.m3g').forEach(b=>b.classList.remove('on'));this.classList.add('on');if(Object.keys(_currentMeasures).length)_rebuildAll();});});
-    panel.querySelectorAll('.m3r').forEach(row=>{
-      row.addEventListener('mouseenter',function(){_activeMeasureLine=this.dataset.mk;if(_currentRadii)_buildML(_currentMeasures,_currentRadii);document.querySelectorAll('.m3r').forEach(r=>r.classList.remove('active'));this.classList.add('active');const l=document.getElementById('m3d-lbl');if(l&&_currentMeasures[this.dataset.mk]){l.textContent=`${names[this.dataset.mk]}: ${_currentMeasures[this.dataset.mk]}cm`;l.style.display='block';}});
-      row.addEventListener('mouseleave',function(){_activeMeasureLine=null;if(_currentRadii)_buildML(_currentMeasures,_currentRadii);document.querySelectorAll('.m3r').forEach(r=>r.classList.remove('active'));const l=document.getElementById('m3d-lbl');if(l)l.style.display='none';});
-      row.addEventListener('click',function(){const inp=document.querySelector(`[data-measure="${this.dataset.mk}"]`);if(inp){const sb=document.getElementById('sidebar');if(sb?.classList.contains('collapsed'))sb.classList.remove('collapsed');inp.focus();inp.select();}});
+    const maxVals={bust:200,waist:180,hip:220,shoulder:70,neck:60,backLength:65,sleeveLength:80};
+
+    panel.querySelectorAll('.m3g').forEach(btn=>{
+      btn.addEventListener('click',function(){
+        _bodyType=this.dataset.btype;
+        panel.querySelectorAll('.m3g').forEach(b=>b.classList.remove('on'));
+        this.classList.add('on');
+        if(Object.keys(_measures).length) _rebuildAll();
+      });
     });
+
+    panel.querySelectorAll('.m3r').forEach(row=>{
+      row.addEventListener('mouseenter',function(){
+        _activeLine=this.dataset.mk;
+        if(_radii) _buildMeasureLines(_measures,_radii);
+        panel.querySelectorAll('.m3r').forEach(r=>r.classList.remove('active'));
+        this.classList.add('active');
+        const lbl=document.getElementById('m3d-lbl');
+        if(lbl&&_measures[this.dataset.mk]){
+          lbl.innerHTML=`<strong>${names[this.dataset.mk]}</strong><br>${_measures[this.dataset.mk]} cm`;
+          lbl.style.display='block';
+        }
+      });
+      row.addEventListener('mouseleave',function(){
+        _activeLine=null;
+        if(_radii) _buildMeasureLines(_measures,_radii);
+        panel.querySelectorAll('.m3r').forEach(r=>r.classList.remove('active'));
+        const lbl=document.getElementById('m3d-lbl');if(lbl)lbl.style.display='none';
+      });
+      row.addEventListener('click',function(){
+        const inp=document.querySelector(`[data-measure="${this.dataset.mk}"]`);
+        if(inp){const sb=document.getElementById('sidebar');if(sb?.classList.contains('collapsed'))sb.classList.remove('collapsed');inp.focus();inp.select();}
+      });
+    });
+
     document.getElementById('m3d-sim').addEventListener('click',_toggleSim);
-    document.getElementById('m3d-wire').addEventListener('click',function(){this.classList.toggle('on');toggleWireframe();});
+    document.getElementById('m3d-wire').addEventListener('click',function(){
+      this.classList.toggle('on');toggleWireframe();
+    });
     document.getElementById('m3d-cam').addEventListener('click',resetCamera);
   }
 
+  function _updatePanelVals(m){
+    const maxVals={bust:200,waist:180,hip:220,shoulder:70,neck:60,backLength:65,sleeveLength:80};
+    ['bust','waist','hip','shoulder','neck','backLength','sleeveLength'].forEach(k=>{
+      const el=document.getElementById('m3v-'+k);if(el&&m[k]!==undefined)el.textContent=m[k];
+      const bar=document.getElementById('bar-'+k);
+      if(bar&&m[k]) bar.style.width=Math.min(m[k]/(maxVals[k]||100)*100,100)+'%';
+    });
+  }
+
   function _rebuildAll(){
-    const m=Object.assign({bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,skirtLength:60,hipDepth:20},_currentMeasures);
-    const r=_buildBody(m); _currentRadii=r;
-    _buildGarment(_lastGarment,r,m); _buildML(m,r);
+    const m=Object.assign({bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,skirtLength:60,hipDepth:20},_measures);
+    const r=_buildBody(m); _radii=r;
+    _buildGarment(_lastGarment,r,m);
+    _buildMeasureLines(m,r);
   }
 
   let _simStep=0,_simRunning=false;
@@ -1477,15 +1988,16 @@ PAT.Mannequin3D = (function () {
 
   function updateGarment(gt,measures){
     const m=Object.assign({bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,wrist:16,skirtLength:60,hipDepth:20},measures);
-    _currentMeasures=m; _lastGarment=gt;
-    ['bust','waist','hip','shoulder','neck','backLength','sleeveLength'].forEach(k=>{const e=document.getElementById('m3v-'+k);if(e&&m[k]!==undefined)e.textContent=m[k];});
-    const r=_buildBody(m); _currentRadii=r;
-    _buildGarment(gt,r,m); _buildML(m,r);
+    _measures=m;_lastGarment=gt;
+    _updatePanelVals(m);
+    const r=_buildBody(m); _radii=r;
+    _buildGarment(gt,r,m);
+    _buildMeasureLines(m,r);
   }
 
   function resize(w,h){if(!renderer||!camera)return;if(!w||!h){const el=document.getElementById('three-canvas');if(el){w=el.clientWidth;h=el.clientHeight;}}if(w&&h){camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);}}
-  function toggleWireframe(){_isWireframe=!_isWireframe;garmentGroup.traverse(c=>{if(c.isMesh)c.material.wireframe=_isWireframe;});}
-  function resetCamera(){camera.position.set(0,1.0,2.8);controls.target.set(0,.85,0);controls.update();}
+  function toggleWireframe(){_isWire=!_isWire;garmentGroup.traverse(c=>{if(c.isMesh)c.material.wireframe=_isWire;});}
+  function resetCamera(){camera.position.set(0,1.0,2.9);controls.target.set(0,.88,0);controls.update();}
   function _onResize(){if(!_canvas||!renderer)return;const p=_canvas.parentElement||document.getElementById('view-3d')||_canvas;const w=_canvas.clientWidth||p.clientWidth||800,h=_canvas.clientHeight||p.clientHeight||600;if(!w||!h)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);}
   function _animate(){_animId=requestAnimationFrame(_animate);_simTick();if(controls)controls.update();if(renderer&&scene&&camera)renderer.render(scene,camera);}
   function destroy(){if(_animId)cancelAnimationFrame(_animId);window.removeEventListener('resize',_onResize);if(renderer)renderer.dispose();_initialized=false;}
@@ -1890,11 +2402,13 @@ PAT.DrafterUI = (function () {
     <button class="tb" id="dv6-zi">＋</button>
     <button class="tb" id="dv6-zo">－</button>
     <button class="tb" id="dv6-zf">⊡ Ajustar</button>
+    <button class="tb" id="dv6-tallas" title="Tabla de tallas estándar">📊 Tallas</button>
     <div class="dv6-sep"></div>
     <button class="tb red" id="dv6-clr">🗑 Limpiar</button>
     <button class="tb grn" id="dv6-sv">💾 Guardar</button>
     <button class="tb pri" id="dv6-ap">＋ Al patrón</button>
     <button class="tb yel" id="dv6-validate" style="border-color:rgba(251,191,36,.4)">🔍 Verificar</button>
+    <button class="tb" id="dv6-mirror" title="M — Copiar en espejo">🪞 Espejo</button>
   </div>
 
   <div class="dv6-body">
@@ -1939,9 +2453,14 @@ PAT.DrafterUI = (function () {
         <!-- Punto de snap FUERA del canvas -->
         <circle id="dv6-snapcircle" cx="0" cy="0" r="6" fill="none"
           stroke="#fbbf24" stroke-width="1.5" opacity="0" pointer-events="none"/>
+        <!-- Regla de escala (5cm) -->
+        <g id="dv6-scale-rule" pointer-events="none">
+          <line id="dv6-scale-line" x1="0" y1="0" x2="0" y2="0" stroke="#5a5678" stroke-width="1"/>
+          <text id="dv6-scale-txt" font-family="monospace" font-size="9" fill="#5a5678" text-anchor="middle">5cm</text>
+        </g>
       </svg>
 
-      <div id="dv6-instr">▶ Seleccionar activo — haz clic en un punto para editarlo</div>
+      <div id="dv6-instr">▶ Seleccionar activo — clic en punto para editar · R=Rectángulo base · P=Punto · C=Curva · M=Espejo</div>
       <div id="dv6-coord">x: 0mm · y: 0mm</div>
       <div id="dv6-dist"></div>
     </div>
@@ -1995,10 +2514,10 @@ PAT.DrafterUI = (function () {
 
       <div class="dv6-keys">
         <kbd>S</kbd> Sel &nbsp;<kbd>P</kbd> Punto &nbsp;<kbd>L</kbd> Línea<br>
-        <kbd>C</kbd> Curva &nbsp;<kbd>F</kbd> Doblez &nbsp;<kbd>R</kbd> Rect.<br>
+        <kbd>C</kbd> Curva &nbsp;<kbd>F</kbd> Doblez &nbsp;<kbd>D</kbd> Pinza<br>
+        <kbd>R</kbd> Rect. &nbsp;<kbd>M</kbd> Espejo &nbsp;<kbd>Esc</kbd> Cancel<br>
         <kbd>Ctrl+Z</kbd> Atrás &nbsp;<kbd>Ctrl+Y</kbd> Adelante<br>
-        <kbd>Del</kbd> Borrar &nbsp;<kbd>Esc</kbd> Cancelar<br>
-        <kbd>Rueda</kbd> Zoom &nbsp;<kbd>Alt+drag</kbd> Pan
+        <kbd>Del</kbd> Borrar &nbsp;<kbd>Rueda</kbd> Zoom &nbsp;<kbd>Alt+drag</kbd> Pan
       </div>
 
       <div class="dv6-ft">
@@ -2065,6 +2584,20 @@ PAT.DrafterUI = (function () {
   function _applyTransform() {
     _canvasG.setAttribute('transform', `translate(${_pan.x},${_pan.y}) scale(${_zoom * SC})`);
     document.getElementById('dv6-zl').textContent = Math.round(_zoom * 100) + '%';
+    // Actualizar regla de escala (mostrar 5cm en píxeles reales)
+    const scaleEl = document.getElementById('dv6-scale-line');
+    const scaleTxt = document.getElementById('dv6-scale-txt');
+    const wrap2 = document.getElementById('dv6-wrap');
+    if (scaleEl && wrap2) {
+      const px5cm = 50 * _zoom * SC; // 50mm = 5cm en px
+      const bx = 20, by = (wrap2.clientHeight || 600) - 24;
+      scaleEl.setAttribute('x1', bx); scaleEl.setAttribute('y1', by);
+      scaleEl.setAttribute('x2', bx + px5cm); scaleEl.setAttribute('y2', by);
+      if (scaleTxt) {
+        scaleTxt.setAttribute('x', bx + px5cm/2);
+        scaleTxt.setAttribute('y', by - 5);
+      }
+    }
   }
 
   /** Convierte mm del canvas a px del SVG (lo que ve el usuario en pantalla) */
@@ -2168,6 +2701,7 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-ap').onclick   = _addToPattern;
     document.getElementById('dv6-apb').onclick  = _addToPattern;
     document.getElementById('dv6-validate').onclick = _validatePattern;
+    document.getElementById('dv6-mirror').onclick = _mirrorSelected;
     document.getElementById('dv6-dpt').onclick  = _delSelected;
 
     document.getElementById('dv6-snap').onclick = function() {
@@ -2455,6 +2989,7 @@ PAT.DrafterUI = (function () {
       case 'c': case 'C': _setTool('addCurve'); break;
       case 'f': case 'F': _setTool('addFold'); break;
       case 'd': case 'D': _setTool('addDart'); break;
+      case 'm': case 'M': _mirrorSelected(); break; // Simetría/espejo
       case 'r': case 'R': _insertRect(); break;
       case 'Escape': _lnStart=null; _dartPts=[]; _tempLine.setAttribute('opacity','0'); _setTool('select'); break;
       case 'Delete': case 'Backspace': if(_selected)_delSelected(); break;
@@ -2477,12 +3012,12 @@ PAT.DrafterUI = (function () {
 
   function _toolMsg() {
     return {
-      select:   '▶ Clic para seleccionar · Arrastrar para mover · Alt+drag para mover la vista',
+      select:   '▶ Seleccionar: clic en punto para editar · Arrastrar para mover · Alt+drag = mover vista · M = Espejo',
       addPoint: '＋ Clic en el canvas para agregar punto. Con Snap ON se alinea a la grilla.',
       addLine:  '╱ Clic en punto A → clic en punto B — traza línea recta. La distancia aparece en verde.',
       addCurve: '⌒ Clic en punto A → clic en punto B — traza curva. Arrastra el ◆ azul para ajustar.',
-      addFold:  '— Clic en punto A → clic en punto B — marca doblez (rojo) o hilo recto.',
-      addDart:  '📌 Pinza: Clic en punto APEX (punta) → clic en punto DERECHO → clic en punto IZQUIERDO de la pinza.',
+      addFold:  '— Doblez/Hilo: Clic en punto A → clic en punto B. Línea roja punteada = doblez de papel (centro frente/espalda).',
+      addDart:  '📌 Pinza: Clic 1=APEX (punta) → Clic 2=lado DERECHO → Clic 3=lado IZQUIERDO. Líneas naranjas = costura de pinza.',
     }[_tool]||'';
   }
 
@@ -2769,7 +3304,11 @@ PAT.DrafterUI = (function () {
 
   function _renderPoints(){
     while(_pointsG.firstChild)_pointsG.removeChild(_pointsG.firstChild);
-    const r=2,fs=5,hit=5;
+    // Radio en mm del canvas — se escala con zoom automáticamente
+    // Para garantizar visibilidad mínima, compensamos el zoom
+    const r = Math.max(1.5, 3.5 / (_zoom * SC));   // radio visual mínimo
+    const fs = Math.max(3, 6 / (_zoom * SC));        // font-size mínimo
+    const hit = Math.max(4, 8 / (_zoom * SC));       // hit area mínima
 
     Object.entries(_points).forEach(([id,p])=>{
       const g=document.createElementNS(NS,'g');
@@ -3219,6 +3758,37 @@ PAT.DrafterUI = (function () {
     modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
   }
 
+  // ── SIMETRÍA: copiar puntos y líneas en espejo horizontal ──
+  function _mirrorSelected() {
+    if (!Object.keys(_points).length) return;
+    _snapshot();
+    const xs = Object.values(_points).map(p=>p.x);
+    const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const mirrorMap = {};
+    // Crear puntos espejo
+    Object.entries(_points).forEach(([id, p]) => {
+      const newId = _addPt(2*centerX - p.x, p.y, p.name+"'", '');
+      mirrorMap[id] = newId;
+    });
+    // Crear líneas espejo
+    const origLines = [..._lines];
+    origLines.forEach(ln => {
+      if (mirrorMap[ln.from] && mirrorMap[ln.to]) {
+        _lines.push({
+          from: mirrorMap[ln.from],
+          to:   mirrorMap[ln.to],
+          type: ln.type,
+          ctrl: ln.ctrl ? -ln.ctrl : 0,
+          cpx: ln.cpx !== null ? 2*centerX - ln.cpx : null,
+          cpy: ln.cpy
+        });
+      }
+    });
+    _snapshot();
+    _renderAll();
+    _instr('🪞 Pieza reflejada en espejo. Los puntos nuevos tienen el mismo nombre con apostrofe.');
+  }
+
   return { open, close, validate: _validatePattern };
 })();
 
@@ -3229,61 +3799,32 @@ PAT.DrafterUI = (function () {
 <!-- ══════════════════════════════════════════════════════ -->
 <script>
 
-  // ── OVERRIDE: Panel Atelier con modal correcto ──
+  // ── ATELIER PANEL: Fix de visualización ──
+// El CSS ya maneja el fondo/estructura del modal creado por atelier-panel.js
+// Solo necesitamos asegurarnos de que el z-index sea correcto
 (function() {
-  function setupAtelierModal() {
-    var origBtn = document.getElementById('btn-atelier-panel');
-    if (!origBtn) return;
-    
-    // Clonar el botón para quitar handlers existentes
-    var newBtn = origBtn.cloneNode(true);
-    origBtn.parentNode.replaceChild(newBtn, origBtn);
-    
-    newBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var shell = document.getElementById('modal-atelier-shell');
-      var shellContent = document.getElementById('atelier-shell-content');
-      if (!shell || !shellContent) return;
-      
-      // Buscar el contenido del atelier (creado por atelier-panel.js)
-      var atelierContent = document.querySelector('.atelier-content');
-      
-      if (atelierContent) {
-        // Mover el contenido al shell del modal
-        shellContent.innerHTML = '';
-        shellContent.appendChild(atelierContent);
-        atelierContent.style.cssText = 'width:100%;max-height:none;border:none;border-radius:0;box-shadow:none';
-      } else {
-        // Si no existe aún, crear contenido placeholder y buscar de nuevo
-        shellContent.innerHTML = '<div style="padding:40px;text-align:center;color:#9490b0"><div style="font-size:32px;margin-bottom:12px">🏛</div><div style="font-size:14px;font-weight:600">Cargando Panel de Atelier...</div></div>';
-        // Trigger el click original para que atelier-panel.js lo cree
-        setTimeout(function() {
-          var ac2 = document.querySelector('.atelier-content');
-          if (ac2 && !shellContent.contains(ac2)) {
-            shellContent.innerHTML = '';
-            shellContent.appendChild(ac2);
-            ac2.style.cssText = 'width:100%;max-height:none;border:none;border-radius:0;box-shadow:none';
-          }
-        }, 200);
-      }
-      
-      shell.classList.add('open');
-    });
-    
-    // Cerrar al hacer clic en overlay
-    var ov = document.getElementById('atelier-ov');
-    if (ov) ov.addEventListener('click', function() {
-      var shell = document.getElementById('modal-atelier-shell');
-      if (shell) shell.classList.remove('open');
-      // Devolver el contenido a su lugar original
-      var ac = document.querySelector('.atelier-content');
-      if (ac) document.body.appendChild(ac);
-    });
-  }
-  
-  // Esperar a que todo cargue
   window.addEventListener('load', function() {
-    setTimeout(setupAtelierModal, 500);
+    // Observar cuando se abre el panel de atelier
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        m.addedNodes.forEach(function(node) {
+          if (!node.classList) return;
+          // Si atelier-panel.js añade un modal al body
+          if ((node.classList.contains('modal') || node.id === 'atelier-modal') 
+              && (node.innerHTML.indexOf('atelier-content') > -1 || 
+                  node.innerHTML.indexOf('at-head') > -1 ||
+                  node.innerHTML.indexOf('Panel de Atelier') > -1)) {
+            // Asegurar z-index alto y overlay correcto
+            node.style.zIndex = '2000';
+            var ov = node.querySelector('.m-ov');
+            if (ov) {
+              ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:0;';
+            }
+          }
+        });
+      });
+    });
+    observer.observe(document.body, { childList:true });
   });
 })();
 
@@ -3331,7 +3872,82 @@ PAT.DrafterUI = (function () {
     });
   }
 
-  // ── Sync gv2 garment buttons with existing garment-btn ──
+  // ── TABLA DE TALLAS ESTÁNDAR ──
+  var TALLAS = [
+    {t:'XS (32)',  b:80,  w:60,  h:86,  s:36,  e:38,  m:58},
+    {t:'S (34)',   b:84,  w:64,  h:90,  s:37,  e:39,  m:59},
+    {t:'M (36)',   b:88,  w:68,  h:94,  s:38,  e:40,  m:60},
+    {t:'L (38)',   b:92,  w:72,  h:98,  s:39,  e:41,  m:60},
+    {t:'XL (40)',  b:96,  w:76,  h:102, s:40,  e:42,  m:61},
+    {t:'2XL (42)', b:100, w:80,  h:106, s:41,  e:43,  m:61},
+    {t:'3XL (44)', b:106, w:86,  h:112, s:42,  e:44,  m:62},
+    {t:'4XL (46)', b:112, w:92,  h:118, s:43,  e:45,  m:62},
+  ];
+
+  var tallasBtn = document.getElementById('dv6-tallas');
+  if (tallasBtn) {
+    tallasBtn.addEventListener('click', function() {
+      var modal = document.getElementById('dv6-tallas-modal');
+      var tbody = document.getElementById('tallas-body');
+      if (!modal || !tbody) return;
+      // Render table rows
+      tbody.innerHTML = TALLAS.map(function(t, i) {
+        return '<tr style="cursor:pointer;transition:background .15s" ' +
+          'onmouseover="this.style.background='rgba(139,92,246,.08)'" ' +
+          'onmouseout="this.style.background=''" ' +
+          'onclick="loadTalla(' + i + ')">' +
+          '<td style="padding:8px 10px;font-weight:700;color:#a78bfa;border:1px solid #1c1c2a">' + t.t + '</td>' +
+          '<td style="padding:8px 10px;text-align:center;color:#ede9fe;border:1px solid #1c1c2a">' + t.b + '</td>' +
+          '<td style="padding:8px 10px;text-align:center;color:#ede9fe;border:1px solid #1c1c2a">' + t.w + '</td>' +
+          '<td style="padding:8px 10px;text-align:center;color:#ede9fe;border:1px solid #1c1c2a">' + t.h + '</td>' +
+          '<td style="padding:8px 10px;text-align:center;color:#ede9fe;border:1px solid #1c1c2a">' + t.s + '</td>' +
+          '<td style="padding:8px 10px;text-align:center;color:#ede9fe;border:1px solid #1c1c2a">' + t.e + '</td>' +
+          '<td style="padding:8px 10px;text-align:center;color:#ede9fe;border:1px solid #1c1c2a">' + t.m + '</td>' +
+          '</tr>';
+      }).join('');
+      modal.style.display = 'flex';
+    });
+  }
+
+  window.loadTalla = function(idx) {
+    var t = TALLAS[idx];
+    if (!t) return;
+    var map = {bust:t.b, waist:t.w, hip:t.h, shoulder:t.s, backLength:t.e, sleeveLength:t.m};
+    Object.entries(map).forEach(function(e) {
+      var inp = document.querySelector('[data-measure="' + e[0] + '"]');
+      if (inp) {
+        inp.value = e[1];
+        inp.dispatchEvent(new Event('input', {bubbles:true}));
+      }
+    });
+    document.getElementById('dv6-tallas-modal').style.display = 'none';
+    // Feedback visual
+    var btn = document.querySelector('[data-garment].active, .gv2-btn.active');
+    if (window.PAT && PAT.App && PAT.App.toast) {
+      PAT.App.toast('✅ Talla ' + TALLAS[idx].t + ' cargada', 'success');
+    }
+  };
+
+  // ── DEBOUNCE para inputs de medidas (performance) ──
+(function() {
+  var _debTimer = null;
+  function debounce(fn, ms) {
+    return function() {
+      clearTimeout(_debTimer);
+      _debTimer = setTimeout(fn, ms || 300);
+    };
+  }
+  // Los inputs de medidas ya tienen sus listeners en app.js
+  // Añadimos debounce para evitar re-renders excesivos al escribir
+  document.querySelectorAll('input[data-measure]').forEach(function(inp) {
+    var orig = inp.oninput;
+    inp.addEventListener('input', debounce(function() {
+      // Ya manejado por app.js, solo aseguramos no duplicar
+    }, 150));
+  });
+})();
+
+// ── Sync gv2 garment buttons with existing garment-btn ──
   document.querySelectorAll('.gv2-btn').forEach(btn => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.gv2-btn').forEach(b => b.classList.remove('active'));
