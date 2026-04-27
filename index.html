@@ -7,15 +7,47 @@
 
   <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  /* ═══ PATRONAI PRO — Sistema de Diseño Atelier Cálido ═══ */
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
   :root{
-    --bg:#0d0d14;--surface:#141420;--panel:#1c1c2a;--inp:#232333;
-    --hov:#2a2a3e;--brd:#2e2e45;--brd2:#3d3d58;
-    --acc:#8b5cf6;--acc2:#a78bfa;--accbg:rgba(139,92,246,.12);
-    --grn:#34d399;--red:#f87171;--yel:#fbbf24;
-    --tx:#ede9fe;--tx2:#9490b0;--tx3:#5a5678;
-    --sw:300px;--th:52px;
-    --font:'Segoe UI',system-ui,sans-serif;
-    --mono:'Cascadia Code','Fira Code',monospace;
+    /* ── Paleta Cálida ── */
+    --bg:#1a1510;         /* fondo principal: marrón casi negro */
+    --bg2:#211c15;        /* fondo secundario */
+    --surface:#2a2318;    /* superficie de cards */
+    --panel:#322a1e;      /* panel lateral */
+    --inp:#3d3228;        /* inputs */
+    --hov:#3f3525;        /* hover */
+    --brd:#4a3f2f;        /* borde sutil */
+    --brd2:#5a4f3a;       /* borde visible */
+
+    /* ── Acentos ── */
+    --acc:#c9874a;        /* terracota principal */
+    --acc2:#e0a56a;       /* terracota claro */
+    --accbg:rgba(201,135,74,.14);
+    --gold:#d4a843;       /* dorado */
+    --gold2:#e8c870;      /* dorado claro */
+    --sage:#7a9e7e;       /* verde salvia */
+    --rose:#c47a7a;       /* rosa polvoso */
+
+    /* ── Texto ── */
+    --tx:#f5ede0;         /* texto principal: crema */
+    --tx2:#c4b49a;        /* texto secundario */
+    --tx3:#8a7a62;        /* texto terciario */
+    --tx4:#5a4f3a;        /* texto muy sutil */
+
+    /* ── Semánticos ── */
+    --grn:#6aaa80;--red:#c47070;--yel:#d4a843;
+
+    /* ── Layout ── */
+    --sw:280px;--th:50px;
+    --r:8px;--r2:12px;--r3:16px;
+    --ease:cubic-bezier(.22,1,.36,1);
+
+    /* ── Tipografía ── */
+    --serif:'Playfair Display',Georgia,serif;
+    --font:'Plus Jakarta Sans',system-ui,sans-serif;
+    --mono:'JetBrains Mono','Cascadia Code',monospace;
     --r:8px;--r2:12px;--ease:.16s cubic-bezier(.4,0,.2,1);
   }
   html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px;-webkit-font-smoothing:antialiased}
@@ -479,20 +511,68 @@
   }
 
 
-  /* Atelier panel - se muestra dentro de modal */
-  .atelier-content{
-    background:#1c1c2a!important;
-    border:1px solid #3d3d58!important;
-    border-radius:12px!important;
-    box-shadow:0 24px 64px rgba(0,0,0,.9)!important;
-    overflow:hidden!important;
-    max-height:88vh!important;
-    width:min(900px,96vw)!important;
+  /* ═══ ATELIER PANEL — Fix completo de fondo ═══ */
+  /* Modal wrapper que crea atelier-panel.js */
+  body > .modal:not(#modal-save):not(#modal-load) {
+    background: rgba(0,0,0,.88) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    z-index: 3000 !important;
   }
-  .at-head{
-    background:rgba(139,92,246,.06)!important;
-    border-bottom:1px solid #2e2e45!important;
-    border-radius:12px 12px 0 0!important;
+  /* Overlay del atelier */
+  body > .modal .m-ov {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0,0,0,.88) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+  /* Contenido del atelier */
+  .atelier-content {
+    background: #1c1c2a !important;
+    border: 1px solid #3d3d58 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 24px 64px rgba(0,0,0,.95) !important;
+    overflow: hidden !important;
+    max-height: 88vh !important;
+    width: min(880px,96vw) !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .at-head {
+    background: rgba(139,92,246,.07) !important;
+    border-bottom: 1px solid #2e2e45 !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 18px 22px !important;
+    flex-shrink: 0 !important;
+  }
+  .at-clients {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    background: #1c1c2a !important;
+  }
+  .at-sidebar {
+    background: #141420 !important;
+    border-left: 1px solid #2e2e45 !important;
+  }
+  .client-card {
+    background: #141420 !important;
+    border: 1px solid #2e2e45 !important;
+    border-radius: 8px !important;
+  }
+  .client-card:hover {
+    background: #1c1c2a !important;
+    border-color: #3d3d58 !important;
+  }
+  /* Stats del atelier */
+  .at-stats, [class*="at-stat"] {
+    background: rgba(0,0,0,.2) !important;
+  }
+  /* Formularios del atelier */
+  .at-form input, .at-form select, .at-form textarea {
+    background: #232333 !important;
+    border: 1.5px solid #2e2e45 !important;
+    color: #ede9fe !important;
+    border-radius: 7px !important;
   }
 
 
@@ -581,14 +661,14 @@
 
 </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/DRACOLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  
+  
+
+
+  
+  
+  
+  
 </head>
 <body>
 
@@ -596,245 +676,251 @@
 
   <!-- SIDEBAR -->
   <aside id="sidebar">
-    <div class="sb-logo">
-      <div class="logo-mark" id="logo-mark">✂</div>
-      <div class="logo-text">
-        <span class="logo-name">PatrónAI</span>
-        <span class="logo-tag">Pro</span>
+    <!-- ══ LOGO ══ -->
+    <div class="sb-logo" style="padding:18px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--brd);flex-shrink:0;background:rgba(0,0,0,.15)">
+      <div style="width:38px;height:38px;background:linear-gradient(135deg,var(--acc),var(--gold));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(201,135,74,.4)">✂</div>
+      <div>
+        <div style="font-family:var(--serif);font-size:17px;font-weight:700;color:var(--tx);letter-spacing:-.3px">PatrónAI</div>
+        <div style="font-size:9px;color:var(--acc2);letter-spacing:2px;text-transform:uppercase;font-family:var(--mono)">Atelier Pro</div>
       </div>
-      <button id="sidebar-toggle" class="collapse-btn">‹</button>
+      <button id="sidebar-toggle" style="margin-left:auto;background:none;border:none;color:var(--tx3);cursor:pointer;font-size:16px;padding:4px;border-radius:6px;transition:all .15s" class="collapse-btn">‹</button>
     </div>
 
-    <!-- ── FLUJO TIPO PATRONDIS: pasos visuales ── -->
-    <div class="sb-body">
+    <div class="sb-body" style="flex:1;overflow-y:auto;padding:0">
 
-      <!-- PASO 1: Selector visual de prenda (tarjetas grandes) -->
-      <div class="sb-sec">
-        <div class="sec-title">
-          <span class="step-badge">1</span> Tipo de prenda
+      <!-- ── PASO 1: TIPO DE PRENDA ── -->
+      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--brd)">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <span style="width:18px;height:18px;background:var(--acc);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff">1</span>
+          Tipo de prenda
         </div>
-        <div class="garment-grid-v2">
-          <button class="gv2-btn active" data-garment="franela">
-            <div class="gv2-icon">👕</div>
-            <div class="gv2-lbl">Franela</div>
+        <!-- Tarjetas de prenda -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          <button class="garment-btn prenda-card active" data-garment="franela" style="background:var(--surface);border:1.5px solid var(--brd2);border-radius:10px;padding:10px 4px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span style="font-size:24px">👕</span>
+            <span style="font-size:9px;font-weight:600;color:var(--tx2);letter-spacing:.3px">Franela</span>
           </button>
-          <button class="gv2-btn" data-garment="blusa">
-            <div class="gv2-icon">👚</div>
-            <div class="gv2-lbl">Blusa</div>
+          <button class="garment-btn prenda-card" data-garment="blusa" style="background:var(--surface);border:1.5px solid var(--brd);border-radius:10px;padding:10px 4px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span style="font-size:24px">👚</span>
+            <span style="font-size:9px;font-weight:600;color:var(--tx3);letter-spacing:.3px">Blusa</span>
           </button>
-          <button class="gv2-btn" data-garment="camisa">
-            <div class="gv2-icon">👔</div>
-            <div class="gv2-lbl">Camisa</div>
+          <button class="garment-btn prenda-card" data-garment="camisa" style="background:var(--surface);border:1.5px solid var(--brd);border-radius:10px;padding:10px 4px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span style="font-size:24px">👔</span>
+            <span style="font-size:9px;font-weight:600;color:var(--tx3);letter-spacing:.3px">Camisa</span>
           </button>
-          <button class="gv2-btn" data-garment="falda">
-            <div class="gv2-icon">🩱</div>
-            <div class="gv2-lbl">Falda</div>
+          <button class="garment-btn prenda-card" data-garment="falda" style="background:var(--surface);border:1.5px solid var(--brd);border-radius:10px;padding:10px 4px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span style="font-size:24px">🩱</span>
+            <span style="font-size:9px;font-weight:600;color:var(--tx3);letter-spacing:.3px">Falda</span>
           </button>
-          <button class="gv2-btn" data-garment="vestido">
-            <div class="gv2-icon">👗</div>
-            <div class="gv2-lbl">Vestido</div>
+          <button class="garment-btn prenda-card" data-garment="vestido" style="background:var(--surface);border:1.5px solid var(--brd);border-radius:10px;padding:10px 4px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span style="font-size:24px">👗</span>
+            <span style="font-size:9px;font-weight:600;color:var(--tx3);letter-spacing:.3px">Vestido</span>
           </button>
         </div>
-        <div id="shirt-options" style="display:none;margin-top:6px">
-          <div class="radio-grp">
-            <label class="radio-opt"><input type="radio" name="shirt-gender" value="dama" checked><span>Dama</span></label>
-            <label class="radio-opt"><input type="radio" name="shirt-gender" value="caballero"><span>Caballero</span></label>
+      </div>
+
+      <!-- ── PASO 2: MEDIDAS ── -->
+      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--brd)">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+          <span style="width:18px;height:18px;background:var(--gold);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#1a1510">2</span>
+          Tus medidas <span style="font-family:var(--mono);font-size:8px;color:var(--tx4);margin-left:4px">en cm</span>
+        </div>
+
+        <!-- Grupo: Contornos del cuerpo -->
+        <div style="font-size:10px;font-weight:600;color:var(--acc2);margin-bottom:6px;letter-spacing:.3px">📏 Contornos del cuerpo</div>
+        <div id="medidas-contornos">
+<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="bust">
+              <div style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Busto / Pecho</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="bust" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="bust" value="88" min="50" max="200" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="bust" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div><div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="waist">
+              <div style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Cintura</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="waist" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="waist" value="68" min="40" max="180" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="waist" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div><div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="hip">
+              <div style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Cadera</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="hip" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="hip" value="94" min="50" max="220" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="hip" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div><div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="shoulder">
+              <div style="width:7px;height:7px;border-radius:50%;background:#60a5fa;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Hombros (ancho total)</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="shoulder" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="shoulder" value="38" min="25" max="60" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="shoulder" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div><div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="neck">
+              <div style="width:7px;height:7px;border-radius:50%;background:#60a5fa;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Contorno de cuello</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="neck" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="neck" value="36" min="28" max="60" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="neck" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div>
+
+
+
+
+        </div>
+
+        <div style="font-size:10px;font-weight:600;color:var(--acc2);margin:10px 0 6px;letter-spacing:.3px">📐 Largos</div>
+        <div id="medidas-largos">
+<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="backLength">
+              <div style="width:7px;height:7px;border-radius:50%;background:#6aaa80;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Largo de espalda</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="backLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="backLength" value="40" min="25" max="60" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="backLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div><div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="frontLength">
+              <div style="width:7px;height:7px;border-radius:50%;background:#6aaa80;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Largo de frente</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="frontLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="frontLength" value="42" min="25" max="65" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="frontLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div><div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="totalLength">
+              <div style="width:7px;height:7px;border-radius:50%;background:#6aaa80;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Largo total de la prenda</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="totalLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="totalLength" value="65" min="30" max="160" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="totalLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div><div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="sleeveLength">
+              <div style="width:7px;height:7px;border-radius:50%;background:#6aaa80;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Largo de manga</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="sleeveLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="sleeveLength" value="60" min="10" max="80" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="sleeveLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div><div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="skirtLength">
+              <div style="width:7px;height:7px;border-radius:50%;background:#6aaa80;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Largo de falda</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="skirtLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="skirtLength" value="60" min="25" max="120" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="skirtLength" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div><div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)" data-measure-key="hipDepth">
+              <div style="width:7px;height:7px;border-radius:50%;background:#6aaa80;flex-shrink:0"></div>
+              <label style="font-size:11px;color:var(--tx2);flex:1;cursor:default">Profundidad de cadera</label>
+              <div style="display:flex;align-items:center;gap:2px">
+                <button class="m-step" data-dir="-1" data-target="hipDepth" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">−</button>
+                <input type="number" data-measure="hipDepth" value="20" min="14" max="30" step="0.5" style="width:44px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield">
+                <button class="m-step" data-dir="1" data-target="hipDepth" style="width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;transition:all .12s">+</button>
+              </div>
+            </div>
+
+
+
+
+
+        </div>
+      </div>
+
+      <!-- ── PASO 3: PARÁMETROS ── -->
+      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--brd)">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <span style="width:18px;height:18px;background:var(--sage);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff">3</span>
+          Parámetros
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:11px;color:var(--tx2);flex:1">Margen de costura</label>
+            <div style="display:flex;align-items:center;gap:3px">
+              <input type="number" data-param="seam" value="10" min="5" max="25" style="width:46px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:4px 6px;font-size:11px;font-family:var(--mono);text-align:center;outline:none">
+              <span style="font-size:9px;color:var(--tx3)">mm</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:11px;color:var(--tx2);flex:1">Facilidad / Holgura</label>
+            <div style="display:flex;align-items:center;gap:3px">
+              <input type="number" data-param="ease" value="6" min="0" max="20" style="width:46px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:4px 6px;font-size:11px;font-family:var(--mono);text-align:center;outline:none">
+              <span style="font-size:9px;color:var(--tx3)">cm</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:11px;color:var(--tx2);flex:1">Tamaño de papel</label>
+            <select data-param="paper" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:4px 8px;font-size:11px;outline:none;cursor:pointer">
+              <option value="letter">Carta</option>
+              <option value="a4">A4</option>
+            </select>
           </div>
         </div>
       </div>
 
-      <!-- PASO 2: Medidas con diagrama visual -->
-      <div class="sb-sec">
-        <div class="sec-title">
-          <span class="step-badge">2</span> Tus medidas
-          <span class="badge-u">cm</span>
+      <!-- ── CÓDIGO ATELIER ── -->
+      <div style="padding:12px 16px;border-bottom:1px solid var(--brd)">
+        <div style="font-size:10px;color:var(--tx3);letter-spacing:.5px;margin-bottom:7px">
+          Código de atelier <span style="background:var(--accbg);color:var(--acc2);border-radius:8px;padding:1px 7px;font-family:var(--mono);font-size:9px">% OFF</span>
         </div>
-
-        <!-- Diagrama del cuerpo con puntos de medida -->
-        <div class="body-diagram">
-          <svg viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:160px;display:block;margin:0 auto 8px">
-            <!-- Cuerpo simplificado -->
-            <ellipse cx="60" cy="28" rx="18" ry="22" fill="#2a2a3e" stroke="#3d3d58" stroke-width="1"/>
-            <!-- Torso -->
-            <path d="M32,55 Q20,70 22,95 Q24,115 30,125 Q45,135 60,136 Q75,135 90,125 Q96,115 98,95 Q100,70 88,55 Q75,48 60,46 Q45,48 32,55Z" fill="#2a2a3e" stroke="#3d3d58" stroke-width="1"/>
-            <!-- Brazos -->
-            <path d="M32,60 Q20,75 18,105 Q17,115 22,118" fill="none" stroke="#3d3d58" stroke-width="8" stroke-linecap="round"/>
-            <path d="M88,60 Q100,75 102,105 Q103,115 98,118" fill="none" stroke="#3d3d58" stroke-width="8" stroke-linecap="round"/>
-            <!-- Piernas -->
-            <rect x="35" y="136" width="22" height="75" rx="8" fill="#2a2a3e" stroke="#3d3d58" stroke-width="1"/>
-            <rect x="63" y="136" width="22" height="75" rx="8" fill="#2a2a3e" stroke="#3d3d58" stroke-width="1"/>
-            <!-- Líneas de medida activas (se actualizan con hover) -->
-            <!-- Busto -->
-            <line id="dg-bust"   x1="22" y1="72" x2="98" y2="72" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.6"/>
-            <!-- Cintura -->
-            <line id="dg-waist"  x1="25" y1="95" x2="95" y2="95" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.6"/>
-            <!-- Cadera -->
-            <line id="dg-hip"    x1="30" y1="118" x2="90" y2="118" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.6"/>
-            <!-- Hombros -->
-            <line id="dg-shoulder" x1="32" y1="55" x2="88" y2="55" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="3,2" opacity="0.6"/>
-          </svg>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="aff-input" placeholder="Ej: ATELIER10" autocomplete="off" style="flex:1;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:7px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none;text-transform:uppercase">
+          <button id="aff-apply" style="background:var(--acc);color:#fff;border:none;border-radius:7px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s">✓</button>
         </div>
-
-        <!-- Medidas agrupadas: resaltado visual al hacer focus -->
-        <div class="mgrp-title">📏 Contornos</div>
-        <div class="m-row-v2" data-measure-key="bust">
-          <div class="m-dot" style="background:#f59e0b"></div>
-          <label>Busto / Pecho</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="bust">−</button>
-            <input type="number" data-measure="bust" value="88" min="50" max="200" step="0.5">
-            <button class="m-step" data-dir="1" data-target="bust">+</button>
-          </div>
-        </div>
-        <div class="m-row-v2" data-measure-key="waist">
-          <div class="m-dot" style="background:#f59e0b"></div>
-          <label>Cintura</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="waist">−</button>
-            <input type="number" data-measure="waist" value="68" min="40" max="180" step="0.5">
-            <button class="m-step" data-dir="1" data-target="waist">+</button>
-          </div>
-        </div>
-        <div class="m-row-v2" data-measure-key="hip">
-          <div class="m-dot" style="background:#f59e0b"></div>
-          <label>Cadera</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="hip">−</button>
-            <input type="number" data-measure="hip" value="94" min="50" max="220" step="0.5">
-            <button class="m-step" data-dir="1" data-target="hip">+</button>
-          </div>
-        </div>
-        <div class="m-row-v2" data-measure-key="shoulder">
-          <div class="m-dot" style="background:#60a5fa"></div>
-          <label>Hombros</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="shoulder">−</button>
-            <input type="number" data-measure="shoulder" value="38" min="25" max="60" step="0.5">
-            <button class="m-step" data-dir="1" data-target="shoulder">+</button>
-          </div>
-        </div>
-        <div class="m-row-v2" data-measure-key="neck">
-          <div class="m-dot" style="background:#60a5fa"></div>
-          <label>Cuello</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="neck">−</button>
-            <input type="number" data-measure="neck" value="36" min="28" max="60" step="0.5">
-            <button class="m-step" data-dir="1" data-target="neck">+</button>
-          </div>
-        </div>
-
-        <div class="mgrp-title">📐 Largos</div>
-        <div class="m-row-v2">
-          <div class="m-dot" style="background:#34d399"></div>
-          <label>Largo espalda</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="backLength">−</button>
-            <input type="number" data-measure="backLength" value="40" min="25" max="60" step="0.5">
-            <button class="m-step" data-dir="1" data-target="backLength">+</button>
-          </div>
-        </div>
-        <div class="m-row-v2">
-          <div class="m-dot" style="background:#34d399"></div>
-          <label>Largo frente</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="frontLength">−</button>
-            <input type="number" data-measure="frontLength" value="42" min="25" max="65" step="0.5">
-            <button class="m-step" data-dir="1" data-target="frontLength">+</button>
-          </div>
-        </div>
-        <div class="m-row-v2">
-          <div class="m-dot" style="background:#34d399"></div>
-          <label>Largo total</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="totalLength">−</button>
-            <input type="number" data-measure="totalLength" value="65" min="30" max="160" step="0.5">
-            <button class="m-step" data-dir="1" data-target="totalLength">+</button>
-          </div>
-        </div>
-        <div class="m-row-v2" id="row-sleeve-length">
-          <div class="m-dot" style="background:#34d399"></div>
-          <label>Largo manga</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="sleeveLength">−</button>
-            <input type="number" data-measure="sleeveLength" value="60" min="10" max="80" step="0.5">
-            <button class="m-step" data-dir="1" data-target="sleeveLength">+</button>
-          </div>
-        </div>
-        <div class="m-row-v2" id="row-skirt-length">
-          <div class="m-dot" style="background:#34d399"></div>
-          <label>Largo falda</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="skirtLength">−</button>
-            <input type="number" data-measure="skirtLength" value="60" min="25" max="120" step="0.5">
-            <button class="m-step" data-dir="1" data-target="skirtLength">+</button>
-          </div>
-        </div>
-        <div class="m-row-v2">
-          <div class="m-dot" style="background:#34d399"></div>
-          <label>Prof. cadera</label>
-          <div class="m-input-wrap">
-            <button class="m-step" data-dir="-1" data-target="hipDepth">−</button>
-            <input type="number" data-measure="hipDepth" value="20" min="14" max="30" step="0.5">
-            <button class="m-step" data-dir="1" data-target="hipDepth">+</button>
-          </div>
-        </div>
+        <div id="aff-msg" style="font-size:10px;margin-top:5px"></div>
       </div>
 
-      <!-- PASO 3: Parámetros -->
-      <div class="sb-sec">
-        <div class="sec-title">
-          <span class="step-badge">3</span> Parámetros
+      <!-- ── ACCIONES ── -->
+      <div style="padding:12px 16px;display:flex;flex-direction:column;gap:7px">
+
+        <!-- Botón principal - generar patrón -->
+        <button id="btn-generate" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--acc),var(--gold));color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 18px rgba(201,135,74,.4);transition:all .2s var(--ease)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Generar patrón
+        </button>
+
+        <!-- Estudio de diseño IA -->
+        <button id="btn-ai-studio" style="width:100%;padding:10px;background:rgba(212,168,67,.1);color:var(--gold2);border:1.5px solid rgba(212,168,67,.3);border-radius:10px;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .18s">
+          <span style="font-size:14px">✦</span>
+          Estudio de Diseño IA
+        </button>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button class="btn-g" id="btn-drafter" style="padding:8px;font-size:11px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Trazado manual
+          </button>
+          <button class="btn-p" id="btn-export-pdf" style="padding:8px;font-size:11px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            PDF 1:1
+          </button>
         </div>
-        <div class="m-row"><label>Margen <span class="badge-u">mm</span></label><input type="number" id="p-seam" data-param="seam" value="10" min="5" max="25" step="1"></div>
-        <div class="m-row"><label>Facilidad <span class="badge-u">cm</span></label><input type="number" data-param="ease" value="6" min="0" max="20" step="0.5"></div>
-        <div class="m-row"><label>Papel</label><select data-param="paper"><option value="letter">Carta</option><option value="a4">A4</option></select></div>
-      </div>
 
-      <!-- Código atelier -->
-      <div class="sb-sec">
-        <div class="sec-title">Código Atelier <span class="badge-u">% OFF</span></div>
-        <div class="aff-row">
-          <input type="text" id="aff-input" placeholder="Ej: ATELIER10" autocomplete="off">
-          <button id="aff-apply">✓</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button class="btn-s" id="btn-save" style="padding:8px;font-size:11px">💾 Guardar</button>
+          <button class="btn-g" id="btn-load" style="padding:8px;font-size:11px">📂 Cargar</button>
         </div>
-        <div id="aff-msg"></div>
-      </div>
 
-      <!-- ACCIONES principales -->
-      <div class="sb-sec sb-actions">
-        <!-- ★ LOOK-style: botón Ver en maniquí prominente -->
-        <button class="btn-ai-preview" id="btn-3d-preview">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-          Ver en maniquí 3D
-        </button>
-
-        <button class="btn-g" id="btn-drafter" style="border-color:var(--acc);color:var(--acc2)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          Trazado manual
-        </button>
-        <button class="btn-p" id="btn-export-pdf">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
-          Exportar PDF 1:1
-        </button>
-        <button class="btn-s" id="btn-save">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Guardar patrón
-        </button>
-        <button class="btn-g" id="btn-load">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          Cargar patrón
-        </button>
-        <button class="btn-g" id="btn-atelier-panel" style="position:relative">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <button class="btn-g" id="btn-atelier-panel" style="padding:9px;font-size:11px;position:relative;border-color:rgba(212,168,67,.3);color:var(--gold2)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Panel de Atelier
-          <span class="chip-exp">EXPERT</span>
+          <span style="position:absolute;top:-5px;right:-3px;background:linear-gradient(135deg,var(--gold),var(--acc));color:#1a1510;font-size:7px;font-weight:800;padding:2px 6px;border-radius:8px;letter-spacing:.5px">EXPERT</span>
         </button>
       </div>
-    </div>
 
-    <div class="sb-foot">
-      <div class="scale-dot"></div>
-      <span>Escala 1:1 garantizada</span>
+    </div><!-- end sb-body -->
+
+    <div style="padding:8px 16px;border-top:1px solid var(--brd);display:flex;align-items:center;gap:6px;font-size:10px;color:var(--tx4)">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--sage)"></div>
+      Escala 1:1 garantizada
     </div>
     </aside>
 
@@ -912,7 +998,20 @@
 
     <div id="view-3d" class="view-area">
       <div class="split-label" style="display:none" id="lbl-3d">🎭 Vista 3D</div>
-      <canvas id="three-canvas"></canvas>
+      <canvas id="three-canvas" style="display:none"></canvas>
+      <div id="3d-coming-soon" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg2)">
+        <div style="max-width:380px;text-align:center;padding:40px">
+          <div style="font-size:56px;margin-bottom:20px;opacity:.6">🧵</div>
+          <h2 style="font-family:var(--serif);font-size:24px;font-weight:600;color:var(--tx);margin-bottom:12px;font-style:italic">Vista 3D en desarrollo</h2>
+          <p style="font-size:13px;color:var(--tx2);line-height:1.7;margin-bottom:24px">Estamos perfeccionando el maniquí 3D para que tenga la calidad que mereces. Mientras tanto, puedes generar tu patrón en 2D con todas las medidas.</p>
+          <div style="background:var(--accbg);border:1px solid rgba(201,135,74,.25);border-radius:10px;padding:16px;font-size:12px;color:var(--acc2)">
+            ✦ El enfoque actual está en generar patrones precisos con las fórmulas de tu atelier
+          </div>
+          <button onclick="document.querySelector('[data-view=pattern]').click()" style="margin-top:20px;background:linear-gradient(135deg,var(--acc),var(--gold));color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">
+            → Ver mi patrón 2D
+          </button>
+        </div>
+      </div>
       <div id="ctrl-3d">
         <button class="c3-btn" id="btn-3d-reset">⌂</button>
         <button class="c3-btn" id="btn-3d-wireframe">⬡</button>
@@ -976,6 +1075,133 @@
 
 <!-- Atelier modal handled by CSS + atelier-panel.js -->
 
+<!-- ═══ MODAL: ESTUDIO DE DISEÑO IA ═══ -->
+<div id="modal-ai-studio" style="position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85);backdrop-filter:blur(12px)">
+  <div style="background:var(--surface);border:1px solid var(--brd2);border-radius:16px;width:min(680px,96vw);max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.9)">
+    <!-- Header -->
+    <div style="padding:20px 24px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.2)">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--gold),var(--acc));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">✦</div>
+      <div>
+        <div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--tx);font-style:italic">Estudio de Diseño IA</div>
+        <div style="font-size:11px;color:var(--tx3);font-family:var(--mono)">Transforma tu patrón base con lenguaje natural</div>
+      </div>
+      <button onclick="document.getElementById('modal-ai-studio').style.display='none'" style="margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--brd);color:var(--tx3);width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:14px">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid var(--brd);background:rgba(0,0,0,.15)">
+      <button class="ai-tab active" data-tab="transform" style="flex:1;padding:12px;font-size:12px;font-weight:600;font-family:var(--font);border:none;cursor:pointer;background:transparent;color:var(--acc2);border-bottom:2px solid var(--acc);transition:all .15s">
+        ✦ Transformar diseño
+      </button>
+      <button class="ai-tab" data-tab="atelier" style="flex:1;padding:12px;font-size:12px;font-weight:600;font-family:var(--font);border:none;cursor:pointer;background:transparent;color:var(--tx3);border-bottom:2px solid transparent;transition:all .15s">
+        🏛 Método del Atelier
+      </button>
+    </div>
+
+    <!-- Tab: Transformar diseño -->
+    <div id="tab-transform" class="ai-tab-content" style="flex:1;overflow-y:auto;padding:24px">
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.7">
+        Describe en tus propias palabras qué diseño quieres. El sistema modifica el patrón base automáticamente y también puedes ajustarlo manualmente después.
+      </p>
+
+      <!-- Sugerencias rápidas -->
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px">
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Manga globo</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Escote en V profundo</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Falda evasé</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Pinza de busto diagonal</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Corte princesa</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Hombros caídos</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Manga 3/4 acampanada</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Espalda fruncida</button>
+      </div>
+
+      <!-- Input de prompt -->
+      <div style="position:relative;margin-bottom:12px">
+        <textarea id="ai-prompt" placeholder="Ej: quiero que la manga sea acampanada y el escote tenga un V suave, con una pinza de busto que vaya hacia el costado..." style="width:100%;background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:10px;padding:14px 16px;font-size:13px;font-family:var(--font);outline:none;resize:none;height:100px;line-height:1.6;transition:border-color .15s" onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--brd2)'"></textarea>
+      </div>
+
+      <!-- Modo de aplicación -->
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <label style="flex:1;background:var(--inp);border:1.5px solid var(--brd2);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx2);transition:all .15s">
+          <input type="radio" name="ai-mode" value="auto" checked style="accent-color:var(--acc)">
+          <div><div style="font-weight:600;color:var(--tx)">Automático</div><div style="font-size:10px">El sistema modifica el patrón solo</div></div>
+        </label>
+        <label style="flex:1;background:var(--inp);border:1.5px solid var(--brd2);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx2);transition:all .15s">
+          <input type="radio" name="ai-mode" value="suggest" style="accent-color:var(--acc)">
+          <div><div style="font-weight:600;color:var(--tx)">Sugerencias</div><div style="font-size:10px">Te muestra qué cambiaría para tú decidir</div></div>
+        </label>
+      </div>
+
+      <button id="btn-ai-apply" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--acc),var(--gold));color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 18px rgba(201,135,74,.4);transition:all .2s">
+        <span style="font-size:16px">✦</span> Aplicar transformación
+      </button>
+
+      <!-- Resultado / Preview -->
+      <div id="ai-result" style="display:none;margin-top:16px;padding:14px;background:rgba(106,170,128,.08);border:1px solid rgba(106,170,128,.25);border-radius:10px">
+        <div style="font-size:11px;font-weight:600;color:var(--sage);margin-bottom:8px">✓ Transformación aplicada</div>
+        <div id="ai-result-text" style="font-size:12px;color:var(--tx2);line-height:1.7"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button onclick="document.getElementById('modal-ai-studio').style.display='none'" style="flex:1;padding:9px;background:var(--sage);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Ver en patrón</button>
+          <button onclick="document.getElementById('btn-drafter').click();document.getElementById('modal-ai-studio').style.display='none'" style="flex:1;padding:9px;background:var(--inp);color:var(--tx2);border:1px solid var(--brd);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Ajustar manualmente</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Método del Atelier -->
+    <div id="tab-atelier" class="ai-tab-content" style="display:none;flex:1;overflow-y:auto;padding:24px">
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.7">
+        Cuéntale al sistema cómo patronas en tu atelier. Usa tus propias palabras. El sistema aprenderá tu método y lo aplicará automáticamente cuando generes patrones.
+      </p>
+
+      <!-- Nombres amigables de referencia -->
+      <div style="background:var(--inp);border:1px solid var(--brd);border-radius:8px;padding:12px;margin-bottom:16px;font-family:var(--mono);font-size:10px;color:var(--tx3)">
+        <div style="font-weight:600;color:var(--tx2);margin-bottom:6px">📖 Nombres que puedes usar:</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <span><span style="color:var(--acc2)">Cuarto de busto</span> = busto ÷ 4</span>
+          <span><span style="color:var(--acc2)">Sexto de busto</span> = busto ÷ 6</span>
+          <span><span style="color:var(--acc2)">Quinto de cuello</span> = cuello ÷ 5</span>
+          <span><span style="color:var(--acc2)">Mitad de espalda</span> = espalda ÷ 2</span>
+          <span><span style="color:var(--acc2)">Cuarto de cintura</span> = cintura ÷ 4</span>
+          <span><span style="color:var(--acc2)">Cuarto de cadera</span> = cadera ÷ 4</span>
+          <span><span style="color:var(--acc2)">Largo de espalda</span> = talle espalda</span>
+          <span><span style="color:var(--acc2)">Largo delantero</span> = talle delantero</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--tx2);display:block;margin-bottom:6px">Nombre de tu atelier o método</label>
+        <input id="atelier-method-name" type="text" placeholder="Ej: Método Atelier NH" style="width:100%;background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:8px;padding:9px 12px;font-size:12px;font-family:var(--font);outline:none">
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--tx2);display:block;margin-bottom:6px">Describe tu método de patronaje</label>
+        <textarea id="atelier-method-text" placeholder="Ej: Para la sisa mido el cuarto de busto más 3 centímetros. El cuello lo empiezo con el quinto de cuello. La pinza de busto siempre va a 9cm del hombro hacia el centro. Para la espalda bajo 2cm del hombro y trazo la línea de escote con una leve curva..." style="width:100%;background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:10px;padding:14px;font-size:12px;font-family:var(--font);outline:none;resize:none;height:140px;line-height:1.7" onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--brd2)'"></textarea>
+      </div>
+
+      <!-- Campos de respaldo estructurados -->
+      <details style="margin-bottom:16px">
+        <summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:8px 0">⊞ Fórmulas específicas (opcional — por si quieres ser más preciso)</summary>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Fórmula de la sisa</label><input id="atelier-sisa" type="text" placeholder="Cuarto de busto + 3 cm" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Fórmula del escote delantero</label><input id="atelier-escote-del" type="text" placeholder="Quinto de cuello" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Fórmula del escote trasero</label><input id="atelier-escote-tras" type="text" placeholder="Sexto de cuello" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Posición de la pinza de busto</label><input id="atelier-pinza" type="text" placeholder="9 cm desde el hombro" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Ancho de espalda</label><input id="atelier-espalda" type="text" placeholder="Mitad de espalda + 1 cm" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+        </div>
+      </details>
+
+      <button id="btn-save-atelier-method" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),var(--acc));color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 18px rgba(201,135,74,.35)">
+        💾 Guardar método del atelier
+      </button>
+
+      <div id="atelier-saved-msg" style="display:none;margin-top:12px;padding:12px;background:rgba(106,170,128,.1);border:1px solid rgba(106,170,128,.25);border-radius:8px;font-size:12px;color:var(--sage);text-align:center">
+        ✓ Método guardado. Se aplicará en la siguiente generación de patrones.
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ MODAL TABLA DE TALLAS ═══ -->
 <div id="dv6-tallas-modal" style="position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px)">
   <div style="background:#1c1c2a;border:1px solid #3d3d58;border-radius:12px;width:min(700px,96vw);max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.9)">
@@ -1013,21 +1239,21 @@
 <!-- ══════════════════════════════════════════════════════ -->
 <!-- SCRIPTS — en orden correcto                           -->
 <!-- ══════════════════════════════════════════════════════ -->
-<script src="js/constants.js"></script>
-<script src="js/svg-utils.js"></script>
+
+
 <script>
   if (window.PAT && PAT.SVGUtils) {
     window.n  = PAT.SVGUtils.n;
     window.NS = PAT.SVGUtils.NS;
   }
 </script>
-<script src="js/patterns/franela.js"></script>
-<script src="js/patterns/blusa.js"></script>
-<script src="js/patterns/camisa.js"></script>
-<script src="js/patterns/falda.js"></script>
-<script src="js/patterns/vestido.js"></script>
-<script src="js/pattern-engine.js"></script>
-<script src="js/pdf-export.js"></script>
+
+
+
+
+
+
+
 <!-- mannequin-3d v15 -->
 <script>
 /**
@@ -1224,10 +1450,11 @@ PAT.Mannequin3D = (function () {
     const rS=(m.shoulder/100)/2*bt.sM;
 
     // ── Proporciones del cuerpo humano (OMS) ──
-    const T=1.70*ht;
-    const yAnk=T*.046, yKne=T*.265, yCro=T*.475, yHip=T*.530;
-    const yWai=T*.618, yBus=T*.728, yArm=T*.755, yShl=T*.818;
-    const yNkB=T*.858, yNkT=T*.898, yHdC=T*.970;
+    // Proporciones de 8 cabezas (canon de belleza clásico)
+    const T=1.72*ht;  // altura total
+    const yAnk=T*.046, yKne=T*.272, yCro=T*.480, yHip=T*.538;
+    const yWai=T*.625, yBus=T*.732, yArm=T*.758, yShl=T*.820;
+    const yNkB=T*.860, yNkT=T*.898, yHdC=T*.948; // cabeza más alta = más proporcionada
 
     // ── MATERIALES REALISTAS ──
     // Piel principal — cálida con specular real
@@ -1262,7 +1489,7 @@ PAT.Mannequin3D = (function () {
     // ════════════════════════════════════════
     // PIERNAS — perfil anatómico real
     // ════════════════════════════════════════
-    const legSep=rH*(isM?.445:.498);
+    const legSep=rH*(isM?.42:.46); // más cerca = más natural
     [-1,1].forEach(s=>{
       const lx=s*legSep;
 
@@ -1335,7 +1562,7 @@ PAT.Mannequin3D = (function () {
     const wR=(yWai-yWai)/tH, bR=(yBus-yWai)/tH;
 
     const torsoSecs = isF ? [
-      {y:0,        rx:rW,      rz:rW*.895, cz:0},          // cintura
+      {y:0,        rx:rW,      rz:rW*.88,  cz:0},          // cintura
       {y:tH*.08,   rx:rW*1.02, rz:rW*.915, cz:rB*.018},
       {y:tH*.20,   rx:rB*.862, rz:rB*.828, cz:rB*.048},
       {y:tH*.35,   rx:rB*.938, rz:rB*.898, cz:rB*.098},
@@ -1411,24 +1638,16 @@ PAT.Mannequin3D = (function () {
     // ════════════════════════════════════════
     // CABEZA — forma real del cráneo humano
     // ════════════════════════════════════════
-    const hR=rN*2.12;
+    // Cabeza: radio fijo realista (~9cm) independiente del cuello
+    // Un cuello de 36cm da rN=5.7cm, pero la cabeza mide ~57cm circ = 9.1cm radio
+    const hR = Math.min(0.092, rN*1.60); // máx 9.2cm radio = 18.4cm diámetro
 
     // Cráneo (esferoide más largo que ancho)
     const head=new THREE.Mesh(new THREE.SphereGeometry(hR,44,32),skin);
     head.scale.set(0.885,1.05,0.838);
     head.position.set(0,yHdC,0); head.castShadow=true; bodyGroup.add(head);
 
-    // Mejillas (cheekbones) — sutiles
-    [-1,1].forEach(s=>{
-      const chk=new THREE.Mesh(new THREE.SphereGeometry(hR*.32,12,10),skin);
-      chk.scale.set(0.8,0.55,0.5);
-      chk.position.set(s*hR*.68,yHdC-hR*.12,hR*.55); bodyGroup.add(chk);
-    });
-
-    // Frente
-    const forehead=new THREE.Mesh(new THREE.SphereGeometry(hR*.88,20,14,0,Math.PI*2,0,Math.PI*.38),skin);
-    forehead.scale.set(.92,1,0.85);
-    forehead.position.set(0,yHdC+hR*.18,hR*.18); bodyGroup.add(forehead);
+    // Mejillas y frente — posiciones relativas a hR correcto
 
     // Mandíbula
     const jaw=new THREE.Mesh(new THREE.SphereGeometry(hR*.72,28,18,0,Math.PI*2,Math.PI*.52,Math.PI*.22),skinD);
@@ -1533,17 +1752,17 @@ PAT.Mannequin3D = (function () {
     // HOMBROS
     // ════════════════════════════════════════
     [-1,1].forEach(s=>{
-      const shR=rB*(isM?.198:.172);
+      const shR=rB*(isM?.182:.158);
       const sh=new THREE.Mesh(new THREE.SphereGeometry(shR,20,16),skin);
-      sh.scale.set(1.02,.82,.88); sh.position.set(s*rS*1.022,yShl,0); bodyGroup.add(sh);
+      sh.scale.set(1.0,.80,.86); sh.position.set(s*rS*0.98,yShl,0); bodyGroup.add(sh);
     });
 
     // ════════════════════════════════════════
     // BRAZOS — anatomía muscular real
     // ════════════════════════════════════════
-    const aT=rB*(isM?.315:.262), aM=rB*(isM?.295:.240);
-    const aF=rB*(isM?.270:.215), aW=rB*(isM?.202:.178);
-    const uAH=(yShl-yArm)*.95, fAH=uAH*.92, ang=isM?.22:.28;
+    const aT=rB*(isM?.298:.245), aM=rB*(isM?.278:.225);
+    const aF=rB*(isM?.252:.200), aW=rB*(isM?.190:.165);
+    const uAH=(yShl-yArm)*.95, fAH=uAH*.90, ang=isM?.20:.25; // ángulo más natural
 
     [-1,1].forEach(s=>{
       const ax=s*rS;
@@ -3799,33 +4018,236 @@ PAT.DrafterUI = (function () {
 <!-- ══════════════════════════════════════════════════════ -->
 <script>
 
-  // ── ATELIER PANEL: Fix de visualización ──
-// El CSS ya maneja el fondo/estructura del modal creado por atelier-panel.js
-// Solo necesitamos asegurarnos de que el z-index sea correcto
-(function() {
-  window.addEventListener('load', function() {
-    // Observar cuando se abre el panel de atelier
-    var observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(m) {
-        m.addedNodes.forEach(function(node) {
-          if (!node.classList) return;
-          // Si atelier-panel.js añade un modal al body
-          if ((node.classList.contains('modal') || node.id === 'atelier-modal') 
-              && (node.innerHTML.indexOf('atelier-content') > -1 || 
-                  node.innerHTML.indexOf('at-head') > -1 ||
-                  node.innerHTML.indexOf('Panel de Atelier') > -1)) {
-            // Asegurar z-index alto y overlay correcto
-            node.style.zIndex = '2000';
-            var ov = node.querySelector('.m-ov');
-            if (ov) {
-              ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:0;';
-            }
-          }
+  // ── AI STUDIO: Tabs, atelier save, apply ──
+  document.addEventListener('DOMContentLoaded', function() {
+    // AI Studio button
+    var aiBtn = document.getElementById('btn-ai-studio');
+    if (aiBtn) {
+      aiBtn.addEventListener('click', function() {
+        document.getElementById('modal-ai-studio').style.display = 'flex';
+      });
+    }
+
+    // AI Studio tabs
+    document.querySelectorAll('.ai-tab[data-tab]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var tab = this.dataset.tab;
+        document.querySelectorAll('.ai-tab[data-tab]').forEach(function(b) {
+          b.style.color = 'var(--tx3)';
+          b.style.borderBottomColor = 'transparent';
+          b.style.background = 'transparent';
         });
+        this.style.color = 'var(--acc2)';
+        this.style.borderBottomColor = 'var(--acc)';
+        document.querySelectorAll('.ai-tab-content').forEach(function(c) { c.style.display = 'none'; });
+        var el = document.getElementById('tab-' + tab);
+        if (el) el.style.display = 'flex';
       });
     });
-    observer.observe(document.body, { childList:true });
+
+    // Save atelier method
+    var saveAtelierBtn = document.getElementById('btn-save-atelier-method');
+    if (saveAtelierBtn) {
+      saveAtelierBtn.addEventListener('click', function() {
+        var name = document.getElementById('atelier-method-name').value.trim();
+        var method = document.getElementById('atelier-method-text').value.trim();
+        if (!method) { alert('Describe tu método primero'); return; }
+        var data = {
+          name: name || 'Mi Método',
+          method: method,
+          sisa: document.getElementById('atelier-sisa')?.value || '',
+          escoteDel: document.getElementById('atelier-escote-del')?.value || '',
+          escoteTras: document.getElementById('atelier-escote-tras')?.value || '',
+          pinza: document.getElementById('atelier-pinza')?.value || '',
+          espalda: document.getElementById('atelier-espalda')?.value || '',
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem('patronai_atelier_method', JSON.stringify(data));
+        var msg = document.getElementById('atelier-saved-msg');
+        if (msg) { msg.style.display = 'block'; setTimeout(function(){ msg.style.display='none'; }, 3000); }
+      });
+    }
+
+    // Load saved atelier method on startup
+    var saved = localStorage.getItem('patronai_atelier_method');
+    if (saved) {
+      try {
+        var d = JSON.parse(saved);
+        if (d.name) document.getElementById('atelier-method-name').value = d.name;
+        if (d.method) document.getElementById('atelier-method-text').value = d.method;
+        if (d.sisa) document.getElementById('atelier-sisa').value = d.sisa;
+      } catch(e) {}
+    }
+
+    // Apply AI transformation (calls Anthropic API)
+    var applyBtn = document.getElementById('btn-ai-apply');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', async function() {
+        var prompt = document.getElementById('ai-prompt').value.trim();
+        if (!prompt) { alert('Describe qué diseño quieres'); return; }
+        
+        this.disabled = true;
+        this.innerHTML = '<span style="animation:spin .8s linear infinite;display:inline-block">⟳</span> Aplicando...';
+        
+        try {
+          var atelierMethod = localStorage.getItem('patronai_atelier_method');
+          var atelierCtx = atelierMethod ? JSON.parse(atelierMethod).method : '';
+          
+          var measures = {};
+          document.querySelectorAll('[data-measure]').forEach(function(inp) {
+            measures[inp.dataset.measure] = parseFloat(inp.value) || 0;
+          });
+          
+          var garment = document.querySelector('.garment-btn.active')?.dataset.garment || 'blusa';
+          
+          var response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 1000,
+              messages: [{
+                role: 'user',
+                content: `Eres un experto en patronaje de moda. El usuario quiere transformar un patrón base de ${garment}.
+
+Medidas: Busto ${measures.bust}cm, Cintura ${measures.waist}cm, Cadera ${measures.hip}cm, Hombros ${measures.shoulder}cm.
+${atelierCtx ? 'Método del atelier: ' + atelierCtx : ''}
+
+La transformación deseada: "${prompt}"
+
+Responde en JSON con este formato exacto:
+{
+  "descripcion": "Descripción amigable de los cambios en 2-3 oraciones",
+  "cambios": ["cambio 1 en lenguaje amigable", "cambio 2", ...],
+  "instrucciones_manuales": "Si el usuario quiere ajustar manualmente, qué debe hacer",
+  "aplicable": true
+}`
+              }]
+            })
+          });
+          
+          var data = await response.json();
+          var text = data.content?.[0]?.text || '{}';
+          var clean = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
+          var result = JSON.parse(clean);
+          
+          // Show result
+          var resultEl = document.getElementById('ai-result');
+          var resultText = document.getElementById('ai-result-text');
+          if (resultEl && resultText) {
+            resultText.innerHTML = '<p>' + result.descripcion + '</p>' +
+              '<ul style="margin-top:8px;padding-left:16px">' +
+              (result.cambios || []).map(function(c){ return '<li style="margin-bottom:4px">' + c + '</li>'; }).join('') +
+              '</ul>';
+            resultEl.style.display = 'block';
+          }
+          
+          // Show toast
+          if (window.PAT && PAT.App && PAT.App.toast) {
+            PAT.App.toast('✦ Transformación lista — puedes ajustarla manualmente', 'success');
+          }
+          
+        } catch(e) {
+          console.error('AI Studio error:', e);
+          var resultEl = document.getElementById('ai-result');
+          if (resultEl) {
+            document.getElementById('ai-result-text').textContent = 'Ocurrió un error. Intenta de nuevo o usa el editor manual.';
+            resultEl.style.background = 'rgba(196,112,112,.08)';
+            resultEl.style.borderColor = 'rgba(196,112,112,.25)';
+            resultEl.style.display = 'block';
+          }
+        } finally {
+          this.disabled = false;
+          this.innerHTML = '<span style="font-size:16px">✦</span> Aplicar transformación';
+        }
+      });
+    }
   });
+
+  // ── Prenda cards activas ──
+  document.querySelectorAll('.prenda-card').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.prenda-card').forEach(function(b) {
+        b.style.background = 'var(--surface)';
+        b.style.borderColor = 'var(--brd)';
+        b.querySelector('span:last-child').style.color = 'var(--tx3)';
+      });
+      this.style.background = 'var(--accbg)';
+      this.style.borderColor = 'var(--acc)';
+      this.querySelector('span:last-child').style.color = 'var(--acc2)';
+    });
+  });
+
+  // ── ATELIER PANEL: Fix completo ──
+// Intercepta TODOS los modales que crea atelier-panel.js y les agrega fondo
+(function() {
+  function fixModal(node) {
+    if (!node || !node.style) return;
+    var isAtelier = node.innerHTML && (
+      node.innerHTML.indexOf('atelier-content') > -1 ||
+      node.innerHTML.indexOf('at-head') > -1 ||
+      node.innerHTML.indexOf('Panel de Atelier') > -1 ||
+      node.innerHTML.indexOf('Nuevo cliente') > -1
+    );
+    if (!isAtelier) return;
+
+    // Forzar modal correcto
+    node.style.cssText = 'position:fixed!important;inset:0!important;z-index:3000!important;' +
+      'display:flex!important;align-items:center!important;justify-content:center!important;' +
+      'background:rgba(0,0,0,0)!important;padding:20px!important;';
+
+    // Crear overlay si no existe
+    if (!node.querySelector('.__pat-ov')) {
+      var ov = document.createElement('div');
+      ov.__patOv = true;
+      ov.className = '__pat-ov';
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);' +
+        'backdrop-filter:blur(10px);z-index:-1;';
+      ov.addEventListener('click', function() { node.style.display = 'none'; });
+      node.insertBefore(ov, node.firstChild);
+    }
+
+    // Fijar el contenido interno
+    var ac = node.querySelector('.atelier-content, .m-box');
+    if (ac) {
+      ac.style.cssText = 'position:relative;z-index:1;background:#1c1c2a!important;' +
+        'border:1px solid #3d3d58!important;border-radius:12px!important;' +
+        'width:min(880px,95vw)!important;max-height:88vh!important;' +
+        'overflow:hidden!important;display:flex!important;flex-direction:column!important;' +
+        'box-shadow:0 24px 64px rgba(0,0,0,.95)!important;';
+    }
+
+    // Corregir .m-ov si existe
+    var mOv = node.querySelector('.m-ov');
+    if (mOv) {
+      mOv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);' +
+        'backdrop-filter:blur(10px);z-index:0;';
+    }
+  }
+
+  // Observer para modales añadidos dinámicamente
+  var ob = new MutationObserver(function(muts) {
+    muts.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (node.nodeType !== 1) return;
+        fixModal(node);
+        // También revisar hijos
+        (node.querySelectorAll ? node.querySelectorAll('.modal') : []).forEach(fixModal);
+      });
+      // También detectar cambios de atributo class (cuando se añade 'open')
+      if (m.type === 'attributes' && m.attributeName === 'class') {
+        fixModal(m.target);
+      }
+    });
+  });
+  ob.observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['class','style'] });
+
+  // Interval de seguridad - revisar cada segundo si hay modales sin fondo
+  setInterval(function() {
+    document.querySelectorAll('.modal.open').forEach(function(node) {
+      fixModal(node);
+    });
+  }, 1000);
 })();
 
 // ── Patrondis-style: botones +/- para medidas ──
@@ -4088,6 +4510,1048 @@ PAT.DrafterUI = (function () {
 
 });
 </script>
+
+</body>
+</html<header id="topbar" style="height:var(--th);background:var(--bg2);border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;box-shadow:0 2px 12px rgba(0,0,0,.25);position:relative;z-index:20">
+    <!-- Vista buttons -->
+    <div style="display:flex;gap:3px;background:rgba(0,0,0,.25);border-radius:9px;padding:3px">
+      <button class="view-btn active" data-view="pattern" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;border:none;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font);transition:all .15s;background:var(--acc);color:#fff">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Patrón 2D
+      </button>
+      <button class="view-btn" data-view="viewer3d" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;border:none;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font);transition:all .15s;background:transparent;color:var(--tx3)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        Vista 3D
+      </button>
+      <button class="view-btn" data-view="split" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;border:none;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font);transition:all .15s;background:transparent;color:var(--tx3)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+        Split CLO
+      </button>
+    </div>
+    <!-- Info prenda -->
+    <div style="display:flex;align-items:center;gap:8px;margin-left:4px">
+      <div id="active-garment-pill" style="background:var(--accbg);border:1px solid rgba(201,135,74,.3);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--acc2);font-family:var(--mono)">Franela Básica · 88cm</div>
+      <div id="pattern-pieces-pill" style="background:rgba(106,170,128,.1);border:1px solid rgba(106,170,128,.25);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--sage);font-family:var(--mono)">3 piezas</div>
+    </div>
+    <div style="flex:1"></div>
+    <!-- Zoom -->
+    <div style="display:flex;align-items:center;gap:3px">
+      <button id="zoom-out" style="width:28px;height:28px;background:var(--surface);border:1px solid var(--brd);color:var(--tx2);border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">−</button>
+      <div id="zoom-level" style="width:44px;text-align:center;font-size:11px;color:var(--tx2);font-family:var(--mono)">22%</div>
+      <button id="zoom-in" style="width:28px;height:28px;background:var(--surface);border:1px solid var(--brd);color:var(--tx2);border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">+</button>
+    </div>
+    <!-- Tier -->
+    <div id="tier-badge" style="background:linear-gradient(135deg,var(--gold),var(--acc));color:#1a1510;font-size:10px;font-weight:800;padding:5px 12px;border-radius:20px;letter-spacing:.8px;cursor:pointer;box-shadow:0 2px 10px rgba(212,168,67,.4)">👑 EXPERT</div>
+  </header>E html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PatrónAI Pro</title>
+
+  <style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  /* ═══ PATRONAI PRO — Sistema de Diseño Atelier Cálido ═══ */
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+  :root{
+    /* ── Paleta Cálida ── */
+    --bg:#1a1510;         /* fondo principal: marrón casi negro */
+    --bg2:#211c15;        /* fondo secundario */
+    --surface:#2a2318;    /* superficie de cards */
+    --panel:#322a1e;      /* panel lateral */
+    --inp:#3d3228;        /* inputs */
+    --hov:#3f3525;        /* hover */
+    --brd:#4a3f2f;        /* borde sutil */
+    --brd2:#5a4f3a;       /* borde visible */
+
+    /* ── Acentos ── */
+    --acc:#c9874a;        /* terracota principal */
+    --acc2:#e0a56a;       /* terracota claro */
+    --accbg:rgba(201,135,74,.14);
+    --gold:#d4a843;       /* dorado */
+    --gold2:#e8c870;      /* dorado claro */
+    --sage:#7a9e7e;       /* verde salvia */
+    --rose:#c47a7a;       /* rosa polvoso */
+
+    /* ── Texto ── */
+    --tx:#f5ede0;         /* texto principal: crema */
+    --tx2:#c4b49a;        /* texto secundario */
+    --tx3:#8a7a62;        /* texto terciario */
+    --tx4:#5a4f3a;        /* texto muy sutil */
+
+    /* ── Semánticos ── */
+    --grn:#6aaa80;--red:#c47070;--yel:#d4a843;
+
+    /* ── Layout ── */
+    --sw:280px;--th:50px;
+    --r:8px;--r2:12px;--r3:16px;
+    --ease:cubic-bezier(.22,1,.36,1);
+
+    /* ── Tipografía ── */
+    --serif:'Playfair Display',Georgia,serif;
+    --font:'Plus Jakarta Sans',system-ui,sans-serif;
+    --mono:'JetBrains Mono','Cascadia Code',monospace;
+    --r:8px;--r2:12px;--ease:.16s cubic-bezier(.4,0,.2,1);
+  }
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px;-webkit-font-smoothing:antialiased}
+  #app{display:flex;height:100vh;width:100vw;overflow:hidden}
+
+  /* ── Sidebar ── */
+  #sidebar{width:var(--sw);min-width:var(--sw);background:var(--surface);border-right:1px solid var(--brd);display:flex;flex-direction:column;transition:width var(--ease),min-width var(--ease);overflow:hidden;z-index:20;flex-shrink:0}
+  #sidebar.collapsed{width:52px;min-width:52px}
+  #sidebar.collapsed .sb-body,#sidebar.collapsed .sb-foot{opacity:0;pointer-events:none}
+  #sidebar.collapsed .sb-logo{justify-content:center}
+  #sidebar.collapsed .logo-text,#sidebar.collapsed .collapse-btn{display:none}
+  #sidebar.collapsed .logo-mark{cursor:pointer;box-shadow:0 0 0 2px var(--acc2);animation:blink 2s infinite}
+  .sb-logo{display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid var(--brd);flex-shrink:0;background:linear-gradient(135deg,rgba(139,92,246,.07) 0%,transparent 100%)}
+  .logo-mark{width:34px;height:34px;border-radius:var(--r);background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;flex-shrink:0;box-shadow:0 2px 12px rgba(139,92,246,.4)}
+  .logo-text{display:flex;flex-direction:column;min-width:0}
+  .logo-name{font-size:15px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+  .logo-tag{font-size:9px;font-weight:700;color:var(--acc2);text-transform:uppercase;letter-spacing:1px}
+  .collapse-btn{margin-left:auto;background:none;border:1px solid var(--brd);color:var(--tx3);border-radius:var(--r);width:26px;height:26px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all var(--ease);flex-shrink:0}
+  .collapse-btn:hover{background:var(--hov);color:var(--tx);border-color:var(--brd2)}
+  .sb-body{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--brd) transparent}
+  .sb-body::-webkit-scrollbar{width:3px}
+  .sb-body::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
+  .sb-sec{padding:14px;border-bottom:1px solid var(--brd)}
+  .sec-title{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--tx3);margin-bottom:12px}
+  .badge-u{background:var(--accbg);color:var(--acc2);border:1px solid rgba(139,92,246,.25);padding:1px 6px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:0;text-transform:lowercase}
+  .garment-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .garment-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 8px;background:var(--inp);border:1.5px solid var(--brd);border-radius:var(--r);cursor:pointer;color:var(--tx2);font-family:var(--font);transition:all var(--ease);position:relative;user-select:none}
+  .g-icon{font-size:20px;line-height:1}
+  .g-label{font-size:9px;font-weight:600;white-space:nowrap}
+  .garment-btn:hover{background:var(--hov);border-color:var(--brd2);color:var(--tx);transform:translateY(-2px)}
+  .garment-btn:active{transform:translateY(0)}
+  .garment-btn.active{background:var(--accbg);border-color:var(--acc);color:var(--acc2);box-shadow:0 0 0 1px rgba(139,92,246,.2),0 2px 8px rgba(139,92,246,.15)}
+  .garment-btn.locked{opacity:.4}
+  .garment-btn.locked::after{content:'🔒';position:absolute;top:2px;right:3px;font-size:8px}
+  .radio-grp{display:flex;gap:6px}
+  .radio-opt{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--inp);border:1.5px solid var(--brd);border-radius:var(--r);cursor:pointer;font-size:12px;color:var(--tx2);flex:1;transition:all var(--ease)}
+  .radio-opt:hover{background:var(--hov);color:var(--tx)}
+  .radio-opt input{accent-color:var(--acc)}
+  .mgrp-title{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;margin:10px 0 8px;display:flex;align-items:center;gap:8px}
+  .mgrp-title::after{content:'';flex:1;height:1px;background:var(--brd)}
+  .m-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:8px}
+  .m-row label{color:var(--tx2);font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+  .m-row input[type="number"],.m-row select{width:76px;background:var(--inp);border:1.5px solid var(--brd);color:var(--tx);border-radius:var(--r);padding:5px 8px;font-size:12px;font-family:var(--mono);text-align:right;outline:none;transition:border-color var(--ease),box-shadow var(--ease);-moz-appearance:textfield}
+  .m-row input::-webkit-inner-spin-button{opacity:.4}
+  .m-row input:focus,.m-row select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(139,92,246,.15)}
+  .m-row select{width:92px;text-align:left;cursor:pointer}
+  .aff-row{display:flex;gap:6px;margin-bottom:5px}
+  .aff-row input{flex:1;background:var(--inp);border:1.5px solid var(--brd);color:var(--tx);border-radius:var(--r);padding:6px 10px;font-size:11px;font-family:var(--mono);text-transform:uppercase;outline:none;transition:border-color var(--ease)}
+  .aff-row input:focus{border-color:var(--acc)}
+  .aff-row button{background:var(--inp);border:1.5px solid var(--brd);color:var(--tx2);border-radius:var(--r);padding:6px 12px;font-size:14px;font-weight:700;cursor:pointer;transition:all var(--ease)}
+  .aff-row button:hover{background:var(--hov);color:var(--grn);border-color:var(--grn)}
+  #aff-msg{font-size:10px;min-height:14px;color:var(--tx3)}
+  .sb-actions{display:flex;flex-direction:column;gap:8px}
+  .btn-p,.btn-s,.btn-g{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px 14px;border-radius:var(--r);border:none;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all var(--ease);letter-spacing:.2px}
+  .btn-p{background:var(--acc);color:#fff;box-shadow:0 2px 12px rgba(139,92,246,.35)}
+  .btn-p:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 20px rgba(139,92,246,.5)}
+  .btn-p:active{transform:translateY(0)}
+  .btn-s{background:var(--inp);color:var(--tx);border:1.5px solid var(--brd2)}
+  .btn-s:hover{background:var(--hov);border-color:rgba(139,92,246,.4)}
+  .btn-g{background:transparent;color:var(--tx2);border:1.5px solid var(--brd)}
+  .btn-g:hover{background:var(--inp);color:var(--tx);border-color:var(--brd2)}
+  .chip-exp{background:var(--yel);color:#000;font-size:8px;font-weight:800;padding:1px 5px;border-radius:6px;letter-spacing:.5px}
+  .sb-foot{padding:11px 14px;border-top:1px solid var(--brd);display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx3);flex-shrink:0}
+  .scale-dot{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 6px var(--grn);animation:blink 2.5s infinite;flex-shrink:0}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* ── Main ── */
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  #topbar{height:var(--th);background:var(--surface);border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:12px;padding:0 16px;flex-shrink:0}
+  .view-sw{display:flex;gap:2px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--r);padding:3px}
+  .view-btn{display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:6px;border:none;background:transparent;color:var(--tx2);cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font);transition:all var(--ease);white-space:nowrap}
+  .view-btn:hover{color:var(--tx);background:rgba(255,255,255,.04)}
+  .view-btn.active{background:var(--acc);color:#fff;box-shadow:0 1px 8px rgba(139,92,246,.35)}
+  .tb-info{flex:1;display:flex;gap:8px;overflow:hidden}
+  .info-tag{background:var(--inp);border:1px solid var(--brd);color:var(--tx2);padding:3px 12px;border-radius:20px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .zoom-bar{display:flex;align-items:center;gap:4px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--r);padding:3px 6px}
+  .zoom-btn{background:none;border:none;color:var(--tx2);cursor:pointer;width:26px;height:26px;border-radius:5px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all var(--ease)}
+  .zoom-btn:hover{background:var(--hov);color:var(--tx)}
+  #zoom-label{font-size:11px;color:var(--tx2);min-width:42px;text-align:center;font-family:var(--mono);font-weight:700}
+  .view-area{flex:1;position:relative;overflow:hidden;display:none}
+  .view-area.on{display:flex}
+  /* ── Split view (CLO 3D style) ── */
+  #main.split-view{flex-direction:column}
+  #main.split-view #view-pattern{display:flex!important;flex:1;border-right:2px solid var(--brd2)}
+  #main.split-view #view-3d{display:flex!important;flex:1}
+  #main.split-view .view-area{flex:1}
+  /* En split: mostrar ambos lado a lado */
+  #main.split-view .view-area-wrap{display:flex;flex-direction:row;flex:1;overflow:hidden}
+  .split-label{position:absolute;top:8px;left:12px;background:rgba(10,10,20,.85);
+    border:1px solid var(--brd2);border-radius:8px;padding:4px 12px;
+    font-size:10px;font-weight:700;color:var(--tx3);pointer-events:none;z-index:5;
+    text-transform:uppercase;letter-spacing:.8px}
+  #view-pattern{background:radial-gradient(ellipse at 15% 50%,rgba(139,92,246,.05) 0%,transparent 55%),radial-gradient(ellipse at 85% 20%,rgba(96,165,250,.04) 0%,transparent 45%),#0a0a12}
+  #svg-wrapper{width:100%;height:100%;overflow:hidden;cursor:grab;position:relative}
+  #svg-wrapper:active{cursor:grabbing}
+  #svg-pan{transform-origin:0 0;will-change:transform}
+  #pattern-svg{display:block;overflow:visible}
+  #legend{position:absolute;bottom:16px;left:16px;background:rgba(18,18,30,.93);border:1px solid var(--brd2);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(10px)}
+  .leg-row{display:flex;align-items:center;gap:10px;font-size:10px;color:var(--tx2)}
+  .leg-ln{display:inline-block;width:26px;height:2px;border-radius:1px;flex-shrink:0}
+  .lc{background:#e2e8f0}
+  .ls{background:repeating-linear-gradient(90deg,#666 0,#666 4px,transparent 4px,transparent 8px)}
+  .lg{background:#60a5fa}
+  .lf{background:repeating-linear-gradient(90deg,#f87171 0,#f87171 6px,transparent 6px,transparent 10px)}
+  #cal-badge{position:absolute;bottom:16px;right:16px;background:rgba(18,18,30,.93);border:1px solid var(--brd2);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;color:var(--tx3);backdrop-filter:blur(10px)}
+  #view-3d{background:#06060e}
+  #three-canvas{width:100%;height:100%;display:block}
+  #ctrl-3d{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(18,18,30,.93);border:1px solid var(--brd2);border-radius:24px;padding:7px 16px;backdrop-filter:blur(10px)}
+  .c3-btn{background:none;border:1px solid var(--brd);color:var(--tx2);border-radius:var(--r);padding:5px 10px;cursor:pointer;font-size:14px;transition:all var(--ease)}
+  .c3-btn:hover{background:var(--hov);color:var(--tx)}
+  .c3-hint{font-size:11px;color:var(--tx3)}
+
+  /* ── Modales ── */
+  /* ═══════════════════════════════════════════════
+   SISTEMA DE MODALES — PatrónAI Pro
+   Todos los overlays/dialogs usan esta base
+   ═══════════════════════════════════════════════ */
+  .modal{
+    position:fixed;inset:0;z-index:600;
+    display:none;align-items:center;justify-content:center;
+    padding:16px;
+  }
+  .modal.open{display:flex}
+
+  /* Overlay de fondo — ENCIMA de todo el contenido */
+  .m-ov{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.82);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    z-index:0;
+  }
+
+  /* Caja del modal — fondo sólido, sin transparencias */
+  .m-box{
+    position:relative;
+    z-index:1;
+    background:#1c1c2a;           /* Color sólido — no depende de variable */
+    border:1px solid #3d3d58;
+    border-radius:12px;
+    width:min(440px,94vw);
+    max-height:88vh;
+    overflow-y:auto;
+    box-shadow:0 24px 64px rgba(0,0,0,.9), 0 0 0 1px rgba(139,92,246,.1);
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* Header del modal */
+  .m-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 20px;
+    border-bottom:1px solid #2e2e45;
+    background:rgba(139,92,246,.06);
+    flex-shrink:0;
+    border-radius:12px 12px 0 0;
+  }
+  .m-head h3{
+    font-size:15px;font-weight:700;color:#ede9fe;
+    display:flex;align-items:center;gap:8px;
+  }
+  .m-close{
+    background:rgba(255,255,255,.04);border:1px solid #2e2e45;
+    color:#9490b0;font-size:14px;cursor:pointer;
+    width:30px;height:30px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .15s;flex-shrink:0;
+  }
+  .m-close:hover{background:#2a2a3e;color:#ede9fe;border-color:#3d3d58}
+
+  /* Body del modal */
+  .m-body{
+    padding:20px;
+    flex:1;
+    overflow-y:auto;
+  }
+
+  /* Footer del modal */
+  .m-foot{
+    padding:14px 20px;
+    border-top:1px solid #2e2e45;
+    display:flex;gap:8px;justify-content:flex-end;
+    flex-shrink:0;
+    background:rgba(0,0,0,.15);
+    border-radius:0 0 12px 12px;
+  }
+
+  /* Formularios dentro de modales */
+  .f-label{
+    display:block;font-size:11px;color:#9490b0;
+    margin-bottom:6px;font-weight:600;
+    letter-spacing:.4px;text-transform:uppercase;
+  }
+  .f-inp{
+    width:100%;background:#232333;
+    border:1.5px solid #2e2e45;color:#ede9fe;
+    border-radius:8px;padding:10px 12px;
+    font-size:13px;font-family:var(--font,'Segoe UI');
+    outline:none;transition:border-color .15s;
+    display:block;
+  }
+  .f-inp:focus{border-color:#8b5cf6;background:#28283a}
+  .f-inp::placeholder{color:#5a5678}
+
+  /* Items de lista dentro de modales */
+  .pat-item{
+    display:flex;align-items:center;
+    justify-content:space-between;
+    padding:11px 12px;
+    border-radius:8px;
+    border:1px solid #2e2e45;
+    background:#141420;
+    margin-bottom:6px;
+    transition:all .15s;
+  }
+  .pat-item:hover{background:#1c1c2a;border-color:#3d3d58}
+  .pat-item-name{font-size:13px;color:#ede9fe;font-weight:600}
+  .pat-item-date{font-size:10px;color:#5a5678;font-family:monospace}
+  .pat-item-actions{display:flex;gap:6px}
+
+  /* ── Modales específicos más anchos ── */
+  .modal-upgrade .m-box,
+  .modal-atelier .m-box{width:min(860px,95vw)}
+  .modal-paywall .m-box{width:min(380px,94vw);text-align:center}
+
+  /* Tier cards dentro del modal de upgrade */
+  .tier-cards{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+    margin-top:4px;
+  }
+  @media(max-width:640px){.tier-cards{grid-template-columns:1fr}}
+  .tier-card{
+    background:#141420;border:1.5px solid #2e2e45;
+    border-radius:10px;padding:18px 14px;
+    display:flex;flex-direction:column;gap:6px;
+    transition:border-color .15s;
+  }
+  .tier-card.featured{border-color:#8b5cf6;background:rgba(139,92,246,.06)}
+  .tier-card:hover{border-color:#3d3d58}
+  .tier-card-name{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#5a5678}
+  .tier-card-price{font-size:28px;font-weight:800;color:#ede9fe}
+  .tier-card-price sup{font-size:14px;font-weight:400;color:#9490b0}
+  .tier-card-feat{font-size:11px;color:#9490b0;padding:4px 0;border-bottom:1px solid #1c1c2a;display:flex;align-items:center;gap:6px}
+  .tier-card-feat::before{content:"✦";color:#8b5cf6;font-size:9px}
+  .tier-card-feat.hi{color:#ede9fe}
+
+  /* Atelier panel dentro del modal */
+  .atelier-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:640px){.atelier-grid{grid-template-columns:1fr}}
+  .atelier-section-title{
+    font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    color:#5a5678;padding:12px 0 6px;border-bottom:1px solid #2e2e45;margin-bottom:10px;
+  }
+  .atelier-client-item{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;
+    border-radius:7px;background:#141420;border:1px solid #2e2e45;
+    margin-bottom:5px;cursor:pointer;transition:all .15s;
+  }
+  .atelier-client-item:hover{background:#1c1c2a;border-color:#3d3d58}
+
+  /* ── DrafterUI modal (editor visual) ── */
+  #dv6-modal .m-ov,
+  #dv6-modal ~ .m-ov{ z-index:0 }
+
+  /* ── Gradación de tallas ── */
+  .dv6-grade-modal{
+    position:fixed;inset:0;z-index:800;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  .dv6-grade-modal.open{display:flex}
+  .dv6-grade-box{
+    position:relative;z-index:1;
+    background:#1c1c2a;border:1px solid #3d3d58;border-radius:12px;
+    width:min(480px,94vw);max-height:82vh;overflow-y:auto;
+    padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.9);
+  }
+  .dv6-grade-title{font-size:14px;font-weight:800;color:#ede9fe;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .dv6-grade-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .dv6-grade-lbl{font-size:12px;color:#9490b0;width:140px;flex-shrink:0}
+  .dv6-grade-inp{flex:1;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:7px;padding:7px 10px;font-size:12px;font-family:monospace;outline:none;transition:border-color .15s}
+  .dv6-grade-inp:focus{border-color:#8b5cf6}
+  .dv6-grade-unit{font-size:11px;color:#5a5678;width:20px}
+  #saved-list{max-height:320px;overflow-y:auto}
+  .pat-item{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:6px;transition:all var(--ease)}
+  .pat-item:hover{background:var(--hov);border-color:var(--brd2)}
+  .pat-name{font-weight:600;font-size:13px;margin-bottom:2px}
+  .pat-meta{font-size:11px;color:var(--tx3)}
+  .pat-acts{display:flex;gap:6px}
+  .pat-acts button{background:none;border:1px solid var(--brd);color:var(--tx2);border-radius:6px;padding:4px 9px;font-size:13px;cursor:pointer;transition:all var(--ease)}
+  .pat-acts button:hover{background:var(--hov);color:var(--tx)}
+
+  /* ── Toasts ── */
+  #toasts{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+  .toast{background:var(--panel);border:1px solid var(--brd2);color:var(--tx);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,.5);display:flex;align-items:center;gap:8px;animation:tin .22s ease,tout .22s ease 2.8s forwards;white-space:nowrap}
+  .toast.success{border-color:var(--grn)}
+  .toast.error{border-color:var(--red)}
+  .toast.warning{border-color:var(--yel)}
+  @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes tout{from{opacity:1}to{opacity:0;transform:translateY(8px)}}
+
+  /* ── Monetización ── */
+  .modal-upgrade{width:min(860px,95vw);max-height:90vh;overflow-y:auto;position:relative}
+  .modal-paywall{width:min(380px,95vw);text-align:center}
+  .tier-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}
+  @media(max-width:640px){.tier-cards{grid-template-columns:1fr}}
+  .tier-card{background:var(--inp);border:1px solid var(--brd);border-radius:var(--r2);overflow:hidden;transition:transform var(--ease),box-shadow var(--ease)}
+  .tier-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+  .tier-card.featured{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+  .tier-ch{padding:20px 16px 12px;text-align:center;border-bottom:1px solid var(--brd)}
+  .tier-emoji{font-size:28px;display:block;margin-bottom:6px}
+  .tier-price{font-size:26px;font-weight:800}
+  .tier-psub{font-size:11px;color:var(--tx3);margin-top:2px}
+  .tier-feats{list-style:none;padding:14px 16px;font-size:12px;color:var(--tx2);display:flex;flex-direction:column;gap:6px}
+  .tier-pop{background:var(--acc);color:#fff;font-size:10px;font-weight:700;text-align:center;padding:4px;letter-spacing:.5px}
+  .tier-curr{margin:12px;text-align:center;font-size:11px;color:var(--tx3);padding:6px;background:var(--hov);border-radius:var(--r)}
+  .atelier-content{
+    position:relative;z-index:1;
+    background:#1c1c2a;
+    border:1px solid #3d3d58;
+    border-radius:12px;
+    width:min(900px,96vw);max-height:92vh;
+    display:flex;flex-direction:column;
+    box-shadow:0 24px 64px rgba(0,0,0,.9);
+    overflow:hidden;
+  }
+  .at-head{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #2e2e45;flex-shrink:0;background:rgba(139,92,246,.05);border-radius:12px 12px 0 0}
+  .at-clients{flex:1;overflow-y:auto;padding:12px 20px;display:flex;flex-direction:column;gap:8px}
+  .client-card{display:flex;align-items:center;gap:14px;background:var(--inp);border:1px solid var(--brd);border-radius:var(--r);padding:12px 14px;transition:all var(--ease)}
+  .client-card:hover{background:var(--hov);border-color:var(--brd2)}
+  .cli-av{width:38px;height:38px;border-radius:50%;background:var(--accbg);color:var(--acc2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
+  .at-stats{display:flex;gap:12px;padding:12px 20px;border-top:1px solid var(--brd);flex-shrink:0}
+  .stat-i{text-align:center;flex:1}
+  .stat-v{font-size:18px;font-weight:800;color:var(--acc2)}
+  .stat-l{font-size:10px;color:var(--tx3);margin-top:2px}
+  .aff-banner{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--grn);border-radius:20px;padding:6px 16px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:990;color:var(--grn);box-shadow:0 2px 12px rgba(52,211,153,.2);white-space:nowrap}
+  #tier-badge{position:fixed;top:10px;right:14px;z-index:999;background:var(--panel);border:1px solid var(--brd2);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
+  @media(max-width:640px){
+    :root{--sw:100vw}
+    #app{flex-direction:column}
+    #sidebar{width:100%!important;min-width:100%!important;height:auto;max-height:52vh}
+    #main{height:48vh}
+    .tb-info{display:none}
+  }
+  
+  /* ── Patrondis-style sidebar improvements ── */
+  .step-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+    background:var(--acc);color:#fff;border-radius:50%;font-size:10px;font-weight:800;margin-right:4px;flex-shrink:0}
+
+  /* Garment grid v2 — tarjetas visuales */
+  .garment-grid-v2{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px}
+  .gv2-btn{background:var(--surface);border:1.5px solid var(--brd);border-radius:var(--r);
+    padding:8px 4px;cursor:pointer;transition:all .15s var(--ease);display:flex;flex-direction:column;
+    align-items:center;gap:3px}
+  .gv2-btn:hover{background:var(--hov);border-color:var(--brd2)}
+  .gv2-btn.active{background:var(--accbg);border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+  .gv2-icon{font-size:22px;line-height:1}
+  .gv2-lbl{font-size:9px;font-weight:600;color:var(--tx2);letter-spacing:.3px;text-transform:uppercase}
+  .gv2-btn.active .gv2-lbl{color:var(--acc2)}
+
+  /* Diagrama corporal */
+  .body-diagram{padding:6px 0;display:flex;justify-content:center}
+
+  /* Medidas v2 — con botones +/− */
+  .m-row-v2{display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+  .m-row-v2:last-child{border-bottom:none}
+  .m-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .m-row-v2 label{font-size:11px;color:var(--tx2);flex:1;cursor:default}
+  .m-input-wrap{display:flex;align-items:center;gap:2px;flex-shrink:0}
+  .m-input-wrap input[type=number]{width:44px;background:var(--inp);border:1px solid var(--brd);
+    color:var(--tx);border-radius:5px;padding:3px 4px;font-size:11px;font-family:var(--mono);
+    text-align:center;outline:none;-moz-appearance:textfield}
+  .m-input-wrap input[type=number]::-webkit-inner-spin-button{display:none}
+  .m-input-wrap input[type=number]:focus{border-color:var(--acc)}
+  .m-step{width:20px;height:24px;background:var(--surface);border:1px solid var(--brd);
+    color:var(--tx2);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;transition:all .12s;line-height:1}
+  .m-step:hover{background:var(--hov);color:var(--tx);border-color:var(--acc)}
+  .m-step:active{transform:scale(.92)}
+
+  /* Botón AI Preview — estilo LOOK */
+  .btn-ai-preview{width:100%;padding:11px;border-radius:var(--r);border:none;cursor:pointer;
+    background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;
+    font-size:12px;font-weight:700;font-family:var(--font);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 4px 20px rgba(124,58,237,.4);transition:all .2s var(--ease);
+    margin-bottom:6px;letter-spacing:.2px}
+  .btn-ai-preview:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(124,58,237,.55);filter:brightness(1.1)}
+  .btn-ai-preview:active{transform:translateY(0)}
+
+  /* Diagrama — highlight al hover de medida */
+  .m-row-v2:hover ~ * #dg-bust,
+  .m-row-v2[data-measure-key=bust]:hover ~ .body-diagram #dg-bust { opacity:1!important; }
+
+  
+  /* ── Toast notifications mejorados ── */
+  #toasts{position:fixed;bottom:20px;right:20px;z-index:900;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .toast{
+    display:flex;align-items:center;gap:10px;
+    padding:12px 16px;border-radius:10px;
+    background:#1c1c2a;border:1px solid #3d3d58;
+    box-shadow:0 8px 24px rgba(0,0,0,.6);
+    font-size:12px;color:#ede9fe;font-weight:600;
+    pointer-events:all;cursor:pointer;
+    animation:toastIn .3s ease;
+    min-width:220px;max-width:320px;
+  }
+  .toast.success{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+  .toast.error{border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.08)}
+  .toast.info{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.08)}
+  @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ── Botones mejorados dentro de modales ── */
+  .btn-p{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--acc);color:#fff;border:none;
+    padding:9px 18px;border-radius:8px;
+    font-size:12px;font-weight:700;font-family:var(--font);
+    cursor:pointer;transition:all .15s;
+  }
+  .btn-p:hover{filter:brightness(1.12);transform:translateY(-1px)}
+  .btn-g{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#141420;color:#9490b0;
+    border:1px solid #3d3d58;
+    padding:9px 16px;border-radius:8px;
+    font-size:12px;font-weight:600;font-family:var(--font);
+    cursor:pointer;transition:all .15s;
+  }
+  .btn-g:hover{background:#2a2a3e;color:#ede9fe;border-color:#4d4d68}
+  .btn-s{
+    display:inline-flex;align-items:center;gap:6px;
+    background:rgba(52,211,153,.1);color:#34d399;
+    border:1px solid rgba(52,211,153,.3);
+    padding:9px 16px;border-radius:8px;
+    font-size:12px;font-weight:700;font-family:var(--font);
+    cursor:pointer;transition:all .15s;
+  }
+  .btn-s:hover{background:rgba(52,211,153,.18)}
+
+  /* ── Validation modal mejorado ── */
+  #dv6-vm .m-box, #dv6-vm > div:last-child {
+    background:#1c1c2a!important;
+    border:1px solid #3d3d58!important;
+    border-radius:12px!important;
+  }
+
+  /* ── Scrollbar en modales ── */
+  .m-box::-webkit-scrollbar,.m-body::-webkit-scrollbar{width:4px}
+  .m-box::-webkit-scrollbar-track,.m-body::-webkit-scrollbar-track{background:#141420}
+  .m-box::-webkit-scrollbar-thumb,.m-body::-webkit-scrollbar-thumb{background:#3d3d58;border-radius:2px}
+
+  /* ── Chip EXPERT en botones ── */
+  .chip-exp{
+    position:absolute;top:-6px;right:-4px;
+    background:linear-gradient(135deg,#f59e0b,#d97706);
+    color:#000;font-size:8px;font-weight:800;
+    padding:2px 5px;border-radius:8px;letter-spacing:.5px;
+  }
+
+
+  /* ═══ ATELIER PANEL — Fix completo de fondo ═══ */
+  /* Modal wrapper que crea atelier-panel.js */
+  body > .modal:not(#modal-save):not(#modal-load) {
+    background: rgba(0,0,0,.88) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    z-index: 3000 !important;
+  }
+  /* Overlay del atelier */
+  body > .modal .m-ov {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0,0,0,.88) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+  /* Contenido del atelier */
+  .atelier-content {
+    background: #1c1c2a !important;
+    border: 1px solid #3d3d58 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 24px 64px rgba(0,0,0,.95) !important;
+    overflow: hidden !important;
+    max-height: 88vh !important;
+    width: min(880px,96vw) !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .at-head {
+    background: rgba(139,92,246,.07) !important;
+    border-bottom: 1px solid #2e2e45 !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 18px 22px !important;
+    flex-shrink: 0 !important;
+  }
+  .at-clients {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    background: #1c1c2a !important;
+  }
+  .at-sidebar {
+    background: #141420 !important;
+    border-left: 1px solid #2e2e45 !important;
+  }
+  .client-card {
+    background: #141420 !important;
+    border: 1px solid #2e2e45 !important;
+    border-radius: 8px !important;
+  }
+  .client-card:hover {
+    background: #1c1c2a !important;
+    border-color: #3d3d58 !important;
+  }
+  /* Stats del atelier */
+  .at-stats, [class*="at-stat"] {
+    background: rgba(0,0,0,.2) !important;
+  }
+  /* Formularios del atelier */
+  .at-form input, .at-form select, .at-form textarea {
+    background: #232333 !important;
+    border: 1.5px solid #2e2e45 !important;
+    color: #ede9fe !important;
+    border-radius: 7px !important;
+  }
+
+
+  /* ═══ ATELIER PANEL - Fix completo ═══ */
+  /* El modal que crea atelier-panel.js */
+  .modal:has(.atelier-content),
+  .modal:has(.at-head) {
+    z-index: 2000 !important;
+  }
+  .modal:has(.atelier-content) .m-ov,
+  .modal:has(.at-head) .m-ov {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0,0,0,.85) !important;
+    backdrop-filter: blur(8px) !important;
+    z-index: 0 !important;
+  }
+  .modal:has(.atelier-content) .atelier-content,
+  .modal:has(.at-head) .atelier-content {
+    position: relative !important;
+    z-index: 1 !important;
+    background: #1c1c2a !important;
+    border: 1px solid #3d3d58 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 24px 64px rgba(0,0,0,.92) !important;
+    max-height: 88vh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  /* Fallback para browsers sin :has() */
+  .atelier-content {
+    background: #1c1c2a !important;
+    border: 1px solid #3d3d58 !important;
+    border-radius: 12px !important;
+  }
+  .at-head {
+    background: rgba(139,92,246,.07) !important;
+    border-bottom: 1px solid #2e2e45 !important;
+    padding: 18px 22px !important;
+    flex-shrink: 0 !important;
+  }
+  .at-clients {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 16px 22px !important;
+    background: #1c1c2a !important;
+  }
+  .at-sidebar {
+    background: #141420 !important;
+    border-left: 1px solid #2e2e45 !important;
+  }
+  .client-card {
+    background: #141420 !important;
+    border: 1px solid #2e2e45 !important;
+    border-radius: 8px !important;
+    margin-bottom: 6px !important;
+  }
+  .client-card:hover {
+    background: #1c1c2a !important;
+    border-color: #3d3d58 !important;
+  }
+  /* Stats bar */
+  .at-stats {
+    background: rgba(0,0,0,.2) !important;
+    border-bottom: 1px solid #2e2e45 !important;
+    padding: 12px 22px !important;
+  }
+  .at-stat {
+    background: #141420 !important;
+    border: 1px solid #2e2e45 !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    text-align: center !important;
+  }
+  .at-stat-val {
+    color: #ede9fe !important;
+    font-family: monospace !important;
+    font-weight: 800 !important;
+  }
+  .at-stat-lbl {
+    color: #5a5678 !important;
+    font-size: 10px !important;
+    text-transform: uppercase !important;
+  }
+
+</style>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/DRACOLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- SIDEBAR -->
+  
+
+  <!-- MAIN -->
+  <main id="main">
+    <div id="topbar">
+      <div class="view-sw">
+        <button class="view-btn active" data-view="pattern">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Patrón 2D
+        </button>
+        <button class="view-btn" data-view="viewer3d">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          Vista 3D
+        </button>
+        <button class="view-btn" data-view="split" id="btn-split">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+          Split CLO
+        </button>
+      </div>
+      <div class="tb-info">
+        <span id="pattern-info" class="info-tag">Franela Básica · 88cm</span>
+        <span id="piece-count" class="info-tag">3 piezas</span>
+      </div>
+      <div class="zoom-bar">
+        <button class="zoom-btn" id="zoom-out">−</button>
+        <span id="zoom-label">100%</span>
+        <button class="zoom-btn" id="zoom-in">+</button>
+        <button class="zoom-btn" id="zoom-fit" title="Ajustar">⊡</button>
+      </div>
+    </div>
+
+    <!-- Contenedor flex para split view -->
+    <div class="view-area-wrap" id="view-area-wrap" style="display:flex;flex:1;overflow:hidden;flex-direction:row">
+    <div id="view-pattern" class="view-area on" style="flex:1;min-width:0">
+      <div class="split-label" style="display:none" id="lbl-2d">📐 Patrón 2D</div>
+      <div id="svg-wrapper">
+        <div id="svg-pan">
+          <svg id="pattern-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <defs>
+              <pattern id="gs" width="50" height="50" patternUnits="userSpaceOnUse">
+                <path d="M50 0L0 0 0 50" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
+              </pattern>
+              <pattern id="gl" width="500" height="500" patternUnits="userSpaceOnUse">
+                <rect width="500" height="500" fill="url(#gs)"/>
+                <path d="M500 0L0 0 0 500" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+              </pattern>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                <path d="M0,0 L0,8 L8,4 z" fill="#8b5cf6"/>
+              </marker>
+              <marker id="arrow-rev" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
+                <path d="M0,0 L0,8 L8,4 z" fill="#8b5cf6"/>
+              </marker>
+            </defs>
+            <rect id="svg-bg" x="-9999" y="-9999" width="19998" height="19998" fill="url(#gl)"/>
+            <g id="pattern-content"></g>
+          </svg>
+        </div>
+      </div>
+      <div id="legend">
+        <div class="leg-row"><span class="leg-ln lc"></span>Línea de corte</div>
+        <div class="leg-row"><span class="leg-ln ls"></span>Costura</div>
+        <div class="leg-row"><span class="leg-ln lg"></span>Hilo recto</div>
+        <div class="leg-row"><span class="leg-ln lf"></span>Doblar</div>
+      </div>
+      <div id="cal-badge">
+        <svg width="44" height="44" viewBox="0 0 50 50">
+          <rect x=".5" y=".5" width="49" height="49" fill="none" stroke="#8b5cf6" stroke-width="1"/>
+          <line x1="25" y1="0" x2="25" y2="50" stroke="#8b5cf6" stroke-width=".5" stroke-dasharray="3,3"/>
+          <line x1="0" y1="25" x2="50" y2="25" stroke="#8b5cf6" stroke-width=".5" stroke-dasharray="3,3"/>
+        </svg>
+        <span>5×5 cm</span>
+      </div>
+    </div>
+
+    <div id="view-3d" class="view-area">
+      <div class="split-label" style="display:none" id="lbl-3d">🎭 Vista 3D</div>
+      <canvas id="three-canvas" style="display:none"></canvas>
+      <div id="3d-coming-soon" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg2)">
+        <div style="max-width:380px;text-align:center;padding:40px">
+          <div style="font-size:56px;margin-bottom:20px;opacity:.6">🧵</div>
+          <h2 style="font-family:var(--serif);font-size:24px;font-weight:600;color:var(--tx);margin-bottom:12px;font-style:italic">Vista 3D en desarrollo</h2>
+          <p style="font-size:13px;color:var(--tx2);line-height:1.7;margin-bottom:24px">Estamos perfeccionando el maniquí 3D para que tenga la calidad que mereces. Mientras tanto, puedes generar tu patrón en 2D con todas las medidas.</p>
+          <div style="background:var(--accbg);border:1px solid rgba(201,135,74,.25);border-radius:10px;padding:16px;font-size:12px;color:var(--acc2)">
+            ✦ El enfoque actual está en generar patrones precisos con las fórmulas de tu atelier
+          </div>
+          <button onclick="document.querySelector('[data-view=pattern]').click()" style="margin-top:20px;background:linear-gradient(135deg,var(--acc),var(--gold));color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">
+            → Ver mi patrón 2D
+          </button>
+        </div>
+      </div>
+      <div id="ctrl-3d">
+        <button class="c3-btn" id="btn-3d-reset">⌂</button>
+        <button class="c3-btn" id="btn-3d-wireframe">⬡</button>
+        <span class="c3-hint">Arrastra · Scroll para zoom</span>
+      </div>
+    </div><!-- end view-3d -->
+    </div><!-- end view-area-wrap -->
+  </main>
+</div>
+
+<!-- Modal Guardar -->
+<div id="modal-save" class="modal">
+  <div class="m-ov" onclick="document.getElementById('modal-save').classList.remove('open')"></div>
+  <div class="m-box">
+    <div class="m-head">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Guardar patrón
+      </h3>
+      <button class="m-close" id="cancel-save">✕</button>
+    </div>
+    <div class="m-body">
+      <label class="f-label">Nombre del patrón</label>
+      <input type="text" id="save-name" class="f-inp" placeholder="Ej: Franela talla M" autofocus>
+      <div style="margin-top:12px;font-size:11px;color:#5a5678;font-family:monospace">
+        💾 Se guardará en este dispositivo
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn-g" id="cancel-save2">Cancelar</button>
+      <button class="btn-p" id="confirm-save">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
+        Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cargar -->
+<div id="modal-load" class="modal">
+  <div class="m-ov" onclick="document.getElementById('modal-load').classList.remove('open')"></div>
+  <div class="m-box">
+    <div class="m-head">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Patrones guardados
+      </h3>
+      <button class="m-close" id="cancel-load">✕</button>
+    </div>
+    <div class="m-body">
+      <div id="saved-list-empty" style="text-align:center;padding:32px 0;color:#5a5678;font-size:12px;display:none">
+        <div style="font-size:32px;margin-bottom:10px">📂</div>
+        No hay patrones guardados aún
+      </div>
+      <div id="saved-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<!-- Atelier modal handled by CSS + atelier-panel.js -->
+
+<!-- ═══ MODAL: ESTUDIO DE DISEÑO IA ═══ -->
+<div id="modal-ai-studio" style="position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.85);backdrop-filter:blur(12px)">
+  <div style="background:var(--surface);border:1px solid var(--brd2);border-radius:16px;width:min(680px,96vw);max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.9)">
+    <!-- Header -->
+    <div style="padding:20px 24px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.2)">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--gold),var(--acc));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">✦</div>
+      <div>
+        <div style="font-family:var(--serif);font-size:18px;font-weight:600;color:var(--tx);font-style:italic">Estudio de Diseño IA</div>
+        <div style="font-size:11px;color:var(--tx3);font-family:var(--mono)">Transforma tu patrón base con lenguaje natural</div>
+      </div>
+      <button onclick="document.getElementById('modal-ai-studio').style.display='none'" style="margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--brd);color:var(--tx3);width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:14px">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid var(--brd);background:rgba(0,0,0,.15)">
+      <button class="ai-tab active" data-tab="transform" style="flex:1;padding:12px;font-size:12px;font-weight:600;font-family:var(--font);border:none;cursor:pointer;background:transparent;color:var(--acc2);border-bottom:2px solid var(--acc);transition:all .15s">
+        ✦ Transformar diseño
+      </button>
+      <button class="ai-tab" data-tab="atelier" style="flex:1;padding:12px;font-size:12px;font-weight:600;font-family:var(--font);border:none;cursor:pointer;background:transparent;color:var(--tx3);border-bottom:2px solid transparent;transition:all .15s">
+        🏛 Método del Atelier
+      </button>
+    </div>
+
+    <!-- Tab: Transformar diseño -->
+    <div id="tab-transform" class="ai-tab-content" style="flex:1;overflow-y:auto;padding:24px">
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.7">
+        Describe en tus propias palabras qué diseño quieres. El sistema modifica el patrón base automáticamente y también puedes ajustarlo manualmente después.
+      </p>
+
+      <!-- Sugerencias rápidas -->
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px">
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Manga globo</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Escote en V profundo</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Falda evasé</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Pinza de busto diagonal</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Corte princesa</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Hombros caídos</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Manga 3/4 acampanada</button>
+        <button onclick="document.getElementById('ai-prompt').value=this.textContent;this.style.background='var(--accbg)'" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:var(--font)">Espalda fruncida</button>
+      </div>
+
+      <!-- Input de prompt -->
+      <div style="position:relative;margin-bottom:12px">
+        <textarea id="ai-prompt" placeholder="Ej: quiero que la manga sea acampanada y el escote tenga un V suave, con una pinza de busto que vaya hacia el costado..." style="width:100%;background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:10px;padding:14px 16px;font-size:13px;font-family:var(--font);outline:none;resize:none;height:100px;line-height:1.6;transition:border-color .15s" onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--brd2)'"></textarea>
+      </div>
+
+      <!-- Modo de aplicación -->
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <label style="flex:1;background:var(--inp);border:1.5px solid var(--brd2);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx2);transition:all .15s">
+          <input type="radio" name="ai-mode" value="auto" checked style="accent-color:var(--acc)">
+          <div><div style="font-weight:600;color:var(--tx)">Automático</div><div style="font-size:10px">El sistema modifica el patrón solo</div></div>
+        </label>
+        <label style="flex:1;background:var(--inp);border:1.5px solid var(--brd2);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tx2);transition:all .15s">
+          <input type="radio" name="ai-mode" value="suggest" style="accent-color:var(--acc)">
+          <div><div style="font-weight:600;color:var(--tx)">Sugerencias</div><div style="font-size:10px">Te muestra qué cambiaría para tú decidir</div></div>
+        </label>
+      </div>
+
+      <button id="btn-ai-apply" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--acc),var(--gold));color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 18px rgba(201,135,74,.4);transition:all .2s">
+        <span style="font-size:16px">✦</span> Aplicar transformación
+      </button>
+
+      <!-- Resultado / Preview -->
+      <div id="ai-result" style="display:none;margin-top:16px;padding:14px;background:rgba(106,170,128,.08);border:1px solid rgba(106,170,128,.25);border-radius:10px">
+        <div style="font-size:11px;font-weight:600;color:var(--sage);margin-bottom:8px">✓ Transformación aplicada</div>
+        <div id="ai-result-text" style="font-size:12px;color:var(--tx2);line-height:1.7"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button onclick="document.getElementById('modal-ai-studio').style.display='none'" style="flex:1;padding:9px;background:var(--sage);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Ver en patrón</button>
+          <button onclick="document.getElementById('btn-drafter').click();document.getElementById('modal-ai-studio').style.display='none'" style="flex:1;padding:9px;background:var(--inp);color:var(--tx2);border:1px solid var(--brd);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Ajustar manualmente</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Método del Atelier -->
+    <div id="tab-atelier" class="ai-tab-content" style="display:none;flex:1;overflow-y:auto;padding:24px">
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.7">
+        Cuéntale al sistema cómo patronas en tu atelier. Usa tus propias palabras. El sistema aprenderá tu método y lo aplicará automáticamente cuando generes patrones.
+      </p>
+
+      <!-- Nombres amigables de referencia -->
+      <div style="background:var(--inp);border:1px solid var(--brd);border-radius:8px;padding:12px;margin-bottom:16px;font-family:var(--mono);font-size:10px;color:var(--tx3)">
+        <div style="font-weight:600;color:var(--tx2);margin-bottom:6px">📖 Nombres que puedes usar:</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <span><span style="color:var(--acc2)">Cuarto de busto</span> = busto ÷ 4</span>
+          <span><span style="color:var(--acc2)">Sexto de busto</span> = busto ÷ 6</span>
+          <span><span style="color:var(--acc2)">Quinto de cuello</span> = cuello ÷ 5</span>
+          <span><span style="color:var(--acc2)">Mitad de espalda</span> = espalda ÷ 2</span>
+          <span><span style="color:var(--acc2)">Cuarto de cintura</span> = cintura ÷ 4</span>
+          <span><span style="color:var(--acc2)">Cuarto de cadera</span> = cadera ÷ 4</span>
+          <span><span style="color:var(--acc2)">Largo de espalda</span> = talle espalda</span>
+          <span><span style="color:var(--acc2)">Largo delantero</span> = talle delantero</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--tx2);display:block;margin-bottom:6px">Nombre de tu atelier o método</label>
+        <input id="atelier-method-name" type="text" placeholder="Ej: Método Atelier NH" style="width:100%;background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:8px;padding:9px 12px;font-size:12px;font-family:var(--font);outline:none">
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--tx2);display:block;margin-bottom:6px">Describe tu método de patronaje</label>
+        <textarea id="atelier-method-text" placeholder="Ej: Para la sisa mido el cuarto de busto más 3 centímetros. El cuello lo empiezo con el quinto de cuello. La pinza de busto siempre va a 9cm del hombro hacia el centro. Para la espalda bajo 2cm del hombro y trazo la línea de escote con una leve curva..." style="width:100%;background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:10px;padding:14px;font-size:12px;font-family:var(--font);outline:none;resize:none;height:140px;line-height:1.7" onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--brd2)'"></textarea>
+      </div>
+
+      <!-- Campos de respaldo estructurados -->
+      <details style="margin-bottom:16px">
+        <summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:8px 0">⊞ Fórmulas específicas (opcional — por si quieres ser más preciso)</summary>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Fórmula de la sisa</label><input id="atelier-sisa" type="text" placeholder="Cuarto de busto + 3 cm" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Fórmula del escote delantero</label><input id="atelier-escote-del" type="text" placeholder="Quinto de cuello" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Fórmula del escote trasero</label><input id="atelier-escote-tras" type="text" placeholder="Sexto de cuello" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Posición de la pinza de busto</label><input id="atelier-pinza" type="text" placeholder="9 cm desde el hombro" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+            <div><label style="font-size:10px;color:var(--tx3);display:block;margin-bottom:3px">Ancho de espalda</label><input id="atelier-espalda" type="text" placeholder="Mitad de espalda + 1 cm" style="width:100%;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none"></div>
+        </div>
+      </details>
+
+      <button id="btn-save-atelier-method" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),var(--acc));color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 18px rgba(201,135,74,.35)">
+        💾 Guardar método del atelier
+      </button>
+
+      <div id="atelier-saved-msg" style="display:none;margin-top:12px;padding:12px;background:rgba(106,170,128,.1);border:1px solid rgba(106,170,128,.25);border-radius:8px;font-size:12px;color:var(--sage);text-align:center">
+        ✓ Método guardado. Se aplicará en la siguiente generación de patrones.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL TABLA DE TALLAS ═══ -->
+<div id="dv6-tallas-modal" style="position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px)">
+  <div style="background:#1c1c2a;border:1px solid #3d3d58;border-radius:12px;width:min(700px,96vw);max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.9)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2e2e45;background:rgba(139,92,246,.06);flex-shrink:0">
+      <div style="font-size:14px;font-weight:800;color:#ede9fe;display:flex;align-items:center;gap:8px">
+        📊 Tabla de tallas estándar (Mujer)
+      </div>
+      <button onclick="document.getElementById('dv6-tallas-modal').style.display='none'" style="background:rgba(255,255,255,.06);border:1px solid #2e2e45;color:#9490b0;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px">✕</button>
+    </div>
+    <div style="overflow-y:auto;padding:16px 20px">
+      <p style="font-size:11px;color:#5a5678;margin-bottom:12px;font-family:monospace">Medidas en centímetros. Haz clic en una talla para cargarla automáticamente.</p>
+      <table id="tallas-table" style="width:100%;border-collapse:collapse;font-size:11px;font-family:monospace">
+        <thead>
+          <tr style="background:rgba(139,92,246,.1)">
+            <th style="padding:8px 10px;text-align:left;color:#a78bfa;border:1px solid #2e2e45">Talla</th>
+            <th style="padding:8px 10px;color:#f59e0b;border:1px solid #2e2e45">Busto</th>
+            <th style="padding:8px 10px;color:#f59e0b;border:1px solid #2e2e45">Cintura</th>
+            <th style="padding:8px 10px;color:#f59e0b;border:1px solid #2e2e45">Cadera</th>
+            <th style="padding:8px 10px;color:#60a5fa;border:1px solid #2e2e45">Hombros</th>
+            <th style="padding:8px 10px;color:#34d399;border:1px solid #2e2e45">T.Esp.</th>
+            <th style="padding:8px 10px;color:#34d399;border:1px solid #2e2e45">Manga</th>
+          </tr>
+        </thead>
+        <tbody id="tallas-body"></tbody>
+      </table>
+      <div style="margin-top:16px;padding:12px;background:rgba(139,92,246,.06);border-radius:8px;border:1px solid rgba(139,92,246,.15)">
+        <p style="font-size:10px;color:#5a5678;font-family:monospace">
+          💡 Estas medidas son referencias estándar internacionales (ISO 8559). Cada cuerpo es diferente — usa las medidas reales de tu clienta para mayor precisión.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SCRIPTS — en orden correcto                           -->
+<!-- ══════════════════════════════════════════════════════ -->
+<script src="js/constants.js"></script>
+<script src="js/svg-utils.js"></script>
+<script>
+  if (window.PAT && PAT.SVGUtils) {
+    window.n  = PAT.SVGUtils.n;
+    window.NS = PAT.SVGUtils.NS;
+  }
+</script>
+<script src="js/patterns/franela.js"></script>
+<script src="js/patterns/blusa.js"></script>
+<script src="js/patterns/camisa.js"></script>
+<script src="js/patterns/falda.js"></script>
+<script src="js/patterns/vestido.js"></script>
+<script src="js/pattern-engine.js"></script>
+<script src="js/pdf-export.js"></script>
+
 
 </body>
 </html>
