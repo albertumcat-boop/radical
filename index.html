@@ -307,7 +307,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
 <main id="main">
 
   <!-- SCREEN: PATRÓN 2D -->
-  <div class="screen on" id="screen-pattern">
+  <div class="screen on" id="screen-pattern" style="display:flex;flex-direction:column;">
     <div class="toolbar">
       <span id="pattern-info" style="font-size:12px;color:var(--tx2);font-family:var(--mono);flex:1">Franela Básica · 88cm · 3 piezas</span>
       <button class="tb-btn" id="btn-steps" style="font-size:11px">📐 Paso a paso</button>
@@ -317,7 +317,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
         <button id="zoom-in" style="width:26px;height:26px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:5px;cursor:pointer;font-size:13px">+</button>
       </div>
     </div>
-    <div id="svg-wrapper" style="width:100%;height:100%;overflow:hidden;cursor:grab;position:relative">
+    <div id="svg-wrapper" style="width:100%;height:100%;min-height:400px;overflow:hidden;cursor:grab;position:relative;flex:1">
         <div id="svg-pan" style="transform-origin:0 0;will-change:transform">
           <svg id="pattern-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
             <defs>
@@ -558,6 +558,29 @@ document.addEventListener('DOMContentLoaded', function() {
       window.__PAT_INLINE_INIT();
     }
   }, 200);
+});
+
+// Re-trigger pattern engine after everything loads
+// app.js may call generate() before SVG is in DOM
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    // Re-initialize engine if needed
+    if (window.PAT && PAT.Engine) {
+      try {
+        var svg = document.getElementById('pattern-svg');
+        var content = document.getElementById('pattern-content');
+        if (svg && content) {
+          console.log('[PatrónAI] Re-triggering pattern engine...');
+          PAT.Engine.render && PAT.Engine.render(
+            window.__PAT_GARMENT || 'franela',
+            window.__PAT_MEASURES || {bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,hipDepth:20,seam:10,ease:6}
+          );
+        } else {
+          console.warn('[PatrónAI] SVG still not found after load');
+        }
+      } catch(e) { console.error('[PatrónAI] Engine re-trigger error:', e); }
+    }
+  }, 500);
 });
 </script>
 
@@ -2373,6 +2396,8 @@ function showToast(msg,type){
 'use strict';
 
 // ── Estado global ──
+window.__PAT_GARMENT = 'franela';
+window.__PAT_MEASURES = {bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,hipDepth:20,seam:10,ease:6};
 const STATE = {
   garment: 'franela',
   measures: {
@@ -3119,6 +3144,9 @@ window.deleteSaved=function(i){
 
 // Trigger del patrón via engine existente
 function triggerPattern(){
+  // Sync to window vars for engine re-trigger
+  window.__PAT_GARMENT = STATE.garment;
+  window.__PAT_MEASURES = {...STATE.measures};
   if(window.PAT&&PAT.Engine){
     try{ PAT.Engine.render(STATE.garment,STATE.measures); }catch(e){ console.warn('[PatrónAI] Engine error:',e); }
   }
