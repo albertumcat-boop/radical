@@ -237,6 +237,14 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
 
   <div class="sb-section">
     <div class="sb-label"><span class="sb-num" style="background:var(--acc)">1</span>Tipo de prenda</div>
+    <!-- Botones ocultos para app.js -->
+    <div style="display:none" id="hidden-garment-btns">
+      <button class="garment-btn" data-garment="franela">Franela</button>
+      <button class="garment-btn" data-garment="blusa">Blusa</button>
+      <button class="garment-btn" data-garment="camisa">Camisa</button>
+      <button class="garment-btn" data-garment="falda">Falda</button>
+      <button class="garment-btn" data-garment="vestido">Vestido</button>
+    </div>
     <div class="g-grid" id="garment-grid">
       <div class="g-card on" data-g="franela"><span class="g-card-icon">👕</span><span class="g-card-lbl">Franela</span></div>
       <div class="g-card" data-g="blusa"><span class="g-card-icon">👚</span><span class="g-card-lbl">Blusa</span></div>
@@ -296,6 +304,23 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
   </div>
 
   <button id="sidebar-toggle" style="display:none">‹</button>
+  <!-- Inputs ocultos para app.js (usa data-measure) -->
+  <div id="hidden-measure-inputs" style="display:none">
+    <input type="number" data-measure="bust" value="88">
+    <input type="number" data-measure="waist" value="68">
+    <input type="number" data-measure="hip" value="94">
+    <input type="number" data-measure="shoulder" value="38">
+    <input type="number" data-measure="neck" value="36">
+    <input type="number" data-measure="backLength" value="40">
+    <input type="number" data-measure="frontLength" value="42">
+    <input type="number" data-measure="totalLength" value="65">
+    <input type="number" data-measure="sleeveLength" value="60">
+    <input type="number" data-measure="skirtLength" value="60">
+    <input type="number" data-measure="hipDepth" value="20">
+    <input type="number" data-measure="seam" value="10">
+    <input type="number" data-measure="ease" value="6">
+    <select data-measure="paper"><option value="letter">Carta</option></select>
+  </div>
   <div style="padding:10px 16px;border-top:1px solid var(--brd);font-size:10px;color:var(--tx4);display:flex;align-items:center;gap:6px;margin-top:auto">
     <div style="width:6px;height:6px;border-radius:50%;background:var(--sage)"></div>
     Escala 1:1 garantizada
@@ -2817,307 +2842,241 @@ function closeSidebar() {
 // ── Init ──
 // Run after app.js - use setTimeout to ensure app.js ran first
 window.__PAT_INLINE_INIT = function() {
+  console.log('[PatrónAI Inline] Inicializando...');
 
-  // Tabla de tallas
-  const tbody = document.getElementById('tallas-body');
-  if(tbody) {
-    tbody.innerHTML = TALLAS.map((t,i)=>`
-      <tr style="cursor:pointer;border-bottom:1px solid var(--brd)"
-        onmouseover="this.style.background='var(--accbg)'"
-        onmouseout="this.style.background=''"
-        onclick="loadTalla(${i}); closeModal('modal-tallas')">
-        <td style="padding:8px 12px;font-weight:700;color:var(--acc)">${t.t}</td>
-        <td style="padding:8px 10px;text-align:center">${t.b}</td>
-        <td style="padding:8px 10px;text-align:center">${t.w}</td>
-        <td style="padding:8px 10px;text-align:center">${t.h}</td>
-        <td style="padding:8px 10px;text-align:center">${t.s}</td>
-        <td style="padding:8px 10px;text-align:center">${t.e}</td>
-        <td style="padding:8px 10px;text-align:center">${t.m}</td>
-      </tr>`).join('');
+  // ── SYNC: visible inputs → hidden inputs → app.js ──
+  // Cuando el usuario cambia un input visible, actualizar el input oculto
+  // y disparar el evento input en él para que app.js lo detecte
+  function syncToHidden(key, value) {
+    var hidden = document.querySelector('#hidden-measure-inputs [data-measure="'+key+'"]');
+    if (hidden) {
+      hidden.value = value;
+      hidden.dispatchEvent(new Event('input', {bubbles: true}));
+      hidden.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+    STATE.measures[key] = parseFloat(value) || value;
+    window.__PAT_MEASURES = Object.assign({}, STATE.measures);
   }
 
-  // Sidebar mobile
-  const menuBtn = document.getElementById('menu-btn');
-  if(menuBtn) menuBtn.onclick = ()=>document.getElementById('sidebar').classList.toggle('open');
-
-  // Logo → volver al patrón
-  const logo = document.getElementById('logo-btn');
-  if(logo) logo.onclick = ()=>showScreen('screen-pattern');
-
-  // Garment cards
-  document.querySelectorAll('#garment-grid .g-card, .g-card[data-g]').forEach(card=>{
-    card.addEventListener('click', function(){
-      document.querySelectorAll('#sb-garment-grid .g-card').forEach(c=>c.classList.remove('active'));
-      this.classList.add('active');
-      STATE.garment = this.dataset.g || this.dataset.garment;
-      window.__PAT_GARMENT = STATE.garment;
-      // Mostrar/ocultar filas según prenda
-      const hasSleeve = ['franela','blusa','camisa','vestido'].includes(STATE.garment);
-      const hasSkirt  = ['falda','vestido'].includes(STATE.garment);
-      const sr = document.getElementById('row-sleeve');
-      const skr = document.getElementById('row-skirt');
-      if(sr)  sr.style.display  = hasSleeve?'flex':'none';
-      if(skr) skr.style.display = hasSkirt?'flex':'none';
-    });
+  // Sync initial values from hidden to visible
+  document.querySelectorAll('#hidden-measure-inputs [data-measure]').forEach(function(hidden) {
+    var key = hidden.dataset.measure;
+    var visible = document.querySelector('.m-inp[data-m="'+key+'"]');
+    if (visible && hidden.value) visible.value = hidden.value;
   });
 
-  // Botones +/- de medidas
-  // Botones +/- medidas (clase m-pm, data-t, data-m)
-  document.querySelectorAll('.m-pm').forEach(btn=>{
-    btn.addEventListener('click', function(){
-      const target = this.dataset.t || this.dataset.target;
-      const inp = document.querySelector(`.m-inp[data-m="${target}"]`) ||
-                  document.querySelector(`input[data-measure="${target}"]`);
-      if(!inp) return;
-      const step = parseFloat(inp.step)||0.5;
-      const dir  = parseInt(this.dataset.dir);
-      let val = parseFloat(inp.value)+dir*step;
+  // ── BOTONES +/- ──
+  document.querySelectorAll('.m-pm').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var key = this.dataset.t;
+      var inp = document.querySelector('.m-inp[data-m="'+key+'"]');
+      if (!inp) return;
+      var step = parseFloat(inp.step) || 0.5;
+      var dir  = parseInt(this.dataset.dir);
+      var val  = Math.round((parseFloat(inp.value) + dir * step) * 10) / 10;
       val = Math.min(Math.max(val, parseFloat(inp.min)||0), parseFloat(inp.max)||999);
-      inp.value = Math.round(val*10)/10;
-      const key = target;
-      STATE.measures[key] = val;
-      window.__PAT_MEASURES = {...STATE.measures};
-      triggerPattern();
+      inp.value = val;
+      syncToHidden(key, val);
     });
   });
 
-  // Inputs de medidas
-  // Inputs de medidas (data-m y data-measure)
-  document.querySelectorAll('.m-inp[data-m], input[data-measure]').forEach(inp=>{
-    inp.addEventListener('change', function(){
-      const key = this.dataset.m || this.dataset.measure;
-      STATE.measures[key] = parseFloat(this.value)||0;
-      window.__PAT_MEASURES = {...STATE.measures};
-    });
-    inp.addEventListener('input', function(){
-      const key = this.dataset.m || this.dataset.measure;
-      STATE.measures[key] = parseFloat(this.value)||0;
+  // ── VISIBLE INPUTS → sync a hidden ──
+  document.querySelectorAll('.m-inp[data-m]').forEach(function(inp) {
+    ['input','change'].forEach(function(evt) {
+      inp.addEventListener(evt, function() {
+        syncToHidden(this.dataset.m, this.value);
+      });
     });
   });
 
-  // Parámetros
-  document.querySelectorAll('[data-param]').forEach(el=>{
-    el.addEventListener('change', function(){
-      STATE.measures[this.dataset.param] = parseFloat(this.value)||this.value;
-      window.__PAT_MEASURES = {...STATE.measures};
+  // ── VISIBLE PARAMS → sync a hidden ──
+  document.querySelectorAll('[data-param]').forEach(function(el) {
+    el.addEventListener('change', function() {
+      syncToHidden(this.dataset.param, this.value);
     });
   });
 
-  // Botones principales
-  const btnGen = document.getElementById('btn-generate');
-  if(btnGen) btnGen.onclick = ()=>{ triggerPattern(); showToast('Patrón generado ✓','ok'); };
+  // ── G-CARD → click en botón oculto de app.js ──
+  document.querySelectorAll('.g-card[data-g]').forEach(function(card) {
+    card.addEventListener('click', function() {
+      var g = this.dataset.g;
+      // Visual activo
+      document.querySelectorAll('.g-card').forEach(function(c) { c.classList.remove('on'); });
+      this.classList.add('on');
+      STATE.garment = g;
+      window.__PAT_GARMENT = g;
+      // Mostrar/ocultar filas
+      var hasSleeve = ['franela','blusa','camisa','vestido'].includes(g);
+      var hasSkirt  = ['falda','vestido'].includes(g);
+      var sr  = document.getElementById('row-sleeve');
+      var skr = document.getElementById('row-skirt');
+      if (sr)  sr.style.display  = hasSleeve ? 'flex' : 'none';
+      if (skr) skr.style.display = hasSkirt  ? 'flex' : 'none';
+      // Trigger app.js hidden button
+      var hiddenBtn = document.querySelector('#hidden-garment-btns .garment-btn[data-garment="'+g+'"]');
+      if (hiddenBtn) hiddenBtn.click();
+    });
+  });
 
-  const btnAI = document.getElementById('btn-ai-studio');
-  if(btnAI) btnAI.onclick = ()=>openModal('modal-ai');
+  // ── BTN-AI-STUDIO ──
+  var btnAI = document.getElementById('btn-ai-studio');
+  if (btnAI) btnAI.addEventListener('click', function() { openModal('modal-ai'); });
 
-  const btnDrafter = document.getElementById('btn-drafter');
-  if(btnDrafter) btnDrafter.onclick = openDrafter;
+  // ── BTN-STEPS ──
+  var btnSteps = document.getElementById('btn-steps');
+  if (btnSteps) btnSteps.addEventListener('click', initSteps);
 
-  const btnSave = document.getElementById('btn-save');
-  if(btnSave) btnSave.onclick = ()=>openModal('modal-save');
-
-  const btnLoad = document.getElementById('btn-load');
-  if(btnLoad) btnLoad.onclick = ()=>openModal('modal-load');
-
-  const btnTallas = document.getElementById('btn-tallas');
-  if(btnTallas) btnTallas.onclick = ()=>openModal('modal-tallas');
-
-  const btnPdf = document.getElementById('btn-pdf');
-  if(btnPdf) btnPdf.onclick = ()=>{
-    if(window.PAT&&PAT.PDFExport){ PAT.PDFExport.generate(); return; }
-    window.__loadJsPDF(function(){ if(window.PAT&&PAT.PDFExport) PAT.PDFExport.generate(); else showToast('PDF no disponible','err'); });
+  // ── STEP NAVIGATION ──
+  var stepPrev = document.getElementById('step-prev');
+  var stepNext = document.getElementById('step-next');
+  if (stepPrev) stepPrev.onclick = function() {
+    if (STATE.currentStep > 0) { STATE.currentStep--; renderCurrentStep(); }
   };
-  const resultPdfBtn = document.getElementById('result-pdf-btn');
-  if(resultPdfBtn) resultPdfBtn.onclick = ()=>{
-    if(window.PAT&&PAT.PDFExport){ PAT.PDFExport.generate(); return; }
-    window.__loadJsPDF(function(){ if(window.PAT&&PAT.PDFExport) PAT.PDFExport.generate(); else showToast('PDF no disponible','err'); });
-  };
-
-  const btnAtelier = document.getElementById('btn-atelier-panel');
-  if(btnAtelier) btnAtelier.onclick = ()=>{ if(window.PAT&&PAT.AtelierPanel) PAT.AtelierPanel.open(); };
-
-  // Botón: ver pasos
-  const btnSteps = document.getElementById('btn-steps');
-  if(btnSteps) btnSteps.onclick = initSteps;
-
-  // Navegación de pasos
-  const stepPrev = document.getElementById('step-prev');
-  const stepNext = document.getElementById('step-next');
-  if(stepPrev) stepPrev.onclick = ()=>{ if(STATE.currentStep>0){STATE.currentStep--;renderCurrentStep();} };
-  if(stepNext) stepNext.onclick = ()=>{
-    if(STATE.currentStep<STATE.totalSteps-1){ STATE.currentStep++; renderCurrentStep(); }
+  if (stepNext) stepNext.onclick = function() {
+    if (STATE.currentStep < STATE.totalSteps - 1) { STATE.currentStep++; renderCurrentStep(); }
     else showResult();
   };
 
-  // Resultado
-  const resultEdit = document.getElementById('result-edit-btn');
-  if(resultEdit) resultEdit.onclick = openDrafter;
-  // result-pdf-btn handled above
-  const resultSave = document.getElementById('result-save-btn');
-  if(resultSave) resultSave.onclick = ()=>openModal('modal-save');
+  // ── BTN-TALLAS (topbar) ──
+  var btnTallas = document.getElementById('btn-tallas');
+  if (btnTallas) btnTallas.onclick = function() { openModal('modal-tallas'); };
 
-  // Guardar
-  const confirmSave = document.getElementById('confirm-save');
-  if(confirmSave) confirmSave.onclick = ()=>{
-    const name = document.getElementById('save-name').value.trim()||'Patrón sin nombre';
-    const saves = JSON.parse(localStorage.getItem('patronai_saves')||'[]');
-    saves.unshift({name,garment:STATE.garment,measures:{...STATE.measures},date:new Date().toISOString()});
-    localStorage.setItem('patronai_saves', JSON.stringify(saves.slice(0,20)));
-    closeModal('modal-save');
-    showToast('✓ Patrón guardado','ok');
-  };
-
-  // Cargar lista
-  document.getElementById('modal-load').addEventListener('click', function(e){
-    if(e.target.closest('.modal-bg')||e.target.closest('.modal-close')) return;
-  });
-  const modalLoad = document.getElementById('modal-load');
-  if(modalLoad) {
-    const origOpen = modalLoad.addEventListener.bind(modalLoad);
-    // Refrescar lista al abrir
-    const oldOpenLoad = window.openModal;
-    window.openModal = function(id){
-      if(id==='modal-load') refreshSavedList();
-      const m=document.getElementById(id); if(m) m.classList.add('open');
-    };
+  // ── TABLA DE TALLAS ──
+  var tbody = document.getElementById('tallas-body');
+  if (tbody) {
+    tbody.innerHTML = TALLAS.map(function(t, i) {
+      return '<tr style="cursor:pointer;border-bottom:1px solid var(--brd)"' +
+        ' onmouseover="this.style.background='var(--accbg)'"' +
+        ' onmouseout="this.style.background=''"' +
+        ' onclick="loadTalla('+i+');closeModal('modal-tallas')">' +
+        '<td style="padding:8px 12px;font-weight:700;color:var(--acc)">'+t.t+'</td>' +
+        '<td style="padding:8px 10px;text-align:center">'+t.b+'</td>' +
+        '<td style="padding:8px 10px;text-align:center">'+t.w+'</td>' +
+        '<td style="padding:8px 10px;text-align:center">'+t.h+'</td>' +
+        '<td style="padding:8px 10px;text-align:center">'+t.s+'</td>' +
+        '<td style="padding:8px 10px;text-align:center">'+t.e+'</td>' +
+        '<td style="padding:8px 10px;text-align:center">'+t.m+'</td>' +
+        '</tr>';
+    }).join('');
   }
 
-  // Tabs del AI modal
-  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn=>{
-    btn.addEventListener('click', function(){
-      const tab = this.dataset.tab;
-      this.closest('.modal-box').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-      this.classList.add('active');
-      this.closest('.modal-box').querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-      const content = document.getElementById('tab-'+tab);
-      if(content) content.classList.add('active');
+  // ── TAB BUTTONS (AI modal) ──
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var tab = this.dataset.tab;
+      var box = this.closest('.modal-box');
+      box.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('on'); });
+      this.classList.add('on');
+      box.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('on'); });
+      var pane = document.getElementById('tab-'+tab);
+      if (pane) pane.classList.add('on');
     });
   });
 
-  // Guardar método atelier
-  const saveAtelier = document.getElementById('btn-save-atelier');
-  if(saveAtelier) saveAtelier.onclick = ()=>{
-    const data = {
-      name:    document.getElementById('atelier-name')?.value||'Mi Método',
-      method:  document.getElementById('atelier-method')?.value||'',
-      sisa:    document.getElementById('af-sisa')?.value||'',
-      escoteDel: document.getElementById('af-escote-del')?.value||'',
-      escoteTras:document.getElementById('af-escote-tras')?.value||'',
-      pinza:   document.getElementById('af-pinza')?.value||'',
-      espalda: document.getElementById('af-espalda')?.value||'',
-      savedAt: new Date().toISOString(),
+  // ── BTN-SAVE-ATELIER ──
+  var saveAtelier = document.getElementById('btn-save-atelier');
+  if (saveAtelier) saveAtelier.onclick = function() {
+    var data = {
+      name:   document.getElementById('atelier-name')?.value || 'Mi Método',
+      method: document.getElementById('atelier-method')?.value || '',
+      sisa:   document.getElementById('af-sisa')?.value || '',
+      savedAt: new Date().toISOString()
     };
     localStorage.setItem('patronai_atelier_method', JSON.stringify(data));
-    const msg = document.getElementById('atelier-saved');
-    if(msg){ msg.style.display='block'; setTimeout(()=>msg.style.display='none',3000); }
-    showToast('✓ Método del atelier guardado','ok');
+    var msg = document.getElementById('atelier-saved');
+    if (msg) { msg.style.display='block'; setTimeout(function(){msg.style.display='none';}, 3000); }
+    showToast('✓ Método del atelier guardado', 'ok');
   };
 
-  // Cargar método atelier guardado
-  const savedAtelier = localStorage.getItem('patronai_atelier_method');
-  if(savedAtelier) {
-    try{
-      const d=JSON.parse(savedAtelier);
-      if(d.name&&document.getElementById('atelier-name')) document.getElementById('atelier-name').value=d.name;
-      if(d.method&&document.getElementById('atelier-method')) document.getElementById('atelier-method').value=d.method;
-    }catch(e){}
-  }
-
-  // AI Apply
-  const aiApply = document.getElementById('btn-ai-apply');
-  if(aiApply) aiApply.onclick = async function(){
-    const prompt = document.getElementById('ai-prompt')?.value?.trim();
-    if(!prompt){ showToast('Describe qué diseño quieres','err'); return; }
-    this.disabled=true; this.textContent='⟳ Aplicando...';
-    try{
-      const saved = localStorage.getItem('patronai_atelier_method');
-      const atelierCtx = saved?JSON.parse(saved).method:'';
-      const m = STATE.measures;
-      const resp = await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-20250514',max_tokens:800,
-          messages:[{role:'user',content:`Eres experto en patronaje de moda. Patrón de ${STATE.garment}. Medidas: Busto ${m.bust}cm, Cintura ${m.waist}cm, Cadera ${m.hip}cm.${atelierCtx?' Método del atelier: '+atelierCtx:''} Transformación: "${prompt}". Responde SOLO en JSON: {"descripcion":"...","cambios":["..."],"instrucciones_manuales":"..."}`}]
+  // ── BTN-AI-APPLY ──
+  var aiApply = document.getElementById('btn-ai-apply');
+  if (aiApply) aiApply.onclick = async function() {
+    var prompt = document.getElementById('ai-prompt')?.value?.trim();
+    if (!prompt) { showToast('Describe qué diseño quieres', 'err'); return; }
+    this.disabled = true;
+    this.textContent = '⟳ Aplicando...';
+    try {
+      var saved = localStorage.getItem('patronai_atelier_method');
+      var atelierCtx = saved ? JSON.parse(saved).method : '';
+      var m = STATE.measures;
+      var resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514', max_tokens: 800,
+          messages: [{role:'user', content:
+            'Eres experto en patronaje. Patrón de '+STATE.garment+
+            '. Medidas: Busto '+m.bust+'cm, Cintura '+m.waist+'cm, Cadera '+m.hip+'cm.'+
+            (atelierCtx?' Método: '+atelierCtx:'')+
+            ' Transformación: "'+prompt+
+            '". Responde SOLO en JSON: {"descripcion":"...","cambios":["..."]}'
+          }]
         })
       });
-      const data=await resp.json();
-      const text=data.content?.[0]?.text||'{}';
-      const r=JSON.parse(text.replace(/```json|```/g,'').trim());
-      const rd=document.getElementById('ai-result');
-      const rt=document.getElementById('ai-result-text');
-      if(rd&&rt){
-        rt.innerHTML=`<p style="margin-bottom:8px">${r.descripcion||''}</p><ul style="padding-left:16px">${(r.cambios||[]).map(c=>`<li style="margin-bottom:3px">${c}</li>`).join('')}</ul>`;
-        rd.style.display='block';
+      var data = await resp.json();
+      var text = data.content?.[0]?.text || '{}';
+      var r = JSON.parse(text.replace(/```json|```/g,'').trim());
+      var rd = document.getElementById('ai-result');
+      var rt = document.getElementById('ai-result-text');
+      if (rd && rt) {
+        rt.innerHTML = '<p style="margin-bottom:8px">'+r.descripcion+'</p>' +
+          '<ul style="padding-left:16px">' +
+          (r.cambios||[]).map(function(c){ return '<li style="margin-bottom:3px">'+c+'</li>'; }).join('') +
+          '</ul>';
+        rd.style.display = 'block';
       }
-      showToast('✦ Transformación lista','ok');
-    }catch(e){
-      showToast('Error al conectar con IA','err');
-      console.error(e);
-    }finally{
-      this.disabled=false;this.innerHTML='<span style="font-size:15px">✦</span> Aplicar transformación';
+      showToast('✦ Transformación lista', 'ok');
+    } catch(e) {
+      showToast('Error al conectar con IA', 'err');
+    } finally {
+      this.disabled = false;
+      this.innerHTML = '<span style="font-size:15px">✦</span> Aplicar transformación';
     }
   };
 
-  // Transform desde pantalla de resultado
-  const resultTransform = document.getElementById('result-transform-btn');
-  if(resultTransform) resultTransform.onclick = ()=>{
-    const p = document.getElementById('result-transform-prompt')?.value?.trim();
-    if(p){ document.getElementById('ai-prompt').value=p; openModal('modal-ai'); }
+  // ── RESULT BUTTONS ──
+  var resultEdit = document.getElementById('result-edit-btn');
+  if (resultEdit) resultEdit.onclick = openDrafter;
+  var resultSave = document.getElementById('result-save-btn');
+  if (resultSave) resultSave.onclick = function() { openModal('modal-save'); };
+  var resultTransform = document.getElementById('result-transform-btn');
+  if (resultTransform) resultTransform.onclick = function() {
+    var p = document.getElementById('result-transform-prompt')?.value?.trim();
+    if (p) { document.getElementById('ai-prompt').value = p; openModal('modal-ai'); }
   };
 
-  // Cargar talla
-  window.loadTalla = function(idx){
-    const t=TALLAS[idx];if(!t)return;
-    const map={bust:t.b,waist:t.w,hip:t.h,shoulder:t.s,backLength:t.e,sleeveLength:t.m};
-    Object.entries(map).forEach(([k,v])=>{
-      const inp=document.querySelector(`.m-input[data-measure="${k}"]`);
-      if(inp){inp.value=v;STATE.measures[k]=v;}
-    });
-    showToast(`✓ Talla ${t.t} cargada`,'ok');
+  // ── MODAL GUARDAR ──
+  var confirmSave = document.getElementById('confirm-save');
+  if (confirmSave) confirmSave.onclick = function() {
+    var name = document.getElementById('save-name')?.value?.trim() || 'Patrón sin nombre';
+    var saves = JSON.parse(localStorage.getItem('patronai_saves')||'[]');
+    saves.unshift({name:name,garment:STATE.garment,measures:Object.assign({},STATE.measures),date:new Date().toISOString()});
+    localStorage.setItem('patronai_saves', JSON.stringify(saves.slice(0,20)));
+    closeModal('modal-save');
+    showToast('✓ Patrón guardado', 'ok');
   };
 
-  // Afiliado
-  const affApply=document.getElementById('aff-apply');
-  if(affApply) affApply.onclick=()=>{
-    const code=document.getElementById('aff-input')?.value?.trim().toUpperCase();
-    const msg=document.getElementById('aff-msg');
-    if(!code){if(msg)msg.textContent='Ingresa un código'; return;}
-    if(window.PAT&&PAT.Affiliate) PAT.Affiliate.apply(code);
-    else {if(msg){msg.textContent='✓ Código aplicado';msg.style.color='var(--ok)';}}
-  };
+  // ── MODAL CARGAR ──
+  var btnLoad2 = document.getElementById('btn-load');
+  if (btnLoad2) btnLoad2.addEventListener('click', function() {
+    refreshSavedList();
+    openModal('modal-load');
+  });
 
-  // Zoom (patrón 2D)
-  const zIn=document.getElementById('zoom-in'),zOut=document.getElementById('zoom-out'),zLbl=document.getElementById('zoom-level');
-  let zoom=1;
-  if(zIn) zIn.onclick=()=>{ zoom=Math.min(zoom+0.25,4); applyZoom(); };
-  if(zOut) zOut.onclick=()=>{ zoom=Math.max(zoom-0.25,0.25); applyZoom(); };
-  function applyZoom(){
-    const svgPan=document.getElementById('svg-pan');
-    if(svgPan) svgPan.style.transform=`scale(${zoom}) translate(0,0)`;
-    if(zLbl) zLbl.textContent=Math.round(zoom*100)+'%';
+  // Cargar método atelier guardado
+  var savedAtelier = localStorage.getItem('patronai_atelier_method');
+  if (savedAtelier) {
+    try {
+      var d = JSON.parse(savedAtelier);
+      var an = document.getElementById('atelier-name');
+      var am = document.getElementById('atelier-method');
+      if (an && d.name)   an.value = d.name;
+      if (am && d.method) am.value = d.method;
+    } catch(e) {}
   }
 
-  // Tier badge
-  const tierBadge=document.getElementById('tier-badge');
-  if(tierBadge) tierBadge.onclick=()=>showToast('Plan Expert activo 👑','ok');
-
-  // Iniciar generación
-  triggerPattern();
-  updateTopbar('screen-pattern');
+  // ── BREADCRUMB & TOPBAR (solo para nuevas pantallas) ──
   updateBreadcrumb('screen-pattern');
-
-  // Añadir botón "Paso a paso" al toolbar del patrón
-  const patternInfo = document.getElementById('pattern-info');
-  if(patternInfo){
-    const sb=document.createElement('button');
-    sb.id='btn-steps';
-    sb.className='tb-btn';
-    sb.style.cssText='display:flex;align-items:center;gap:5px;margin-left:8px;padding:5px 12px;font-size:11px';
-    sb.innerHTML='📐 Ver paso a paso';
-    sb.onclick=initSteps;
-    patternInfo.parentNode.insertBefore(sb,patternInfo.nextSibling);
-  }
 
   console.log('[PatrónAI Inline] ✓ Inicializado');
 };
