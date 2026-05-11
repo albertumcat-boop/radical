@@ -6,506 +6,669 @@
 <title>PatrónAI Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-font-smoothing:antialiased}
 :root{
-  --bg:#f5f0e8;--bg2:#ede8de;--surface:#ffffff;--panel:#faf7f2;--inp:#f0ebe0;
+  --bg:#f5f0e8;--bg2:#ede8de;--surface:#fff;--panel:#faf7f2;--inp:#f0ebe0;
   --brd:#ddd5c5;--brd2:#c8bca8;
-  --acc:#b86b2e;--acc2:#d4854a;--accl:#f0d4b8;--accbg:rgba(184,107,46,.10);
-  --gold:#c49830;--goldl:#f5e6b4;--sage:#5a8a65;--sagel:#d4e8d8;
-  --blue:#3a6ea8;--bluel:#d0e4f8;
+  --acc:#b86b2e;--acc2:#d4854a;--accbg:rgba(184,107,46,.10);
+  --gold:#c49830;--sage:#5a8a65;--blue:#3a6ea8;
   --tx:#2a2018;--tx2:#6b5a45;--tx3:#9a8a75;--tx4:#c4b49a;
-  --ok:#5a8a65;--err:#b84040;--warn:#c49830;
-  --sidebar:280px;--topbar:56px;--r:10px;--r2:14px;
+  --ok:#5a8a65;--err:#b84040;--grn:#5a8a65;--red:#b84040;
+  --sidebar:270px;--topbar:52px;--r:10px;--r2:14px;
   --ease:cubic-bezier(.22,1,.36,1);
   --serif:'Playfair Display',Georgia,serif;
   --font:'Plus Jakarta Sans',system-ui,sans-serif;
   --mono:'JetBrains Mono',monospace;
 }
-body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px;line-height:1.5;overflow:hidden;height:100vh}
-#app{display:flex;height:100vh;overflow:hidden}
-#topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar);background:var(--surface);border-bottom:2px solid var(--brd);display:flex;align-items:center;padding:0 16px;gap:12px;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-.logo-wrap{display:flex;align-items:center;gap:10px;cursor:pointer}
-.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--acc2),var(--gold));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 3px 10px rgba(184,107,46,.3);flex-shrink:0}
-.logo-name{font-family:var(--serif);font-size:18px;font-weight:700;color:var(--tx)}
-.logo-sub{font-size:9px;color:var(--tx3);font-family:var(--mono);letter-spacing:1.5px;text-transform:uppercase}
-.tb-spacer{flex:1}
-.tb-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid var(--brd2);background:var(--panel);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s}
-.tb-btn:hover{background:var(--bg2);border-color:var(--acc2);color:var(--acc)}
-.tb-btn.prim{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 2px 10px rgba(184,107,46,.3)}
-.tb-btn.prim:hover{background:var(--acc2)}
-.tier-chip{background:linear-gradient(135deg,var(--gold),var(--acc2));color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:.8px;cursor:pointer;box-shadow:0 2px 8px rgba(196,152,48,.4)}
-#menu-btn{display:none;background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;color:var(--tx2)}
-#breadcrumb{display:flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;color:var(--tx3)}
-#main-wrap{display:flex;flex:1;margin-top:var(--topbar);height:calc(100vh - var(--topbar));overflow:hidden}
+body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px;overflow:hidden;height:100vh;line-height:1.5}
 
-/* SIDEBAR */
-#sidebar{width:var(--sidebar);flex-shrink:0;background:var(--panel);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow-y:auto;transition:transform .3s var(--ease);z-index:50}
+/* ── Layout ── */
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{
+  width:var(--sidebar);flex-shrink:0;
+  background:var(--panel);border-right:1px solid var(--brd);
+  display:flex;flex-direction:column;overflow-y:auto;
+  transition:width .25s var(--ease);position:relative;z-index:20;
+}
+#sidebar.collapsed{width:0;overflow:hidden}
 #sidebar::-webkit-scrollbar{width:4px}
 #sidebar::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
-.sb-section{padding:14px 16px;border-bottom:1px solid var(--brd)}
-.sb-label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);display:flex;align-items:center;gap:6px;margin-bottom:10px}
-.sb-num{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
-.g-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
-.g-card{background:var(--surface);border:1.5px solid var(--brd);border-radius:var(--r);padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s;user-select:none}
-.g-card:hover{border-color:var(--acc2);background:var(--accbg)}
-.g-card.on{border-color:var(--acc);background:var(--accbg);box-shadow:0 0 0 2px rgba(184,107,46,.15)}
-.g-card-icon{font-size:22px;line-height:1}
-.g-card-lbl{font-size:9px;font-weight:600;color:var(--tx2);letter-spacing:.3px;text-align:center}
-.g-card.on .g-card-lbl{color:var(--acc)}
-.m-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ── Sidebar header ── */
+.sb-logo{
+  padding:16px 18px 14px;display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--brd);flex-shrink:0;
+  background:linear-gradient(135deg,rgba(184,107,46,.06),transparent);
+}
+.sb-logo-icon{
+  width:36px;height:36px;background:linear-gradient(135deg,var(--acc2),var(--gold));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:0 3px 10px rgba(184,107,46,.3);flex-shrink:0;cursor:pointer;
+}
+.sb-logo-name{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--tx)}
+.sb-logo-sub{font-size:9px;color:var(--tx3);font-family:var(--mono);letter-spacing:1.5px;text-transform:uppercase}
+.collapse-btn{
+  margin-left:auto;background:none;border:1px solid var(--brd);color:var(--tx3);
+  width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.collapse-btn:hover{background:var(--bg2);color:var(--tx)}
+
+/* ── Sidebar sections ── */
+.sb-sec{padding:13px 16px;border-bottom:1px solid var(--brd)}
+.sec-title{
+  font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--tx3);margin-bottom:10px;display:flex;align-items:center;gap:6px;
+}
+.step-num{
+  width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0;
+}
+
+/* ── Garment cards ── */
+.garment-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.garment-btn{
+  background:var(--surface);border:1.5px solid var(--brd);border-radius:var(--r);
+  padding:9px 4px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:3px;transition:all .15s;font-family:var(--font);
+  user-select:none;
+}
+.garment-btn:hover{border-color:var(--acc2);background:var(--accbg)}
+.garment-btn.active{border-color:var(--acc);background:var(--accbg);box-shadow:0 0 0 2px rgba(184,107,46,.15)}
+.garment-btn.locked{opacity:.4}
+.g-icon{font-size:22px;line-height:1}
+.g-label{font-size:9px;font-weight:600;color:var(--tx2);letter-spacing:.3px}
+.garment-btn.active .g-label{color:var(--acc)}
+
+/* ── Shirt options ── */
+#shirt-options{margin-top:7px}
+.radio-grp{display:flex;gap:10px}
+.radio-opt{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--tx2)}
+.radio-opt input{accent-color:var(--acc)}
+
+/* ── Measure rows ── */
+.m-group-title{font-size:10px;font-weight:600;color:var(--acc2);margin:9px 0 5px;letter-spacing:.3px}
+.m-row{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 0;border-bottom:1px solid rgba(0,0,0,.05);
+}
 .m-row:last-child{border-bottom:none}
 .m-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .m-row label{font-size:11px;color:var(--tx2);flex:1}
 .m-ctrl{display:flex;align-items:center;gap:2px;flex-shrink:0}
-.m-pm{width:22px;height:24px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:5px;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .12s}
-.m-pm:hover{background:var(--accbg);border-color:var(--acc2);color:var(--acc)}
-.m-inp{width:46px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:3px 4px;font-size:12px;font-family:var(--mono);text-align:center;outline:none;-moz-appearance:textfield}
+.m-btn{
+  width:22px;height:24px;background:var(--inp);border:1px solid var(--brd);
+  color:var(--tx2);border-radius:5px;cursor:pointer;font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;
+}
+.m-btn:hover{background:var(--accbg);border-color:var(--acc2);color:var(--acc)}
+.m-inp{
+  width:46px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);
+  border-radius:6px;padding:3px 4px;font-size:12px;font-family:var(--mono);
+  text-align:center;outline:none;-moz-appearance:textfield;transition:border-color .15s;
+}
 .m-inp::-webkit-inner-spin-button{display:none}
 .m-inp:focus{border-color:var(--acc2);background:var(--surface)}
+
+/* ── Params ── */
 .p-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
 .p-row label{font-size:11px;color:var(--tx2);flex:1}
-.p-inp{width:52px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:5px 6px;font-size:11px;font-family:var(--mono);text-align:center;outline:none}
+.p-inp{
+  width:52px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);
+  border-radius:6px;padding:5px 6px;font-size:11px;font-family:var(--mono);
+  text-align:center;outline:none;
+}
 .p-inp:focus{border-color:var(--acc2)}
-.p-sel{background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:6px;padding:5px 8px;font-size:11px;outline:none;cursor:pointer}
-.sb-btn{width:100%;padding:11px;border-radius:var(--r);border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .18s var(--ease)}
-.sb-btn.prim{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;box-shadow:0 4px 16px rgba(184,107,46,.35)}
-.sb-btn.prim:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(184,107,46,.45)}
-.sb-btn.gold{background:linear-gradient(135deg,var(--gold),var(--acc2));color:#fff;box-shadow:0 3px 12px rgba(196,152,48,.35)}
-.sb-btn.ghost{background:transparent;border:1.5px solid var(--brd);color:var(--tx3);font-size:12px;padding:8px}
+.p-sel{background:var(--inp);border:1px solid var(--brd);color:var(--tx);
+  border-radius:6px;padding:5px 8px;font-size:11px;outline:none;cursor:pointer}
+.badge-u{font-size:9px;color:var(--tx4)}
+
+/* ── Sidebar buttons ── */
+.sb-btn{
+  width:100%;padding:10px;border-radius:var(--r);border:none;cursor:pointer;
+  font-size:12px;font-weight:600;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all .18s var(--ease);
+}
+.sb-btn.prim{
+  background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;
+  box-shadow:0 4px 14px rgba(184,107,46,.35);
+}
+.sb-btn.prim:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(184,107,46,.45)}
+.sb-btn.gold{background:linear-gradient(135deg,var(--gold),var(--acc2));color:#fff}
+.sb-btn.ghost{background:transparent;border:1.5px solid var(--brd);color:var(--tx3)}
 .sb-btn.ghost:hover{border-color:var(--acc2);color:var(--acc);background:var(--accbg)}
+.sb-btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sb-foot{padding:10px 16px;border-top:1px solid var(--brd);font-size:10px;color:var(--tx4);display:flex;align-items:center;gap:6px;margin-top:auto}
+
+/* ── Afiliado ── */
 .aff-row{display:flex;gap:6px}
-.aff-inp{flex:1;background:var(--inp);border:1px solid var(--brd);color:var(--tx);border-radius:7px;padding:7px 10px;font-size:11px;font-family:var(--mono);outline:none;text-transform:uppercase}
-.aff-apply{background:var(--acc);color:#fff;border:none;border-radius:7px;padding:7px 12px;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s}
+.aff-inp{
+  flex:1;background:var(--inp);border:1px solid var(--brd);color:var(--tx);
+  border-radius:7px;padding:7px 10px;font-size:11px;font-family:var(--mono);
+  outline:none;text-transform:uppercase;
+}
+.aff-btn{background:var(--acc);color:#fff;border:none;border-radius:7px;
+  padding:7px 12px;cursor:pointer;font-size:12px;font-weight:600;}
+.aff-msg{font-size:10px;margin-top:5px;min-height:14px}
 
-/* OVERLAY MOBILE */
-#sb-ov{display:none;position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.35);backdrop-filter:blur(2px)}
+/* ── Topbar ── */
+#topbar{
+  height:var(--topbar);background:var(--surface);border-bottom:2px solid var(--brd);
+  display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;
+  box-shadow:0 2px 10px rgba(0,0,0,.07);position:relative;z-index:10;
+}
+.view-tabs{display:flex;gap:2px;background:rgba(0,0,0,.06);border-radius:8px;padding:3px}
+.view-btn{
+  display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;
+  border:none;cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font);
+  transition:all .15s;background:transparent;color:var(--tx3);
+}
+.view-btn.active{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(184,107,46,.3)}
+.tb-info{display:flex;align-items:center;gap:8px;margin-left:6px}
+#pattern-info{font-size:12px;color:var(--tx2);font-family:var(--mono)}
+#piece-count{
+  background:rgba(90,138,101,.1);border:1px solid rgba(90,138,101,.25);
+  color:var(--sage);border-radius:20px;padding:3px 10px;font-size:11px;font-family:var(--mono);
+}
+.tb-spacer{flex:1}
+.zoom-ctrl{display:flex;align-items:center;gap:3px}
+.z-btn{
+  width:26px;height:26px;background:var(--inp);border:1px solid var(--brd);
+  color:var(--tx2);border-radius:5px;cursor:pointer;font-size:13px;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;
+}
+.z-btn:hover{background:var(--accbg);border-color:var(--acc2);color:var(--acc)}
+#zoom-label{width:40px;text-align:center;font-size:11px;color:var(--tx2);font-family:var(--mono)}
+.tier-chip{
+  background:linear-gradient(135deg,var(--gold),var(--acc2));color:#fff;
+  font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;
+  letter-spacing:.8px;cursor:pointer;box-shadow:0 2px 8px rgba(196,152,48,.4);
+}
 
-/* MAIN */
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0}
-.screen{display:none;flex:1;flex-direction:column;overflow:hidden;animation:fadeIn .25s var(--ease)}
-.screen.on{display:flex}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* ── SVG canvas ── */
+#view-pattern{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+  animation:fadeIn .2s ease;
+}
+#view-pattern.on{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#svg-wrapper{
+  flex:1;overflow:hidden;cursor:grab;position:relative;background:var(--bg);
+}
+#svg-wrapper:active{cursor:grabbing}
+#svg-pan{transform-origin:0 0;will-change:transform;display:inline-block}
+#pattern-svg{display:block;overflow:visible}
+.legend{
+  padding:8px 14px;background:var(--surface);border-top:1px solid var(--brd);
+  display:flex;align-items:center;gap:14px;font-size:10px;color:var(--tx3);flex-shrink:0;
+}
 
-/* SCREEN PATTERN */
-#screen-pattern .toolbar{padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px;flex-shrink:0}
-#screen-pattern .legend{padding:6px 14px;background:var(--surface);border-top:1px solid var(--brd);display:flex;align-items:center;gap:14px;font-size:10px;color:var(--tx3);flex-shrink:0}
-#svg-wrapper{flex:1;overflow:auto;background:var(--bg);display:flex;align-items:flex-start;justify-content:center;padding:20px}
-#svg-p{background:white;box-shadow:0 4px 20px rgba(0,0,0,.1);border-radius:4px}
-
-/* SCREEN STEPS */
-.prog-bar{height:3px;background:var(--brd);position:relative;overflow:hidden;flex-shrink:0}
-.prog-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:0 2px 2px 0;transition:width .4s var(--ease)}
-.steps-wrap{display:flex;flex:1;overflow:hidden}
-.steps-nav{width:220px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--brd);overflow-y:auto}
-.steps-nav-h{padding:14px 16px 10px;border-bottom:1px solid var(--brd);flex-shrink:0}
-.steps-nav-h h3{font-family:var(--serif);font-size:16px;color:var(--tx);font-weight:700;font-style:italic}
-.step-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
-.step-item:hover{background:var(--accbg)}
-.step-item.on{background:var(--accbg);border-left-color:var(--acc)}
-.step-item.done{opacity:.6}
-.step-circle{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid var(--brd2);background:var(--surface);color:var(--tx2);transition:all .15s}
-.step-item.on .step-circle{background:var(--acc);border-color:var(--acc);color:#fff}
-.step-item.done .step-circle{background:var(--sage);border-color:var(--sage);color:#fff}
-.step-txt{font-size:12px;font-weight:500;color:var(--tx2)}
-.step-item.on .step-txt{color:var(--acc);font-weight:600}
-.step-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.step-view{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:24px;background:var(--surface)}
-.step-svg-wrap{width:100%;flex:1;display:flex;align-items:center;justify-content:center;min-height:250px}
-.step-svg-wrap svg{max-width:100%;max-height:55vh}
-.step-info-box{width:100%;max-width:560px;margin-top:18px;padding:16px;background:var(--panel);border-radius:12px;border:1px solid var(--brd)}
-.step-tag{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);font-family:var(--mono);margin-bottom:3px}
-.step-name{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--tx);margin-bottom:6px}
-.step-desc{font-size:12px;color:var(--tx2);line-height:1.7}
-.step-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
-.step-chip{background:var(--surface);border:1px solid var(--brd);border-radius:20px;padding:4px 12px;font-size:11px;font-family:var(--mono);color:var(--tx2);display:flex;align-items:center;gap:5px}
-.step-chip strong{color:var(--acc);font-weight:700}
-.step-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--brd);background:var(--panel);flex-shrink:0}
-.step-btn{display:flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font);transition:all .15s}
-.step-btn.prev{background:var(--surface);border:1.5px solid var(--brd2);color:var(--tx2)}
-.step-btn.prev:hover{border-color:var(--acc2);color:var(--acc)}
-.step-btn.next{background:var(--acc);color:#fff;box-shadow:0 3px 12px rgba(184,107,46,.35)}
-.step-btn.next:hover{background:var(--acc2)}
-.step-btn.finish{background:linear-gradient(135deg,var(--sage),#3d6e4a);color:#fff;box-shadow:0 3px 12px rgba(90,138,101,.35)}
-
-/* SCREEN RESULT */
-.result-head{padding:14px 18px;border-bottom:1px solid var(--brd);background:var(--panel);display:flex;align-items:center;gap:10px;flex-shrink:0}
-.result-head h2{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--tx);font-style:italic;flex:1}
-.result-body{flex:1;display:flex;overflow:hidden}
-.result-canvas{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);overflow:auto}
-.result-canvas svg{max-width:100%;filter:drop-shadow(0 4px 20px rgba(0,0,0,.1))}
-.result-panel{width:270px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--brd);overflow-y:auto;display:flex;flex-direction:column}
-.r-section{padding:13px 15px;border-bottom:1px solid var(--brd)}
-.r-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:9px}
-.r-m-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(0,0,0,.05);font-size:12px}
-.r-m-row span{color:var(--tx2)}
-.r-m-row strong{color:var(--tx);font-family:var(--mono)}
-.r-instructions{padding:10px;background:rgba(58,110,168,.06);border-radius:8px;border:1px solid rgba(58,110,168,.15);font-size:11px;color:#2a4a7a;line-height:1.8}
-
-/* MODALES */
-.modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
-.modal.on{display:flex}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);z-index:0}
-.modal-box{position:relative;z-index:1;background:var(--surface);border:1px solid var(--brd2);border-radius:var(--r2);width:min(480px,96vw);max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.2)}
-.modal-box.wide{width:min(700px,96vw)}
-.modal-h{padding:16px 20px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--panel)}
-.modal-h h3{font-family:var(--serif);font-size:18px;font-weight:700;color:var(--tx);flex:1;font-style:italic}
-.modal-x{background:var(--inp);border:1px solid var(--brd);color:var(--tx2);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.modal-x:hover{background:var(--bg2);color:var(--tx)}
-.modal-body{padding:18px;overflow-y:auto;flex:1}
-.modal-foot{padding:12px 18px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
-.tabs{display:flex;border-bottom:1px solid var(--brd);background:var(--panel)}
-.tab-btn{flex:1;padding:11px;font-size:12px;font-weight:600;font-family:var(--font);border:none;cursor:pointer;background:transparent;color:var(--tx3);border-bottom:2px solid transparent;transition:all .15s}
-.tab-btn.on{color:var(--acc);border-bottom-color:var(--acc);background:var(--surface)}
-.tab-pane{display:none}.tab-pane.on{display:block}
+/* ── Modales ── */
+.modal{position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;padding:16px}
+.modal.open{display:flex}
+.m-ov{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px)}
+.m-box{
+  position:relative;z-index:1;background:var(--surface);border:1px solid var(--brd2);
+  border-radius:var(--r2);width:min(480px,96vw);max-height:88vh;overflow:hidden;
+  display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.2);
+}
+.m-box.wide{width:min(700px,96vw)}
+.m-head{
+  padding:16px 20px;border-bottom:1px solid var(--brd);background:var(--panel);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.m-head h3{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--tx);flex:1;font-style:italic}
+.m-x{background:var(--inp);border:1px solid var(--brd);color:var(--tx2);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.m-x:hover{background:var(--bg2);color:var(--tx)}
+.m-body{padding:18px;overflow-y:auto;flex:1}
+.m-foot{padding:12px 18px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
 .f-lbl{font-size:11px;font-weight:600;color:var(--tx2);display:block;margin-bottom:5px}
 .f-inp{width:100%;background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:8px;padding:10px 12px;font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s;display:block}
 .f-inp:focus{border-color:var(--acc2)}
 .f-inp::placeholder{color:var(--tx4)}
-.f-ta{width:100%;background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:8px;padding:10px 12px;font-size:13px;font-family:var(--font);outline:none;resize:none;line-height:1.6;transition:border-color .15s}
+.f-ta{width:100%;background:var(--inp);border:1.5px solid var(--brd2);color:var(--tx);border-radius:8px;padding:10px 12px;font-size:13px;font-family:var(--font);outline:none;resize:none;line-height:1.6}
 .f-ta:focus{border-color:var(--acc2)}
 .f-g{margin-bottom:13px}
-.btn-p{padding:10px 20px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-p{padding:9px 18px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
 .btn-p:hover{background:var(--acc2);transform:translateY(-1px)}
-.btn-s{padding:10px 16px;background:var(--surface);color:var(--tx2);border:1.5px solid var(--brd2);border-radius:8px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .15s}
+.btn-s{padding:9px 16px;background:var(--surface);color:var(--tx2);border:1.5px solid var(--brd2);border-radius:8px;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .15s}
 .btn-s:hover{border-color:var(--acc2);color:var(--acc)}
-.chip-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;background:var(--accbg);color:var(--acc);border:1px solid rgba(184,107,46,.2);transition:all .15s}
-.chip-tag:hover{background:var(--acc);color:#fff}
-.names-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px;background:var(--inp);border-radius:8px;border:1px solid var(--brd);font-size:11px;font-family:var(--mono)}
+.pat-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;border:1px solid var(--brd);background:var(--panel);margin-bottom:5px}
+.pat-name{font-size:13px;font-weight:600;color:var(--tx)}
+.pat-meta{font-size:10px;color:var(--tx3);font-family:var(--mono);margin-top:2px}
+.pat-acts{display:flex;gap:6px}
+.pat-acts button{background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;transition:all .12s}
+.pat-acts button:hover{background:var(--accbg);border-color:var(--acc2);color:var(--acc)}
+
+/* AI Studio modal tabs */
+.tabs{display:flex;border-bottom:1px solid var(--brd);background:var(--panel)}
+.tab-btn{flex:1;padding:11px;font-size:12px;font-weight:600;font-family:var(--font);border:none;cursor:pointer;background:transparent;color:var(--tx3);border-bottom:2px solid transparent;transition:all .15s}
+.tab-btn.on{color:var(--acc);border-bottom-color:var(--acc);background:var(--surface)}
+.tab-pane{display:none}.tab-pane.on{display:block}
+.names-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:10px;background:var(--inp);border-radius:8px;border:1px solid var(--brd);font-size:11px;font-family:var(--mono)}
 .name-pair{display:flex;flex-direction:column;gap:1px}
 .nf{color:var(--acc);font-weight:600}.nm{color:var(--tx3);font-size:10px}
-#toasts{position:fixed;bottom:20px;right:20px;z-index:300;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.toast{background:var(--surface);border:1px solid var(--brd2);border-radius:10px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--tx);box-shadow:0 6px 20px rgba(0,0,0,.15);display:flex;align-items:center;gap:8px;animation:fadeIn .3s var(--ease);min-width:200px}
-.toast.ok{border-color:rgba(90,138,101,.4);color:var(--ok)}
-.toast.err{border-color:rgba(184,64,64,.4);color:var(--err)}
+.chip-tag{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;background:var(--accbg);color:var(--acc);border:1px solid rgba(184,107,46,.2);transition:all .15s;margin:2px}
+.chip-tag:hover{background:var(--acc);color:#fff}
 
-/* RESPONSIVE */
+/* Tabla tallas */
+#tallas-table{width:100%;border-collapse:collapse;font-size:12px}
+#tallas-table th{padding:8px 10px;background:var(--accbg);color:var(--acc);border:1px solid var(--brd);text-align:center}
+#tallas-table th:first-child{text-align:left}
+#tallas-table td{padding:7px 10px;border:1px solid var(--brd);text-align:center;cursor:pointer}
+#tallas-table tr:hover td{background:var(--accbg)}
+
+/* Toast */
+#toasts{position:fixed;bottom:20px;right:20px;z-index:900;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{background:var(--surface);border:1px solid var(--brd2);border-radius:10px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--tx);box-shadow:0 6px 20px rgba(0,0,0,.15);display:flex;align-items:center;gap:8px;min-width:200px;animation:fadeIn .3s ease}
+.toast.success{border-color:rgba(90,138,101,.4);color:var(--ok)}
+.toast.error{border-color:rgba(184,64,64,.4);color:var(--err)}
+.toast.warning{border-color:rgba(196,152,48,.4);color:var(--gold)}
+
+/* Responsive */
 @media(max-width:768px){
-  :root{--sidebar:260px;--topbar:52px}
-  #menu-btn{display:flex}
-  .logo-sub{display:none}
-  #sidebar{position:fixed;left:0;top:var(--topbar);bottom:0;transform:translateX(-100%)}
-  #sidebar.open{transform:translateX(0)}
-  #sidebar.open~#sb-ov{display:block}
-  .steps-nav{width:100%;border-right:none;border-bottom:1px solid var(--brd);max-height:120px;overflow-x:auto;overflow-y:hidden;flex-direction:row;display:flex}
-  .steps-wrap{flex-direction:column}
-  .steps-nav-h{display:none}
-  .step-item{border-left:none;border-bottom:3px solid transparent;white-space:nowrap;padding:8px 12px}
-  .step-item.on{border-bottom-color:var(--acc)}
-  .result-body{flex-direction:column}
-  .result-panel{width:100%;border-left:none;border-top:1px solid var(--brd);max-height:45vh}
+  :root{--sidebar:260px;--topbar:50px}
+  #sidebar{position:fixed;top:0;left:0;height:100vh;transform:translateX(-100%);transition:transform .3s var(--ease)}
+  #sidebar.mobile-open{transform:translateX(0)}
+  #sb-mobile-overlay{display:none;position:fixed;inset:0;z-index:15;background:rgba(0,0,0,.3);backdrop-filter:blur(2px)}
+  #sidebar.mobile-open~#sb-mobile-overlay{display:block}
+  .tb-info span:last-child{display:none}
 }
 @media(max-width:480px){
-  .step-view{padding:14px}
-  #topbar{padding:0 10px;gap:8px}
-  .tb-btn span{display:none}
+  .view-btn span{display:none}
+  #topbar{padding:0 8px;gap:6px}
 }
 *::-webkit-scrollbar{width:4px;height:4px}
 *::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
 </style>
 </head>
 <body>
-
-<header id="topbar">
-  <button id="menu-btn" onclick="toggleSidebar()">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  </button>
-  <div class="logo-wrap" id="logo-btn">
-    <div class="logo-icon" id="logo-mark">✂</div>
-    <div><div class="logo-name">PatrónAI</div><div class="logo-sub">Atelier Pro</div></div>
-  </div>
-  <div id="breadcrumb"></div>
-  <div class="tb-spacer"></div>
-  <button class="tb-btn" id="btn-tallas" style="display:none" onclick="openModal('modal-tallas')">📊 Tallas</button>
-  <button class="tb-btn" id="btn-save-top" style="display:none" onclick="openModal('modal-save')">💾 Guardar</button>
-  <button class="tb-btn prim" id="btn-pdf" style="display:none">⬇ PDF 1:1</button>
-  <div class="tier-chip" id="tier-badge">👑 EXPERT</div>
-</header>
-
 <div id="app">
-<div id="main-wrap">
 
-<!-- SIDEBAR -->
+<!-- ═══ SIDEBAR ═══ -->
 <aside id="sidebar">
-
-  <div class="sb-section">
-    <div class="sb-label"><span class="sb-num" style="background:var(--acc)">1</span>Tipo de prenda</div>
-    <!-- Botones ocultos para app.js -->
-    <div style="display:none" id="hidden-garment-btns">
-      <button class="garment-btn" data-garment="franela">Franela</button>
-      <button class="garment-btn" data-garment="blusa">Blusa</button>
-      <button class="garment-btn" data-garment="camisa">Camisa</button>
-      <button class="garment-btn" data-garment="falda">Falda</button>
-      <button class="garment-btn" data-garment="vestido">Vestido</button>
+  <div class="sb-logo">
+    <div class="sb-logo-icon" id="logo-mark">✂</div>
+    <div>
+      <div class="sb-logo-name">PatrónAI</div>
+      <div class="sb-logo-sub">Atelier Pro</div>
     </div>
-    <div class="g-grid" id="garment-grid">
-      <div class="g-card on" data-g="franela"><span class="g-card-icon">👕</span><span class="g-card-lbl">Franela</span></div>
-      <div class="g-card" data-g="blusa"><span class="g-card-icon">👚</span><span class="g-card-lbl">Blusa</span></div>
-      <div class="g-card" data-g="camisa"><span class="g-card-icon">👔</span><span class="g-card-lbl">Camisa</span></div>
-      <div class="g-card" data-g="falda"><span class="g-card-icon">🩱</span><span class="g-card-lbl">Falda</span></div>
-      <div class="g-card" data-g="vestido"><span class="g-card-icon">👗</span><span class="g-card-lbl">Vestido</span></div>
+    <button class="collapse-btn" id="sidebar-toggle">‹</button>
+  </div>
+
+  <!-- 1. Prenda -->
+  <div class="sb-sec">
+    <div class="sec-title">
+      <span class="step-num" style="background:var(--acc)">1</span>Tipo de prenda
     </div>
-  </div>
-
-  <div class="sb-section">
-    <div class="sb-label"><span class="sb-num" style="background:var(--gold)">2</span>Medidas <span style="font-size:8px;color:var(--tx4);margin-left:4px">cm</span></div>
-    <div style="font-size:10px;font-weight:600;color:var(--acc2);margin-bottom:6px">📏 Contornos</div>
-    <div class="m-row"><div class="m-dot" style="background:#f59e0b"></div><label>Busto / Pecho</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="bust">−</button><input class="m-inp" type="number" data-m="bust" value="88" min="50" max="200" step="0.5"><button class="m-pm" data-dir="1" data-t="bust">+</button></div></div>
-    <div class="m-row"><div class="m-dot" style="background:#f59e0b"></div><label>Cintura</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="waist">−</button><input class="m-inp" type="number" data-m="waist" value="68" min="40" max="180" step="0.5"><button class="m-pm" data-dir="1" data-t="waist">+</button></div></div>
-    <div class="m-row"><div class="m-dot" style="background:#f59e0b"></div><label>Cadera</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="hip">−</button><input class="m-inp" type="number" data-m="hip" value="94" min="50" max="220" step="0.5"><button class="m-pm" data-dir="1" data-t="hip">+</button></div></div>
-    <div class="m-row"><div class="m-dot" style="background:#60a5fa"></div><label>Hombros</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="shoulder">−</button><input class="m-inp" type="number" data-m="shoulder" value="38" min="25" max="60" step="0.5"><button class="m-pm" data-dir="1" data-t="shoulder">+</button></div></div>
-    <div class="m-row"><div class="m-dot" style="background:#60a5fa"></div><label>Cuello</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="neck">−</button><input class="m-inp" type="number" data-m="neck" value="36" min="28" max="60" step="0.5"><button class="m-pm" data-dir="1" data-t="neck">+</button></div></div>
-    <div style="font-size:10px;font-weight:600;color:var(--acc2);margin:10px 0 6px">📐 Largos</div>
-    <div class="m-row"><div class="m-dot" style="background:#34d399"></div><label>Largo espalda</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="backLength">−</button><input class="m-inp" type="number" data-m="backLength" value="40" min="25" max="60" step="0.5"><button class="m-pm" data-dir="1" data-t="backLength">+</button></div></div>
-    <div class="m-row"><div class="m-dot" style="background:#34d399"></div><label>Largo frente</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="frontLength">−</button><input class="m-inp" type="number" data-m="frontLength" value="42" min="25" max="65" step="0.5"><button class="m-pm" data-dir="1" data-t="frontLength">+</button></div></div>
-    <div class="m-row"><div class="m-dot" style="background:#34d399"></div><label>Largo total</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="totalLength">−</button><input class="m-inp" type="number" data-m="totalLength" value="65" min="30" max="160" step="0.5"><button class="m-pm" data-dir="1" data-t="totalLength">+</button></div></div>
-    <div class="m-row" id="row-sleeve"><div class="m-dot" style="background:#34d399"></div><label>Largo manga</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="sleeveLength">−</button><input class="m-inp" type="number" data-m="sleeveLength" value="60" min="10" max="80" step="0.5"><button class="m-pm" data-dir="1" data-t="sleeveLength">+</button></div></div>
-    <div class="m-row" id="row-skirt" style="display:none"><div class="m-dot" style="background:#34d399"></div><label>Largo falda</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="skirtLength">−</button><input class="m-inp" type="number" data-m="skirtLength" value="60" min="25" max="120" step="0.5"><button class="m-pm" data-dir="1" data-t="skirtLength">+</button></div></div>
-    <div class="m-row"><div class="m-dot" style="background:#34d399"></div><label>Prof. cadera</label><div class="m-ctrl"><button class="m-pm" data-dir="-1" data-t="hipDepth">−</button><input class="m-inp" type="number" data-m="hipDepth" value="20" min="14" max="30" step="0.5"><button class="m-pm" data-dir="1" data-t="hipDepth">+</button></div></div>
-  </div>
-
-  <div class="sb-section">
-    <div class="sb-label"><span class="sb-num" style="background:var(--sage)">3</span>Parámetros</div>
-    <div class="p-row"><label>Margen de costura <span style="font-size:9px;color:var(--tx4)">mm</span></label><input class="p-inp" type="number" data-param="seam" value="10" min="5" max="25"></div>
-    <div class="p-row"><label>Facilidad / Holgura <span style="font-size:9px;color:var(--tx4)">cm</span></label><input class="p-inp" type="number" data-param="ease" value="6" min="0" max="20" step="0.5"></div>
-    <div class="p-row"><label>Papel</label><select class="p-sel" data-param="paper"><option value="letter">Carta</option><option value="a4">A4</option></select></div>
-  </div>
-
-  <div class="sb-section">
-    <div class="sb-label" style="margin-bottom:7px">Código Atelier <span style="background:var(--accbg);color:var(--acc2);border-radius:8px;padding:1px 7px;font-family:var(--mono);font-size:8px">% OFF</span></div>
-    <div class="aff-row"><input class="aff-inp" type="text" id="aff-input" placeholder="Ej: ATELIER10"><button class="aff-apply" id="aff-apply">✓</button></div>
-    <div id="aff-msg" style="font-size:10px;margin-top:5px"></div>
-  </div>
-
-  <div class="sb-section" style="display:flex;flex-direction:column;gap:7px">
-    <button class="sb-btn prim" id="btn-generate">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      Generar patrón
-    </button>
-    <button class="sb-btn" style="background:linear-gradient(135deg,var(--gold),var(--acc2));color:#fff;box-shadow:0 3px 12px rgba(196,152,48,.3)" id="btn-ai-studio">✦ Estudio de Diseño IA</button>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-      <button class="sb-btn ghost" id="btn-drafter">✏ Trazar</button>
-      <button class="sb-btn ghost" id="btn-save">💾 Guardar</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-      <button class="sb-btn ghost" id="btn-load">📂 Cargar</button>
-      <button class="sb-btn ghost" id="btn-atelier-panel" style="position:relative">
-        👥 Atelier
-        <span style="position:absolute;top:-6px;right:-4px;background:linear-gradient(135deg,var(--gold),var(--acc2));color:#fff;font-size:7px;font-weight:800;padding:2px 5px;border-radius:8px;letter-spacing:.5px">EXPERT</span>
+    <div class="garment-grid">
+      <button class="garment-btn active" data-garment="franela">
+        <span class="g-icon">👕</span><span class="g-label">Franela</span>
+      </button>
+      <button class="garment-btn" data-garment="blusa">
+        <span class="g-icon">👚</span><span class="g-label">Blusa</span>
+      </button>
+      <button class="garment-btn" data-garment="camisa">
+        <span class="g-icon">👔</span><span class="g-label">Camisa</span>
+      </button>
+      <button class="garment-btn" data-garment="falda">
+        <span class="g-icon">🩱</span><span class="g-label">Falda</span>
+      </button>
+      <button class="garment-btn" data-garment="vestido">
+        <span class="g-icon">👗</span><span class="g-label">Vestido</span>
       </button>
     </div>
+    <div id="shirt-options" style="display:none;margin-top:7px">
+      <div class="radio-grp">
+        <label class="radio-opt"><input type="radio" name="shirt-gender" value="dama" checked><span>Dama</span></label>
+        <label class="radio-opt"><input type="radio" name="shirt-gender" value="caballero"><span>Caballero</span></label>
+      </div>
+    </div>
   </div>
 
-  <button id="sidebar-toggle" style="display:none">‹</button>
-  <!-- Inputs ocultos para app.js (usa data-measure) -->
-  <div id="hidden-measure-inputs" style="display:none">
-    <input type="number" data-measure="bust" value="88">
-    <input type="number" data-measure="waist" value="68">
-    <input type="number" data-measure="hip" value="94">
-    <input type="number" data-measure="shoulder" value="38">
-    <input type="number" data-measure="neck" value="36">
-    <input type="number" data-measure="backLength" value="40">
-    <input type="number" data-measure="frontLength" value="42">
-    <input type="number" data-measure="totalLength" value="65">
-    <input type="number" data-measure="sleeveLength" value="60">
-    <input type="number" data-measure="skirtLength" value="60">
-    <input type="number" data-measure="hipDepth" value="20">
-    <input type="number" data-measure="seam" value="10">
-    <input type="number" data-measure="ease" value="6">
-    <select data-measure="paper"><option value="letter">Carta</option></select>
+  <!-- 2. Medidas -->
+  <div class="sb-sec">
+    <div class="sec-title">
+      <span class="step-num" style="background:var(--gold)">2</span>Medidas
+      <span class="badge-u">cm</span>
+    </div>
+
+    <div class="m-group-title">📏 Contornos</div>
+    <div class="m-row">
+      <div class="m-dot" style="background:#f59e0b"></div>
+      <label>Busto / Pecho</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('bust',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="bust" value="88" min="50" max="200" step="0.5">
+        <button class="m-btn" onclick="stepInput('bust',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row">
+      <div class="m-dot" style="background:#f59e0b"></div>
+      <label>Cintura</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('waist',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="waist" value="68" min="40" max="180" step="0.5">
+        <button class="m-btn" onclick="stepInput('waist',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row">
+      <div class="m-dot" style="background:#f59e0b"></div>
+      <label>Cadera</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('hip',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="hip" value="94" min="50" max="220" step="0.5">
+        <button class="m-btn" onclick="stepInput('hip',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row">
+      <div class="m-dot" style="background:#60a5fa"></div>
+      <label>Hombros</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('shoulder',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="shoulder" value="38" min="25" max="60" step="0.5">
+        <button class="m-btn" onclick="stepInput('shoulder',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row">
+      <div class="m-dot" style="background:#60a5fa"></div>
+      <label>Cuello</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('neck',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="neck" value="36" min="28" max="60" step="0.5">
+        <button class="m-btn" onclick="stepInput('neck',1)">+</button>
+      </div>
+    </div>
+
+    <div class="m-group-title">📐 Largos</div>
+    <div class="m-row">
+      <div class="m-dot" style="background:#34d399"></div>
+      <label>Largo espalda</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('backLength',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="backLength" value="40" min="25" max="60" step="0.5">
+        <button class="m-btn" onclick="stepInput('backLength',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row">
+      <div class="m-dot" style="background:#34d399"></div>
+      <label>Largo frente</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('frontLength',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="frontLength" value="42" min="25" max="65" step="0.5">
+        <button class="m-btn" onclick="stepInput('frontLength',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row">
+      <div class="m-dot" style="background:#34d399"></div>
+      <label>Largo total</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('totalLength',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="totalLength" value="65" min="30" max="160" step="0.5">
+        <button class="m-btn" onclick="stepInput('totalLength',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row" id="row-sleeve-length">
+      <div class="m-dot" style="background:#34d399"></div>
+      <label>Largo manga</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('sleeveLength',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="sleeveLength" value="60" min="10" max="80" step="0.5">
+        <button class="m-btn" onclick="stepInput('sleeveLength',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row" id="row-wrist" style="display:none">
+      <div class="m-dot" style="background:#34d399"></div>
+      <label>Muñeca</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('wrist',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="wrist" value="16" min="12" max="30" step="0.5">
+        <button class="m-btn" onclick="stepInput('wrist',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row" id="row-skirt-length" style="display:none">
+      <div class="m-dot" style="background:#34d399"></div>
+      <label>Largo falda</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('skirtLength',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="skirtLength" value="60" min="25" max="120" step="0.5">
+        <button class="m-btn" onclick="stepInput('skirtLength',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row">
+      <div class="m-dot" style="background:#34d399"></div>
+      <label>Prof. cadera</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('hipDepth',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="hipDepth" value="20" min="14" max="30" step="0.5">
+        <button class="m-btn" onclick="stepInput('hipDepth',1)">+</button>
+      </div>
+    </div>
   </div>
-  <div style="padding:10px 16px;border-top:1px solid var(--brd);font-size:10px;color:var(--tx4);display:flex;align-items:center;gap:6px;margin-top:auto">
+
+  <!-- 3. Parámetros -->
+  <div class="sb-sec">
+    <div class="sec-title">
+      <span class="step-num" style="background:var(--sage)">3</span>Parámetros
+    </div>
+    <div class="p-row">
+      <label>Margen costura <span class="badge-u">mm</span></label>
+      <input class="p-inp" id="p-seam" type="number" data-param="seam" value="10" min="5" max="25">
+    </div>
+    <div class="p-row">
+      <label>Facilidad <span class="badge-u">cm</span></label>
+      <input class="p-inp" type="number" data-param="ease" value="6" min="0" max="20" step="0.5">
+    </div>
+    <div class="p-row">
+      <label>Papel</label>
+      <select class="p-sel" data-param="paper">
+        <option value="letter">Carta</option>
+        <option value="a4">A4</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Afiliado -->
+  <div class="sb-sec">
+    <div class="sec-title" style="margin-bottom:7px">
+      Código Atelier
+      <span style="background:var(--accbg);color:var(--acc2);border-radius:8px;padding:1px 7px;font-family:var(--mono);font-size:8px">% OFF</span>
+    </div>
+    <div class="aff-row">
+      <input class="aff-inp" type="text" id="aff-input" placeholder="Ej: ATELIER10">
+      <button class="aff-btn" id="aff-apply">✓</button>
+    </div>
+    <div class="aff-msg" id="aff-msg"></div>
+  </div>
+
+  <!-- Acciones -->
+  <div class="sb-sec" style="display:flex;flex-direction:column;gap:7px">
+    <button class="sb-btn prim" id="btn-generate" onclick="PAT.App&&PAT.App.generate(0)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Generar patrón
+    </button>
+    <button class="sb-btn gold" id="btn-ai-studio">✦ Estudio de Diseño IA</button>
+    <div class="sb-btn-grid">
+      <button class="sb-btn ghost" id="btn-drafter">✏ Trazar</button>
+      <button class="sb-btn ghost" id="btn-export-pdf">📄 PDF</button>
+    </div>
+    <div class="sb-btn-grid">
+      <button class="sb-btn ghost" id="btn-save">💾 Guardar</button>
+      <button class="sb-btn ghost" id="btn-load">📂 Cargar</button>
+    </div>
+    <button class="sb-btn ghost" id="btn-atelier-panel" style="position:relative;border-color:rgba(196,152,48,.3);color:var(--gold)">
+      👥 Panel Atelier
+      <span style="position:absolute;top:-5px;right:-3px;background:linear-gradient(135deg,var(--gold),var(--acc2));color:#fff;font-size:7px;font-weight:800;padding:2px 5px;border-radius:8px">EXPERT</span>
+    </button>
+  </div>
+
+  <div class="sb-foot">
     <div style="width:6px;height:6px;border-radius:50%;background:var(--sage)"></div>
     Escala 1:1 garantizada
   </div>
 </aside>
-<div id="sb-ov" onclick="closeSidebar()"></div>
 
-<!-- MAIN -->
+<!-- Mobile overlay -->
+<div id="sb-mobile-overlay" onclick="document.getElementById('sidebar').classList.remove('mobile-open')"></div>
+
+<!-- ═══ MAIN ═══ -->
 <main id="main">
 
-  <!-- SCREEN: PATRÓN 2D -->
-  <div class="screen on" id="screen-pattern" style="display:flex;flex-direction:column;">
-    <div class="toolbar">
-      <span id="pattern-info" style="font-size:12px;color:var(--tx2);font-family:var(--mono);flex:1">Franela Básica · 88cm · 3 piezas</span>
-      <button class="tb-btn" id="btn-steps" style="font-size:11px">📐 Paso a paso</button>
-      <div style="display:flex;align-items:center;gap:3px;margin-left:8px">
-        <button id="zoom-out" style="width:26px;height:26px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:5px;cursor:pointer;font-size:13px">−</button>
-        <span id="zoom-level" style="width:40px;text-align:center;font-size:11px;color:var(--tx2);font-family:var(--mono)">100%</span>
-        <button id="zoom-in" style="width:26px;height:26px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:5px;cursor:pointer;font-size:13px">+</button>
+  <!-- Topbar -->
+  <div id="topbar">
+    <!-- Mobile menu -->
+    <button id="menu-mobile" style="display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:7px;color:var(--tx2)" onclick="document.getElementById('sidebar').classList.toggle('mobile-open')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <!-- Vista buttons (app.js usa data-view) -->
+    <div class="view-tabs">
+      <button class="view-btn active" data-view="pattern">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span>Patrón 2D</span>
+      </button>
+      <button class="view-btn" data-view="viewer3d">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <span>Vista 3D</span>
+      </button>
+    </div>
+
+    <!-- Info -->
+    <div class="tb-info">
+      <span id="pattern-info">Franela Básica · 88cm</span>
+      <span id="piece-count">3 piezas</span>
+    </div>
+
+    <div class="tb-spacer"></div>
+
+    <!-- Zoom -->
+    <div class="zoom-ctrl">
+      <button class="z-btn" id="zoom-out">−</button>
+      <span id="zoom-label">100%</span>
+      <button class="z-btn" id="zoom-in">+</button>
+      <button class="z-btn" id="zoom-fit" title="Ajustar">⊡</button>
+    </div>
+
+    <!-- Tier -->
+    <div class="tier-chip" id="tier-badge">👑 EXPERT</div>
+  </div>
+
+  <!-- Vista patrón 2D -->
+  <div id="view-pattern" class="on">
+    <div id="svg-wrapper">
+      <div id="svg-pan">
+        <svg id="pattern-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs>
+            <pattern id="gs" width="50" height="50" patternUnits="userSpaceOnUse">
+              <path d="M50 0L0 0 0 50" fill="none" stroke="rgba(0,0,0,.06)" stroke-width="0.5"/>
+            </pattern>
+            <pattern id="gl" width="500" height="500" patternUnits="userSpaceOnUse">
+              <rect width="500" height="500" fill="url(#gs)"/>
+              <path d="M500 0L0 0 0 500" fill="none" stroke="rgba(0,0,0,.1)" stroke-width="1"/>
+            </pattern>
+          </defs>
+          <rect x="-9999" y="-9999" width="19998" height="19998" fill="url(#gl)"/>
+          <g id="pattern-content"></g>
+        </svg>
       </div>
     </div>
-    <div id="svg-wrapper" style="width:100%;height:100%;min-height:400px;overflow:hidden;cursor:grab;position:relative;flex:1">
-        <div id="svg-pan" style="transform-origin:0 0;will-change:transform">
-          <svg id="pattern-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-            <defs>
-              <pattern id="gs" width="50" height="50" patternUnits="userSpaceOnUse">
-                <path d="M50 0L0 0 0 50" fill="none" stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>
-              </pattern>
-              <pattern id="gl" width="500" height="500" patternUnits="userSpaceOnUse">
-                <rect width="500" height="500" fill="url(#gs)"/>
-                <path d="M500 0L0 0 0 500" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
-              </pattern>
-              <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-                <path d="M0,0 L0,8 L8,4 z" fill="#b86b2e"/>
-              </marker>
-              <marker id="arrow-rev" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
-                <path d="M0,0 L0,8 L8,4 z" fill="#b86b2e"/>
-              </marker>
-            </defs>
-            <rect id="svg-bg" x="-9999" y="-9999" width="19998" height="19998" fill="url(#gl)"/>
-            <g id="pattern-content"></g>
-          </svg>
-        </div>
-      </div>
     <div class="legend">
       <span>— Corte</span>
-      <span>- - Costura</span>
+      <span style="border-top:1px dashed var(--tx3);display:inline-block;width:14px"></span>
+      <span>Costura</span>
       <span style="color:var(--blue)">— Hilo recto</span>
-      <span style="color:#b84040">- - Doblez</span>
+      <span style="color:var(--err)">-- Doblez</span>
     </div>
   </div>
 
-  <!-- SCREEN: PASOS -->
-  <div class="screen" id="screen-steps">
-    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-    <div class="steps-wrap">
-      <div class="steps-nav" id="steps-nav">
-        <div class="steps-nav-h">
-          <h3 id="steps-title">Construyendo patrón</h3>
-          <div style="font-size:10px;color:var(--tx3);margin-top:2px">Paso a paso</div>
-        </div>
-        <div id="steps-list"></div>
-      </div>
-      <div class="step-main">
-        <div class="step-view" id="step-view">
-          <div class="step-svg-wrap" id="step-svg-wrap"></div>
-          <div class="step-info-box">
-            <div class="step-tag" id="step-tag">Paso 1</div>
-            <div class="step-name" id="step-name">Rectángulo base</div>
-            <div class="step-desc" id="step-desc"></div>
-            <div class="step-chips" id="step-chips"></div>
-          </div>
-        </div>
-        <div class="step-nav">
-          <button class="step-btn prev" id="step-prev">← Anterior</button>
-          <span id="step-counter" style="font-size:12px;color:var(--tx3);font-family:var(--mono)">1 / 5</span>
-          <button class="step-btn next" id="step-next">Siguiente →</button>
-        </div>
-      </div>
+  <!-- Vista 3D (bloqueada) -->
+  <div id="view-3d" style="display:none;flex:1;align-items:center;justify-content:center;background:var(--bg2)">
+    <div style="text-align:center;max-width:340px;padding:40px">
+      <div style="font-size:48px;margin-bottom:16px;opacity:.5">🧵</div>
+      <h2 style="font-family:var(--serif);font-size:22px;color:var(--tx);margin-bottom:10px;font-style:italic">Vista 3D en desarrollo</h2>
+      <p style="font-size:12px;color:var(--tx2);line-height:1.7">Estamos perfeccionando el maniquí 3D. Mientras tanto, trabaja con el patrón 2D de alta precisión.</p>
+      <button onclick="document.querySelector('.view-btn[data-view=pattern]').click()" style="margin-top:18px;background:var(--acc);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">→ Ver patrón 2D</button>
     </div>
-  </div>
-
-  <!-- SCREEN: RESULTADO -->
-  <div class="screen" id="screen-result">
-    <div class="result-head">
-      <h2 id="result-title">Patrón terminado</h2>
-      <button class="tb-btn" id="result-edit-btn">✏ Ajustar manual</button>
-      <button class="tb-btn prim" id="result-pdf-btn">⬇ PDF 1:1</button>
-    </div>
-    <div class="result-body">
-      <div class="result-canvas" id="result-canvas"></div>
-      <div class="result-panel">
-        <div class="r-section">
-          <div class="r-title">📐 Medidas calculadas</div>
-          <div id="result-measures"></div>
-        </div>
-        <div class="r-section">
-          <div class="r-title">📋 Instrucciones</div>
-          <ol class="r-instructions">
-            <li>Cortar por la línea exterior (incluye margen de costura).</li>
-            <li>El patrón puede ajustarse según el cuerpo real.</li>
-            <li>Verificar largos antes de cortar la tela.</li>
-            <li>Trazar en tela doble cuando corresponda.</li>
-          </ol>
-        </div>
-        <div class="r-section">
-          <div class="r-title">🎨 Transformar diseño</div>
-          <textarea id="result-transform-prompt" class="f-ta" rows="3" placeholder="Ej: manga globo, escote en V..."></textarea>
-          <button class="btn-p" style="width:100%;margin-top:8px;justify-content:center" id="result-transform-btn">✦ Aplicar con IA</button>
-        </div>
-        <div class="r-section">
-          <button class="sb-btn ghost" id="result-save-btn" style="width:100%">💾 Guardar en atelier</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN: DRAFTER -->
-  <div class="screen" id="screen-drafter">
-    <div id="dv6-mount" style="flex:1;display:flex;flex-direction:column;height:100%"></div>
   </div>
 
 </main>
 </div>
-</div>
 
-<!-- MODALES -->
+<!-- ═══ MODALES ═══ -->
+
+<!-- Guardar -->
 <div id="modal-save" class="modal">
-  <div class="modal-bg" onclick="closeModal('modal-save')"></div>
-  <div class="modal-box">
-    <div class="modal-h"><h3>💾 Guardar patrón</h3><button class="modal-x" onclick="closeModal('modal-save')">✕</button></div>
-    <div class="modal-body">
-      <div class="f-g"><label class="f-lbl">Nombre del patrón</label><input id="save-name" class="f-inp" type="text" placeholder="Ej: Franela talla M"></div>
+  <div class="m-ov"></div>
+  <div class="m-box">
+    <div class="m-head">
+      <h3>💾 Guardar patrón</h3>
+      <button class="m-x" id="cancel-save">✕</button>
     </div>
-    <div class="modal-foot">
-      <button class="btn-s" onclick="closeModal('modal-save')">Cancelar</button>
+    <div class="m-body">
+      <div class="f-g">
+        <label class="f-lbl">Nombre del patrón</label>
+        <input id="save-name" class="f-inp" type="text" placeholder="Ej: Franela talla M">
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn-s" id="cancel-save2">Cancelar</button>
       <button class="btn-p" id="confirm-save">💾 Guardar</button>
     </div>
   </div>
 </div>
 
+<!-- Cargar -->
 <div id="modal-load" class="modal">
-  <div class="modal-bg" onclick="closeModal('modal-load')"></div>
-  <div class="modal-box">
-    <div class="modal-h"><h3>📂 Patrones guardados</h3><button class="modal-x" onclick="closeModal('modal-load')">✕</button></div>
-    <div class="modal-body"><div id="saved-list"></div></div>
+  <div class="m-ov"></div>
+  <div class="m-box">
+    <div class="m-head">
+      <h3>📂 Patrones guardados</h3>
+      <button class="m-x" id="cancel-load">✕</button>
+    </div>
+    <div class="m-body">
+      <div id="saved-list"></div>
+    </div>
   </div>
 </div>
 
+<!-- AI Studio -->
 <div id="modal-ai" class="modal">
-  <div class="modal-bg" onclick="closeModal('modal-ai')"></div>
-  <div class="modal-box wide">
-    <div class="modal-h"><h3>✦ Estudio de Diseño IA</h3><button class="modal-x" onclick="closeModal('modal-ai')">✕</button></div>
+  <div class="m-ov"></div>
+  <div class="m-box wide">
+    <div class="m-head">
+      <h3>✦ Estudio de Diseño IA</h3>
+      <button class="m-x" onclick="document.getElementById('modal-ai').classList.remove('open')">✕</button>
+    </div>
     <div class="tabs">
       <button class="tab-btn on" data-tab="transform">✦ Transformar diseño</button>
       <button class="tab-btn" data-tab="atelier">🏛 Método del atelier</button>
     </div>
-    <div class="modal-body">
+    <div class="m-body">
       <div class="tab-pane on" id="tab-transform">
-        <p style="font-size:12px;color:var(--tx2);margin-bottom:12px;line-height:1.7">Describe qué diseño quieres. El sistema modifica el patrón base y puedes ajustarlo después.</p>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <p style="font-size:12px;color:var(--tx2);margin-bottom:12px;line-height:1.7">Describe qué diseño quieres. El sistema modifica el patrón base y puedes ajustarlo manualmente después.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
           <span class="chip-tag" onclick="document.getElementById('ai-prompt').value=this.textContent">Manga globo</span>
           <span class="chip-tag" onclick="document.getElementById('ai-prompt').value=this.textContent">Escote en V</span>
           <span class="chip-tag" onclick="document.getElementById('ai-prompt').value=this.textContent">Falda evasé</span>
           <span class="chip-tag" onclick="document.getElementById('ai-prompt').value=this.textContent">Corte princesa</span>
-          <span class="chip-tag" onclick="document.getElementById('ai-prompt').value=this.textContent">Manga 3/4 acampanada</span>
-          <span class="chip-tag" onclick="document.getElementById('ai-prompt').value=this.textContent">Pinza de busto diagonal</span>
+          <span class="chip-tag" onclick="document.getElementById('ai-prompt').value=this.textContent">Manga 3/4</span>
+          <span class="chip-tag" onclick="document.getElementById('ai-prompt').value=this.textContent">Pinza diagonal</span>
         </div>
-        <div class="f-g"><textarea id="ai-prompt" class="f-ta" rows="4" placeholder="Ej: quiero manga acampanada con escote en V suave y pinza de busto al costado..."></textarea></div>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-          <label style="flex:1;background:var(--inp);border:1.5px solid var(--brd);border-radius:8px;padding:9px;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:11px"><input type="radio" name="ai-mode" value="auto" checked style="accent-color:var(--acc)"><div><div style="font-weight:600;color:var(--tx);font-size:12px">Automático</div><div style="color:var(--tx3)">El sistema modifica solo</div></div></label>
-          <label style="flex:1;background:var(--inp);border:1.5px solid var(--brd);border-radius:8px;padding:9px;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:11px"><input type="radio" name="ai-mode" value="suggest" style="accent-color:var(--acc)"><div><div style="font-weight:600;color:var(--tx);font-size:12px">Sugerencias</div><div style="color:var(--tx3)">Tú decides qué aplicar</div></div></label>
-        </div>
-        <button class="btn-p" style="width:100%;padding:12px;justify-content:center" id="btn-ai-apply"><span style="font-size:15px">✦</span> Aplicar transformación</button>
+        <div class="f-g"><textarea id="ai-prompt" class="f-ta" rows="4" placeholder="Ej: quiero manga acampanada con escote V suave y pinza de busto al costado..."></textarea></div>
+        <button class="btn-p" style="width:100%;justify-content:center" id="btn-ai-apply">✦ Aplicar transformación</button>
         <div id="ai-result" style="display:none;margin-top:12px;padding:12px;background:rgba(90,138,101,.08);border:1px solid rgba(90,138,101,.25);border-radius:10px">
           <div style="font-size:11px;font-weight:700;color:var(--sage);margin-bottom:7px">✓ Transformación lista</div>
           <div id="ai-result-text" style="font-size:12px;color:var(--tx2);line-height:1.7"></div>
-          <div style="display:flex;gap:8px;margin-top:10px">
-            <button class="btn-p" style="flex:1;justify-content:center;padding:9px" onclick="closeModal('modal-ai')">Ver patrón</button>
-            <button class="btn-s" style="flex:1" onclick="openDrafter();closeModal('modal-ai')">Ajustar manual</button>
-          </div>
         </div>
       </div>
       <div class="tab-pane" id="tab-atelier">
-        <p style="font-size:12px;color:var(--tx2);margin-bottom:12px;line-height:1.7">Describe cómo patronas. El sistema aprenderá tu método y lo aplicará automáticamente.</p>
+        <p style="font-size:12px;color:var(--tx2);margin-bottom:12px;line-height:1.7">Describe cómo patronas en tu atelier. El sistema aprenderá tu método.</p>
         <div class="names-grid" style="margin-bottom:12px">
           <div class="name-pair"><span class="nf">Cuarto de busto</span><span class="nm">busto ÷ 4</span></div>
           <div class="name-pair"><span class="nf">Sexto de busto</span><span class="nm">busto ÷ 6</span></div>
@@ -513,18 +676,9 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
           <div class="name-pair"><span class="nf">Mitad de espalda</span><span class="nm">espalda ÷ 2</span></div>
           <div class="name-pair"><span class="nf">Cuarto de cintura</span><span class="nm">cintura ÷ 4</span></div>
           <div class="name-pair"><span class="nf">Cuarto de cadera</span><span class="nm">cadera ÷ 4</span></div>
-          <div class="name-pair"><span class="nf">Largo de espalda</span><span class="nm">talle espalda</span></div>
-          <div class="name-pair"><span class="nf">Largo delantero</span><span class="nm">talle delantero</span></div>
         </div>
         <div class="f-g"><label class="f-lbl">Nombre de tu método</label><input id="atelier-name" class="f-inp" type="text" placeholder="Ej: Método Atelier NH"></div>
-        <div class="f-g"><label class="f-lbl">Describe tu método de patronaje</label><textarea id="atelier-method" class="f-ta" rows="5" placeholder="Ej: Para la sisa mido el cuarto de busto más 3 centímetros. El cuello lo empiezo con el quinto de cuello..."></textarea></div>
-        <details style="margin-bottom:12px"><summary style="font-size:11px;color:var(--tx3);cursor:pointer;padding:6px 0">⊞ Fórmulas específicas (opcional)</summary>
-          <div style="margin-top:8px;display:flex;flex-direction:column;gap:7px">
-            <div class="f-g" style="margin:0"><label class="f-lbl">Fórmula de la sisa</label><input id="af-sisa" class="f-inp" placeholder="Cuarto de busto + 3 cm"></div>
-            <div class="f-g" style="margin:0"><label class="f-lbl">Escote delantero</label><input id="af-escote-del" class="f-inp" placeholder="Quinto de cuello"></div>
-            <div class="f-g" style="margin:0"><label class="f-lbl">Posición pinza de busto</label><input id="af-pinza" class="f-inp" placeholder="9 cm desde el hombro"></div>
-          </div>
-        </details>
+        <div class="f-g"><label class="f-lbl">Describe tu método</label><textarea id="atelier-method" class="f-ta" rows="5" placeholder="Ej: Para la sisa mido el cuarto de busto más 3 centímetros. El cuello con el quinto de cuello..."></textarea></div>
         <button class="btn-p" style="width:100%;justify-content:center" id="btn-save-atelier">💾 Guardar método</button>
         <div id="atelier-saved" style="display:none;margin-top:10px;padding:10px;background:rgba(90,138,101,.1);border:1px solid rgba(90,138,101,.3);border-radius:8px;font-size:12px;color:var(--sage);text-align:center">✓ Método guardado.</div>
       </div>
@@ -532,22 +686,21 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
   </div>
 </div>
 
+<!-- Tabla tallas -->
 <div id="modal-tallas" class="modal">
-  <div class="modal-bg" onclick="closeModal('modal-tallas')"></div>
-  <div class="modal-box wide">
-    <div class="modal-h"><h3>📊 Tabla de tallas estándar</h3><button class="modal-x" onclick="closeModal('modal-tallas')">✕</button></div>
-    <div class="modal-body">
+  <div class="m-ov" onclick="document.getElementById('modal-tallas').classList.remove('open')"></div>
+  <div class="m-box wide">
+    <div class="m-head">
+      <h3>📊 Tabla de tallas estándar</h3>
+      <button class="m-x" onclick="document.getElementById('modal-tallas').classList.remove('open')">✕</button>
+    </div>
+    <div class="m-body">
       <p style="font-size:11px;color:var(--tx3);margin-bottom:10px;font-family:var(--mono)">Medidas en cm · Clic en una talla para cargarla</p>
       <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead><tr style="background:var(--accbg)">
-            <th style="padding:8px 12px;text-align:left;color:var(--acc);border:1px solid var(--brd)">Talla</th>
-            <th style="padding:8px 10px;color:var(--tx2);border:1px solid var(--brd)">Busto</th>
-            <th style="padding:8px 10px;color:var(--tx2);border:1px solid var(--brd)">Cintura</th>
-            <th style="padding:8px 10px;color:var(--tx2);border:1px solid var(--brd)">Cadera</th>
-            <th style="padding:8px 10px;color:var(--tx2);border:1px solid var(--brd)">Hombros</th>
-            <th style="padding:8px 10px;color:var(--tx2);border:1px solid var(--brd)">T.Esp.</th>
-            <th style="padding:8px 10px;color:var(--tx2);border:1px solid var(--brd)">Manga</th>
+        <table id="tallas-table">
+          <thead><tr>
+            <th style="text-align:left">Talla</th>
+            <th>Busto</th><th>Cintura</th><th>Cadera</th><th>Hombros</th><th>T.Esp.</th><th>Manga</th>
           </tr></thead>
           <tbody id="tallas-body"></tbody>
         </table>
@@ -558,7 +711,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
 
 <div id="toasts"></div>
 
-<!-- SCRIPTS EXTERNOS -->
+<!-- ═══ SCRIPTS ═══ -->
 <script src="js/constants.js"></script>
 <script src="js/svg-utils.js"></script>
 <script>if(window.PAT&&PAT.SVGUtils){window.n=PAT.SVGUtils.n;window.NS=PAT.SVGUtils.NS;}</script>
@@ -575,41 +728,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
 <script src="js/payment.js"></script>
 <script src="js/atelier-panel.js"></script>
 <script src="js/app.js"></script>
-<script>
-// Llamar nuestro init DESPUÉS de que app.js termine
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(function() {
-    if (window.__PAT_INLINE_INIT) {
-      window.__PAT_INLINE_INIT();
-    }
-  }, 200);
-});
 
-// Re-trigger pattern engine after everything loads
-// app.js may call generate() before SVG is in DOM
-window.addEventListener('load', function() {
-  setTimeout(function() {
-    // Re-initialize engine if needed
-    if (window.PAT && PAT.Engine) {
-      try {
-        var svg = document.getElementById('pattern-svg');
-        var content = document.getElementById('pattern-content');
-        if (svg && content) {
-          console.log('[PatrónAI] Re-triggering pattern engine...');
-          PAT.Engine.render && PAT.Engine.render(
-            window.__PAT_GARMENT || 'franela',
-            window.__PAT_MEASURES || {bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,hipDepth:20,seam:10,ease:6}
-          );
-        } else {
-          console.warn('[PatrónAI] SVG still not found after load');
-        }
-      } catch(e) { console.error('[PatrónAI] Engine re-trigger error:', e); }
-    }
-  }, 500);
-});
-</script>
-
-<!-- SCRIPTS INLINE -->
 <script>
 
 
@@ -2393,750 +2512,153 @@ PAT.DrafterUI = (function () {
 
 
 </script>
+
 <script>
-// Helpers globales
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
-function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); }
-function openModal(id){ var m=document.getElementById(id);if(m)m.classList.add('on'); }
-function closeModal(id){ var m=document.getElementById(id);if(m)m.classList.remove('on'); }
-function openDrafter(){ showScreen('screen-drafter');setTimeout(function(){if(window.PAT&&PAT.DrafterUI)PAT.DrafterUI.open();},100); }
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on');});
-  var el=document.getElementById(id);if(el)el.classList.add('on');
-  STATE.screen=id;updateTopbar(id);updateBreadcrumb(id);
-  if(id==='screen-steps')renderCurrentStep();
-  closeSidebar();
-}
-function showToast(msg,type){
-  type=type||'ok';
-  var c=document.getElementById('toasts');if(!c)return;
-  var t=document.createElement('div');t.className='toast '+type;t.textContent=msg;
-  c.appendChild(t);setTimeout(function(){t.remove();},3500);
+// ── stepInput: helper para botones +/- ──────────────────────────
+// app.js escucha input events en [data-measure], así que disparamos
+// un evento 'input' en el campo después de cambiar el valor.
+function stepInput(key, dir) {
+  var inp = document.querySelector('input[data-measure="'+key+'"]');
+  if (!inp) return;
+  var step = parseFloat(inp.step) || 0.5;
+  var val  = Math.round((parseFloat(inp.value||0) + dir*step) * 10) / 10;
+  val = Math.min(Math.max(val, parseFloat(inp.min)||0), parseFloat(inp.max)||9999);
+  inp.value = val;
+  inp.dispatchEvent(new Event('input', {bubbles:true}));
 }
 
-/* ═══════════════════════════════════════════════
-   PatrónAI Pro — App Logic
-   Flujo: Patrón → Pasos → Resultado
-═══════════════════════════════════════════════ */
-'use strict';
-
-// ── Estado global ──
-window.__PAT_GARMENT = 'franela';
-window.__PAT_MEASURES = {bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,hipDepth:20,seam:10,ease:6};
-const STATE = {
-  garment: 'franela',
-  measures: {
-    bust:88, waist:68, hip:94, shoulder:38, neck:36,
-    backLength:40, frontLength:42, totalLength:65,
-    sleeveLength:60, skirtLength:60, hipDepth:20,
-    seam:10, ease:6
-  },
-  currentStep: 0,
-  totalSteps: 0,
-  screen: 'screen-pattern',
-};
-
-// ── Tallas estándar ──
-const TALLAS = [
-  {t:'XS (32)',  b:80, w:60, h:86, s:36, e:38, m:58},
-  {t:'S  (34)',  b:84, w:64, h:90, s:37, e:39, m:59},
-  {t:'M  (36)',  b:88, w:68, h:94, s:38, e:40, m:60},
-  {t:'L  (38)',  b:92, w:72, h:98, s:39, e:41, m:60},
-  {t:'XL (40)',  b:96, w:76, h:102,s:40, e:42, m:61},
-  {t:'2XL(42)', b:100, w:80, h:106,s:41, e:43, m:61},
-  {t:'3XL(44)', b:106, w:86, h:112,s:42, e:44, m:62},
-  {t:'4XL(46)', b:112, w:92, h:118,s:43, e:45, m:62},
-];
-
-// ── Definición de pasos por prenda ──
-function getSteps(garment, m) {
-  const B4 = m.bust/4, B6 = m.bust/6;
-  const W4 = m.waist/4, H4 = m.hip/4;
-  const N5 = m.neck/5, N6 = m.neck/6;
-  const E2 = m.shoulder/2;
-  const tE = m.backLength, tD = m.frontLength;
-  const ease = m.ease || 6;
-
-  const common = {
-    franela: [
-      {
-        label:'Paso 1', name:'Rectángulo base',
-        desc:'Traza un rectángulo. El largo es el talle de espalda y el ancho es el cuarto de busto más facilidad.',
-        measures:[
-          {l:'a = Ancho',  v:(B4+ease/2).toFixed(1)+' cm', note:'Cuarto de busto + '+ease/2+' cm facilidad'},
-          {l:'b = Largo',  v:tE.toFixed(1)+' cm', note:'Largo de espalda'},
-        ],
-        draw: (m) => drawStep1(m, B4, tE, ease),
-      },
-      {
-        label:'Paso 2', name:'Línea de busto y cadera',
-        desc:'Desde la esquina superior izquierda, baja el ancho de sisa para marcar la línea de busto. Luego la profundidad de cadera.',
-        measures:[
-          {l:'c = Sisa',   v:(B4*0.82).toFixed(1)+' cm', note:'Cuarto de busto × 0.82'},
-          {l:'d = Cadera', v:m.hipDepth.toFixed(1)+' cm', note:'Profundidad de cadera'},
-        ],
-        draw: (m) => drawStep2(m, B4, tE, ease),
-      },
-      {
-        label:'Paso 3', name:'Escote de espalda',
-        desc:'En la esquina superior derecha, marca el ancho y la profundidad del escote de espalda.',
-        measures:[
-          {l:'e = Ancho escote', v:(N6+0.5).toFixed(1)+' cm', note:'Sexto de cuello + 0.5 cm'},
-          {l:'f = Prof. escote', v:(N6*0.3).toFixed(1)+' cm', note:'Tercio del ancho de escote'},
-        ],
-        draw: (m) => drawStep3(m, B4, tE, N6, ease),
-      },
-      {
-        label:'Paso 4', name:'Hombro y sisa',
-        desc:'Traza la línea de hombro con inclinación natural. Luego curva la sisa con tres puntos de control.',
-        measures:[
-          {l:'g = Hombro', v:(E2+0.5).toFixed(1)+' cm', note:'Mitad de espalda + 0.5 cm'},
-          {l:'h = Caída',  v:'1.5 cm', note:'Caída natural del hombro'},
-        ],
-        draw: (m) => drawStep4(m, B4, tE, N6, E2, ease),
-      },
-      {
-        label:'Paso 5', name:'Costura lateral y base',
-        desc:'Cierra el patrón con la costura lateral y la línea de base (ruedo).',
-        measures:[
-          {l:'i = Largo total', v:m.totalLength.toFixed(1)+' cm', note:'Largo total de la prenda'},
-          {l:'j = Cintura',     v:(W4+ease/4).toFixed(1)+' cm', note:'Cuarto de cintura + facilidad'},
-        ],
-        draw: (m) => drawStep5(m, B4, tE, N6, E2, W4, ease),
-      },
-      {
-        label:'Final', name:'Patrón de espalda completo',
-        desc:'Patrón de espalda terminado con todas las líneas de corte y costura marcadas.',
-        measures:[],
-        draw: (m) => drawFinal(m, B4, tE, N6, E2, W4, ease),
-        isFinal: true,
-      },
-    ],
-  };
-  // Para otras prendas, usar los mismos pasos de franela como base
-  return common[garment] || common.franela;
-}
-
-// ── Funciones de dibujo SVG ──
-const SVG_PAD = 40;
-const SC = 1.8; // escala visual (1mm = 1.8px en vista de pasos)
-
-function makeSVG(W, H) {
-  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"
-    style="background:white;max-width:100%;max-height:55vh">
-  <defs>
-    <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L6,3 z" fill="#3a6ea8"/>
-    </marker>
-  </defs>`;
-}
-
-function cota(x1,y1,x2,y2,label,offset=20) {
-  const mx=(x1+x2)/2, my=(y1+y2)/2;
-  const horiz = Math.abs(y2-y1)<5;
-  const ox = horiz?0:-offset, oy = horiz?-offset:0;
-  return `
-  <line x1="${x1+ox}" y1="${y1+oy}" x2="${x2+ox}" y2="${y2+oy}" stroke="#3a6ea8" stroke-width="1" stroke-dasharray="3,2" opacity=".5"/>
-  <line x1="${x1}" y1="${y1}" x2="${x1+ox}" y2="${y1+oy}" stroke="#3a6ea8" stroke-width="1" opacity=".4"/>
-  <line x1="${x2}" y1="${y2}" x2="${x2+ox}" y2="${y2+oy}" stroke="#3a6ea8" stroke-width="1" opacity=".4"/>
-  <text x="${mx+ox}" y="${my+oy+(horiz?-5:4)}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#3a6ea8" font-weight="600">${label}</text>`;
-}
-
-function drawStep1(m, B4, tE, ease) {
-  const a=(B4+ease/2)*SC, b=tE*SC;
-  const px=SVG_PAD, py=SVG_PAD;
-  const W=a+SVG_PAD*3, H=b+SVG_PAD*3;
-  return makeSVG(W,H)+`
-  <rect x="${px}" y="${py}" width="${a}" height="${b}" fill="none" stroke="#b86b2e" stroke-width="2"/>
-  ${cota(px,py,px+a,py,`a = ${(B4+ease/2).toFixed(1)}cm`,25)}
-  ${cota(px+a,py,px+a,py+b,`b = ${tE}cm`,25)}
-  <text x="${px+4}" y="${py-8}" font-family="Plus Jakarta Sans,sans-serif" font-size="11" fill="#b86b2e">Espalda</text>
-  </svg>`;
-}
-
-function drawStep2(m, B4, tE, ease) {
-  const a=(B4+ease/2)*SC, b=tE*SC;
-  const sisaY = (B4*0.82)*SC;
-  const caderaY = m.hipDepth*SC;
-  const px=SVG_PAD, py=SVG_PAD;
-  const W=a+SVG_PAD*3, H=b+SVG_PAD*3;
-  return makeSVG(W,H)+`
-  <rect x="${px}" y="${py}" width="${a}" height="${b}" fill="none" stroke="#b86b2e" stroke-width="2"/>
-  <line x1="${px}" y1="${py+sisaY}" x2="${px+a}" y2="${py+sisaY}" stroke="#3a6ea8" stroke-width="1.5" stroke-dasharray="6,3"/>
-  <line x1="${px}" y1="${py+caderaY}" x2="${px+a}" y2="${py+caderaY}" stroke="#5a8a65" stroke-width="1.5" stroke-dasharray="6,3"/>
-  ${cota(px-30,py,px-30,py+sisaY,`c = ${(B4*0.82).toFixed(1)}cm`,0)}
-  ${cota(px-30,py,px-30,py+caderaY,`d = ${m.hipDepth}cm`,0)}
-  <text x="${px+a+4}" y="${py+sisaY+4}" font-size="10" fill="#3a6ea8" font-family="JetBrains Mono,monospace">Busto</text>
-  <text x="${px+a+4}" y="${py+caderaY+4}" font-size="10" fill="#5a8a65" font-family="JetBrains Mono,monospace">Cadera</text>
-  </svg>`;
-}
-
-function drawStep3(m, B4, tE, N6, ease) {
-  const a=(B4+ease/2)*SC, b=tE*SC;
-  const eW=(N6+0.5)*SC, eD=(N6*0.3)*SC;
-  const px=SVG_PAD, py=SVG_PAD;
-  const W=a+SVG_PAD*3, H=b+SVG_PAD*3;
-  return makeSVG(W,H)+`
-  <rect x="${px}" y="${py}" width="${a}" height="${b}" fill="none" stroke="#b86b2e" stroke-width="2" opacity=".3"/>
-  <path d="M${px+a},${py} Q${px+a-eW/2},${py+eD} ${px+a-eW},${py+eD}" fill="none" stroke="#b86b2e" stroke-width="2.5"/>
-  <line x1="${px+a-eW}" y1="${py}" x2="${px+a-eW}" y2="${py+eD}" stroke="#b86b2e" stroke-width="1" stroke-dasharray="4,2" opacity=".5"/>
-  ${cota(px+a-eW,py,px+a,py,`e = ${(N6+0.5).toFixed(1)}cm`,22)}
-  ${cota(px+a,py,px+a,py+eD,`f = ${(N6*0.3).toFixed(1)}cm`,30)}
-  </svg>`;
-}
-
-function drawStep4(m, B4, tE, N6, E2, ease) {
-  const a=(B4+ease/2)*SC, b=tE*SC;
-  const eW=(N6+0.5)*SC, eD=(N6*0.3)*SC;
-  const sisaY=(B4*0.82)*SC;
-  const hW=(E2+0.5)*SC, hDrop=1.5*SC;
-  const px=SVG_PAD, py=SVG_PAD;
-  const W=a+SVG_PAD*3, H=b+SVG_PAD*3;
-  // Puntos del hombro y sisa
-  const shX=px+a-eW, shY=py+eD;         // fin escote
-  const shoulderEndX=px+a-hW, shoulderEndY=py+eD+hDrop; // punta hombro
-  const sisaCtrl1X=shoulderEndX-hW*0.15, sisaCtrl1Y=py+sisaY*0.4;
-  const sisaCtrl2X=px+a*0.85, sisaCtrl2Y=py+sisaY*0.8;
-  return makeSVG(W,H)+`
-  <rect x="${px}" y="${py}" width="${a}" height="${b}" fill="none" stroke="#b86b2e" stroke-width="2" opacity=".2"/>
-  <path d="M${px+a},${py} Q${px+a-eW/2},${py+eD} ${shX},${shY}" fill="none" stroke="#b86b2e" stroke-width="2"/>
-  <line x1="${shX}" y1="${shY}" x2="${shoulderEndX}" y2="${shoulderEndY}" stroke="#b86b2e" stroke-width="2"/>
-  <path d="M${shoulderEndX},${shoulderEndY} C${sisaCtrl1X},${sisaCtrl1Y} ${sisaCtrl2X},${sisaCtrl2Y} ${px+a},${py+sisaY}" fill="none" stroke="#c49830" stroke-width="2.5"/>
-  ${cota(px+a-hW,py,px+a,py,`g = ${(E2+0.5).toFixed(1)}cm`,22)}
-  <circle cx="${shoulderEndX}" cy="${shoulderEndY}" r="3" fill="#b86b2e"/>
-  <text x="${shoulderEndX-20}" y="${shoulderEndY-6}" font-size="9" fill="#b86b2e" font-family="JetBrains Mono,monospace">Hombro</text>
-  </svg>`;
-}
-
-function drawStep5(m, B4, tE, N6, E2, W4, ease) {
-  const a=(B4+ease/2)*SC, b=m.totalLength*SC;
-  const sisaY=(B4*0.82)*SC;
-  const waistW=(W4+ease/4)*SC;
-  const px=SVG_PAD, py=SVG_PAD;
-  const W=a+SVG_PAD*3, H=b+SVG_PAD*3;
-  return makeSVG(W,H)+`
-  <rect x="${px}" y="${py}" width="${a}" height="${(m.backLength)*SC}" fill="none" stroke="#b86b2e" stroke-width="2" opacity=".25"/>
-  <line x1="${px+a}" y1="${py+sisaY}" x2="${px+a}" y2="${py+b}" stroke="#b86b2e" stroke-width="2"/>
-  <line x1="${px}" y1="${py+(m.backLength)*SC}" x2="${px+a}" y2="${py+(m.backLength)*SC}" stroke="#5a8a65" stroke-width="1.5" stroke-dasharray="5,3"/>
-  <line x1="${px}" y1="${py+b}" x2="${px+a}" y2="${py+b}" stroke="#b86b2e" stroke-width="2"/>
-  ${cota(px,py+(m.backLength)*SC,px,py+b,`i = ${m.totalLength-m.backLength}cm`,30)}
-  <text x="${px+4}" y="${py+b-4}" font-size="10" fill="#5a8a65" font-family="JetBrains Mono,monospace">Ruedo</text>
-  </svg>`;
-}
-
-function drawFinal(m, B4, tE, N6, E2, W4, ease) {
-  const a=(B4+ease/2)*SC, b=m.totalLength*SC;
-  const sisaY=(B4*0.82)*SC;
-  const eW=(N6+0.5)*SC, eD=(N6*0.3)*SC;
-  const hW=(E2+0.5)*SC, hDrop=1.5*SC;
-  const px=SVG_PAD, py=SVG_PAD;
-  const W=a+SVG_PAD*3.5, H=b+SVG_PAD*3;
-  const shX=px+a-eW, shY=py+eD;
-  const shoulderEndX=px+a-hW, shoulderEndY=py+eD+hDrop;
-  return makeSVG(W,H)+`
-  <!-- Patrón completo -->
-  <path d="
-    M${px},${py}
-    L${px+a-eW},${py}
-    Q${px+a-eW/2},${py+eD} ${px+a-eW},${py+eD}
-    L${shoulderEndX},${shoulderEndY}
-    C${shoulderEndX-hW*0.15},${py+sisaY*0.4} ${px+a*0.85},${py+sisaY*0.8} ${px+a},${py+sisaY}
-    L${px+a},${py+b}
-    L${px},${py+b}
-    Z
-  " fill="rgba(184,107,46,.05)" stroke="#b86b2e" stroke-width="2.5"/>
-  <!-- Hilo recto -->
-  <line x1="${px+a/2}" y1="${py+20}" x2="${px+a/2}" y2="${py+b-20}" stroke="#3a6ea8" stroke-width="1.5" stroke-dasharray="8,4"/>
-  <!-- Cotas finales -->
-  ${cota(px,py,px+a,py,`${(B4+ease/2).toFixed(1)}cm`,25)}
-  ${cota(px+a,py,px+a,py+b,`${m.totalLength}cm`,28)}
-  <!-- Etiqueta -->
-  <text x="${px+a/2}" y="${py+b/2}" text-anchor="middle" font-family="Plus Jakarta Sans,sans-serif" font-size="12" fill="#b86b2e" opacity=".5" font-weight="600">ESPALDA</text>
-  </svg>`;
-}
-
-// ── Navegación entre screens ──
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const el = document.getElementById(id);
-  if(el) el.classList.add('active');
-  STATE.screen = id;
-  updateTopbar(id);
-  updateBreadcrumb(id);
-  if(id==='screen-steps') renderCurrentStep();
-  closeSidebar();
-}
-
-function updateTopbar(screenId) {
-  const pdfBtn   = document.getElementById('btn-pdf');
-  const saveBtn  = document.getElementById('btn-save');
-  const tallasBtn= document.getElementById('btn-tallas');
-  if(!pdfBtn) return;
-  pdfBtn.style.display    = screenId==='screen-result'?'flex':'none';
-  saveBtn.style.display   = ['screen-result','screen-pattern'].includes(screenId)?'flex':'none';
-  tallasBtn.style.display = screenId==='screen-pattern'?'flex':'none';
-}
-
-function updateBreadcrumb(screenId) {
-  const bc = document.getElementById('breadcrumb');
-  if(!bc) return;
-  const garmentNames = {franela:'Franela',blusa:'Blusa',camisa:'Camisa',falda:'Falda',vestido:'Vestido'};
-  const gn = garmentNames[STATE.garment]||STATE.garment;
-  const crumbs = {
-    'screen-pattern': `<span style="color:var(--acc);font-weight:600">${gn}</span>`,
-    'screen-steps':   `${gn} <span style="color:var(--tx4)">›</span> <span style="color:var(--acc);font-weight:600">Paso a paso</span>`,
-    'screen-result':  `${gn} <span style="color:var(--tx4)">›</span> <span style="color:var(--acc);font-weight:600">Patrón listo</span>`,
-    'screen-drafter': `${gn} <span style="color:var(--tx4)">›</span> <span style="color:var(--acc);font-weight:600">Trazado manual</span>`,
-  };
-  bc.innerHTML = crumbs[screenId]||'';
-}
-
-// ── Render de pasos ──
-function initSteps() {
-  const steps = getSteps(STATE.garment, STATE.measures);
-  STATE.totalSteps = steps.length;
-  STATE.currentStep = 0;
-
-  // Llenar nav de pasos
-  const nav = document.getElementById('steps-list');
-  if(!nav) return;
-  nav.innerHTML = steps.map((s,i)=>`
-    <div class="step-item${i===0?' active':''}" data-step="${i}" onclick="goToStep(${i})">
-      <div class="step-circle">${i===steps.length-1?'★':(i+1)}</div>
-      <span class="step-txt">${s.name}</span>
-    </div>`).join('');
-
-  const gNames={franela:'Franela básica',blusa:'Blusa base',camisa:'Camisa base',falda:'Falda base',vestido:'Vestido base'};
-  const title = document.getElementById('steps-garment-title');
-  if(title) title.textContent = gNames[STATE.garment]||'Patrón base';
-
-  renderCurrentStep();
-  showScreen('screen-steps');
-}
-
-function renderCurrentStep() {
-  const steps = getSteps(STATE.garment, STATE.measures);
-  const step = steps[STATE.currentStep];
-  if(!step) return;
-
-  // Actualizar nav
-  document.querySelectorAll('.step-item').forEach((el,i)=>{
-    el.classList.toggle('active', i===STATE.currentStep);
-    el.classList.toggle('done', i<STATE.currentStep);
+// ── Mobile menu button visible en pequeño ───────────────────────
+(function() {
+  var menuBtn = document.getElementById('menu-mobile');
+  if (menuBtn && window.innerWidth <= 768) menuBtn.style.display = 'flex';
+  window.addEventListener('resize', function() {
+    if (menuBtn) menuBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
   });
+})();
 
-  // Barra de progreso
-  const pct = (STATE.currentStep/(STATE.totalSteps-1))*100;
-  const fill = document.getElementById('progress-fill');
-  if(fill) fill.style.width = pct+'%';
+// ── AI Studio ───────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
 
-  // Contador
-  const counter = document.getElementById('step-counter');
-  if(counter) counter.textContent = `${STATE.currentStep+1} / ${STATE.totalSteps}`;
-
-  // Contenido
-  const el = id => document.getElementById(id);
-  if(el('step-label'))  el('step-label').textContent  = step.label;
-  if(el('step-name'))   el('step-name').textContent   = step.name;
-  if(el('step-desc'))   el('step-desc').textContent   = step.desc;
-
-  // SVG del paso
-  const wrap = el('step-canvas-wrap');
-  if(wrap) wrap.innerHTML = step.draw ? step.draw(STATE.measures) : '';
-
-  // Chips de medidas
-  const measDiv = el('step-measures');
-  if(measDiv) {
-    measDiv.innerHTML = (step.measures||[]).map(mv=>`
-      <div class="step-measure-chip">
-        <strong>${mv.l}</strong> = ${mv.v}
-        ${mv.note?`<span style="color:var(--tx4);font-size:10px">(${mv.note})</span>`:''}
-      </div>`).join('');
-  }
-
-  // Botones nav
-  const prev = el('step-prev'), next = el('step-next');
-  if(prev) prev.style.visibility = STATE.currentStep===0?'hidden':'visible';
-  if(next) {
-    const isLast = STATE.currentStep===STATE.totalSteps-1;
-    next.textContent = isLast ? '✓ Ver patrón completo' : 'Siguiente →';
-    next.className = 'step-btn ' + (isLast?'finish':'next');
-  }
-}
-
-function goToStep(i) {
-  STATE.currentStep = Math.max(0, Math.min(i, STATE.totalSteps-1));
-  renderCurrentStep();
-}
-
-// ── Render resultado final ──
-function showResult() {
-  const steps = getSteps(STATE.garment, STATE.measures);
-  const m = STATE.measures;
-  const B4=m.bust/4, tE=m.backLength, N6=m.neck/6, E2=m.shoulder/2, W4=m.waist/4;
-  const ease=m.ease||6;
-
-  // SVG final
-  const canvas = document.getElementById('result-canvas');
-  if(canvas) {
-    canvas.innerHTML = drawFinal(m,B4,tE,N6,E2,W4,ease);
-  }
-
-  // Medidas calculadas
-  const measDiv = document.getElementById('result-measures');
-  if(measDiv) {
-    const calcs = [
-      ['Cuarto de busto',    (B4).toFixed(1)+' cm'],
-      ['Ancho del patrón',   (B4+ease/2).toFixed(1)+' cm'],
-      ['Largo de espalda',   tE.toFixed(1)+' cm'],
-      ['Ancho escote',       (m.neck/6+0.5).toFixed(1)+' cm'],
-      ['Prof. escote espalda',(m.neck/6*0.3).toFixed(1)+' cm'],
-      ['Ancho hombro',       (E2+0.5).toFixed(1)+' cm'],
-      ['Cuarto cintura',     (W4+ease/4).toFixed(1)+' cm'],
-      ['Largo total',        m.totalLength.toFixed(1)+' cm'],
-    ];
-    measDiv.innerHTML = calcs.map(([l,v])=>`
-      <div class="result-measure-row">
-        <span>${l}</span><strong>${v}</strong>
-      </div>`).join('');
-  }
-
-  // Título
-  const gNames={franela:'Franela básica',blusa:'Blusa base',camisa:'Camisa base',falda:'Falda base',vestido:'Vestido base'};
-  const title = document.getElementById('result-title');
-  if(title) title.textContent = `${gNames[STATE.garment]||'Patrón'} — ${m.bust}cm`;
-
-  showScreen('screen-result');
-}
-
-// ── Drafter / Trazado manual ──
-function openDrafter() {
-  showScreen('screen-drafter');
-  if(window.PAT && PAT.DrafterUI) {
-    setTimeout(()=>{ PAT.DrafterUI.open(); }, 100);
-  } else {
-    showToast('El editor manual no está cargado','err');
-  }
-}
-
-// ── Toast ──
-function showToast(msg, type='ok') {
-  const c = document.getElementById('toasts');
-  if(!c) return;
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(()=>t.remove(), 3500);
-}
-
-// ── Modal ──
-function openModal(id) { const m=document.getElementById(id); if(m) m.classList.add('open'); }
-function closeModal(id) { const m=document.getElementById(id); if(m) m.classList.remove('open'); }
-
-// ── Sidebar mobile ──
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-}
-
-// ── Init ──
-// Run after app.js - use setTimeout to ensure app.js ran first
-window.__PAT_INLINE_INIT = function() {
-  console.log('[PatrónAI Inline] Inicializando...');
-
-  // ── SYNC: visible inputs → hidden inputs → app.js ──
-  // Cuando el usuario cambia un input visible, actualizar el input oculto
-  // y disparar el evento input en él para que app.js lo detecte
-  function syncToHidden(key, value) {
-    var hidden = document.querySelector('#hidden-measure-inputs [data-measure="'+key+'"]');
-    if (hidden) {
-      hidden.value = value;
-      hidden.dispatchEvent(new Event('input', {bubbles: true}));
-      hidden.dispatchEvent(new Event('change', {bubbles: true}));
-    }
-    STATE.measures[key] = parseFloat(value) || value;
-    window.__PAT_MEASURES = Object.assign({}, STATE.measures);
-  }
-
-  // Sync initial values from hidden to visible
-  document.querySelectorAll('#hidden-measure-inputs [data-measure]').forEach(function(hidden) {
-    var key = hidden.dataset.measure;
-    var visible = document.querySelector('.m-inp[data-m="'+key+'"]');
-    if (visible && hidden.value) visible.value = hidden.value;
-  });
-
-  // ── BOTONES +/- ──
-  document.querySelectorAll('.m-pm').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var key = this.dataset.t;
-      var inp = document.querySelector('.m-inp[data-m="'+key+'"]');
-      if (!inp) return;
-      var step = parseFloat(inp.step) || 0.5;
-      var dir  = parseInt(this.dataset.dir);
-      var val  = Math.round((parseFloat(inp.value) + dir * step) * 10) / 10;
-      val = Math.min(Math.max(val, parseFloat(inp.min)||0), parseFloat(inp.max)||999);
-      inp.value = val;
-      syncToHidden(key, val);
-    });
-  });
-
-  // ── VISIBLE INPUTS → sync a hidden ──
-  document.querySelectorAll('.m-inp[data-m]').forEach(function(inp) {
-    ['input','change'].forEach(function(evt) {
-      inp.addEventListener(evt, function() {
-        syncToHidden(this.dataset.m, this.value);
-      });
-    });
-  });
-
-  // ── VISIBLE PARAMS → sync a hidden ──
-  document.querySelectorAll('[data-param]').forEach(function(el) {
-    el.addEventListener('change', function() {
-      syncToHidden(this.dataset.param, this.value);
-    });
-  });
-
-  // ── G-CARD → click en botón oculto de app.js ──
-  document.querySelectorAll('.g-card[data-g]').forEach(function(card) {
-    card.addEventListener('click', function() {
-      var g = this.dataset.g;
-      // Visual activo
-      document.querySelectorAll('.g-card').forEach(function(c) { c.classList.remove('on'); });
-      this.classList.add('on');
-      STATE.garment = g;
-      window.__PAT_GARMENT = g;
-      // Mostrar/ocultar filas
-      var hasSleeve = ['franela','blusa','camisa','vestido'].includes(g);
-      var hasSkirt  = ['falda','vestido'].includes(g);
-      var sr  = document.getElementById('row-sleeve');
-      var skr = document.getElementById('row-skirt');
-      if (sr)  sr.style.display  = hasSleeve ? 'flex' : 'none';
-      if (skr) skr.style.display = hasSkirt  ? 'flex' : 'none';
-      // Trigger app.js hidden button
-      var hiddenBtn = document.querySelector('#hidden-garment-btns .garment-btn[data-garment="'+g+'"]');
-      if (hiddenBtn) hiddenBtn.click();
-    });
-  });
-
-  // ── BTN-AI-STUDIO ──
+  // Botón AI Studio
   var btnAI = document.getElementById('btn-ai-studio');
-  if (btnAI) btnAI.addEventListener('click', function() { openModal('modal-ai'); });
+  if (btnAI) btnAI.onclick = function() {
+    document.getElementById('modal-ai').classList.add('open');
+  };
 
-  // ── BTN-STEPS ──
+  // Botón paso a paso (nuevo feature)
   var btnSteps = document.getElementById('btn-steps');
-  if (btnSteps) btnSteps.addEventListener('click', initSteps);
-
-  // ── STEP NAVIGATION ──
-  var stepPrev = document.getElementById('step-prev');
-  var stepNext = document.getElementById('step-next');
-  if (stepPrev) stepPrev.onclick = function() {
-    if (STATE.currentStep > 0) { STATE.currentStep--; renderCurrentStep(); }
-  };
-  if (stepNext) stepNext.onclick = function() {
-    if (STATE.currentStep < STATE.totalSteps - 1) { STATE.currentStep++; renderCurrentStep(); }
-    else showResult();
+  if (btnSteps) btnSteps.onclick = function() {
+    if (window.initSteps) initSteps();
   };
 
-  // ── BTN-TALLAS (topbar) ──
-  var btnTallas = document.getElementById('btn-tallas');
-  if (btnTallas) btnTallas.onclick = function() { openModal('modal-tallas'); };
-
-  // ── TABLA DE TALLAS ──
-  var tbody = document.getElementById('tallas-body');
-  if (tbody) {
-    tbody.innerHTML = TALLAS.map(function(t, i) {
-      return '<tr style="cursor:pointer;border-bottom:1px solid var(--brd)"' +
-        ' onmouseover="this.style.background='var(--accbg)'"' +
-        ' onmouseout="this.style.background=''"' +
-        ' onclick="loadTalla('+i+');closeModal('modal-tallas')">' +
-        '<td style="padding:8px 12px;font-weight:700;color:var(--acc)">'+t.t+'</td>' +
-        '<td style="padding:8px 10px;text-align:center">'+t.b+'</td>' +
-        '<td style="padding:8px 10px;text-align:center">'+t.w+'</td>' +
-        '<td style="padding:8px 10px;text-align:center">'+t.h+'</td>' +
-        '<td style="padding:8px 10px;text-align:center">'+t.s+'</td>' +
-        '<td style="padding:8px 10px;text-align:center">'+t.e+'</td>' +
-        '<td style="padding:8px 10px;text-align:center">'+t.m+'</td>' +
-        '</tr>';
-    }).join('');
-  }
-
-  // ── TAB BUTTONS (AI modal) ──
+  // Tabs AI modal
   document.querySelectorAll('.tab-btn[data-tab]').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      var tab = this.dataset.tab;
-      var box = this.closest('.modal-box');
-      box.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('on'); });
+      var box = this.closest('.m-box');
+      box.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('on');});
       this.classList.add('on');
-      box.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('on'); });
-      var pane = document.getElementById('tab-'+tab);
+      box.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('on');});
+      var pane = document.getElementById('tab-'+this.dataset.tab);
       if (pane) pane.classList.add('on');
     });
   });
 
-  // ── BTN-SAVE-ATELIER ──
+  // Guardar método atelier
   var saveAtelier = document.getElementById('btn-save-atelier');
   if (saveAtelier) saveAtelier.onclick = function() {
     var data = {
       name:   document.getElementById('atelier-name')?.value || 'Mi Método',
       method: document.getElementById('atelier-method')?.value || '',
-      sisa:   document.getElementById('af-sisa')?.value || '',
       savedAt: new Date().toISOString()
     };
     localStorage.setItem('patronai_atelier_method', JSON.stringify(data));
     var msg = document.getElementById('atelier-saved');
-    if (msg) { msg.style.display='block'; setTimeout(function(){msg.style.display='none';}, 3000); }
-    showToast('✓ Método del atelier guardado', 'ok');
+    if (msg) { msg.style.display='block'; setTimeout(function(){msg.style.display='none';},3000); }
   };
-
-  // ── BTN-AI-APPLY ──
-  var aiApply = document.getElementById('btn-ai-apply');
-  if (aiApply) aiApply.onclick = async function() {
-    var prompt = document.getElementById('ai-prompt')?.value?.trim();
-    if (!prompt) { showToast('Describe qué diseño quieres', 'err'); return; }
-    this.disabled = true;
-    this.textContent = '⟳ Aplicando...';
-    try {
-      var saved = localStorage.getItem('patronai_atelier_method');
-      var atelierCtx = saved ? JSON.parse(saved).method : '';
-      var m = STATE.measures;
-      var resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 800,
-          messages: [{role:'user', content:
-            'Eres experto en patronaje. Patrón de '+STATE.garment+
-            '. Medidas: Busto '+m.bust+'cm, Cintura '+m.waist+'cm, Cadera '+m.hip+'cm.'+
-            (atelierCtx?' Método: '+atelierCtx:'')+
-            ' Transformación: "'+prompt+
-            '". Responde SOLO en JSON: {"descripcion":"...","cambios":["..."]}'
-          }]
-        })
-      });
-      var data = await resp.json();
-      var text = data.content?.[0]?.text || '{}';
-      var r = JSON.parse(text.replace(/```json|```/g,'').trim());
-      var rd = document.getElementById('ai-result');
-      var rt = document.getElementById('ai-result-text');
-      if (rd && rt) {
-        rt.innerHTML = '<p style="margin-bottom:8px">'+r.descripcion+'</p>' +
-          '<ul style="padding-left:16px">' +
-          (r.cambios||[]).map(function(c){ return '<li style="margin-bottom:3px">'+c+'</li>'; }).join('') +
-          '</ul>';
-        rd.style.display = 'block';
-      }
-      showToast('✦ Transformación lista', 'ok');
-    } catch(e) {
-      showToast('Error al conectar con IA', 'err');
-    } finally {
-      this.disabled = false;
-      this.innerHTML = '<span style="font-size:15px">✦</span> Aplicar transformación';
-    }
-  };
-
-  // ── RESULT BUTTONS ──
-  var resultEdit = document.getElementById('result-edit-btn');
-  if (resultEdit) resultEdit.onclick = openDrafter;
-  var resultSave = document.getElementById('result-save-btn');
-  if (resultSave) resultSave.onclick = function() { openModal('modal-save'); };
-  var resultTransform = document.getElementById('result-transform-btn');
-  if (resultTransform) resultTransform.onclick = function() {
-    var p = document.getElementById('result-transform-prompt')?.value?.trim();
-    if (p) { document.getElementById('ai-prompt').value = p; openModal('modal-ai'); }
-  };
-
-  // ── MODAL GUARDAR ──
-  var confirmSave = document.getElementById('confirm-save');
-  if (confirmSave) confirmSave.onclick = function() {
-    var name = document.getElementById('save-name')?.value?.trim() || 'Patrón sin nombre';
-    var saves = JSON.parse(localStorage.getItem('patronai_saves')||'[]');
-    saves.unshift({name:name,garment:STATE.garment,measures:Object.assign({},STATE.measures),date:new Date().toISOString()});
-    localStorage.setItem('patronai_saves', JSON.stringify(saves.slice(0,20)));
-    closeModal('modal-save');
-    showToast('✓ Patrón guardado', 'ok');
-  };
-
-  // ── MODAL CARGAR ──
-  var btnLoad2 = document.getElementById('btn-load');
-  if (btnLoad2) btnLoad2.addEventListener('click', function() {
-    refreshSavedList();
-    openModal('modal-load');
-  });
 
   // Cargar método atelier guardado
-  var savedAtelier = localStorage.getItem('patronai_atelier_method');
-  if (savedAtelier) {
+  var saved = localStorage.getItem('patronai_atelier_method');
+  if (saved) {
     try {
-      var d = JSON.parse(savedAtelier);
+      var d = JSON.parse(saved);
       var an = document.getElementById('atelier-name');
       var am = document.getElementById('atelier-method');
       if (an && d.name)   an.value = d.name;
       if (am && d.method) am.value = d.method;
-    } catch(e) {}
+    } catch(e){}
   }
 
-  // ── BREADCRUMB & TOPBAR (solo para nuevas pantallas) ──
-  updateBreadcrumb('screen-pattern');
+  // AI Apply
+  var aiApply = document.getElementById('btn-ai-apply');
+  if (aiApply) aiApply.onclick = async function() {
+    var prompt = (document.getElementById('ai-prompt')?.value||'').trim();
+    if (!prompt) { if(PAT.App) PAT.App.toast('Describe qué diseño quieres','warning'); return; }
+    this.disabled=true; this.textContent='⟳ Aplicando...';
+    try {
+      var state = PAT.App ? PAT.App.getState() : {};
+      var saved2 = localStorage.getItem('patronai_atelier_method');
+      var ctx = saved2 ? JSON.parse(saved2).method : '';
+      var m = state.measures || {};
+      var resp = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
+          messages:[{role:'user',content:
+            'Eres experto en patronaje de '+(state.garment||'prenda')+
+            '. Medidas: Busto '+(m.bust||88)+'cm, Cintura '+(m.waist||68)+'cm, Cadera '+(m.hip||94)+'cm.'+
+            (ctx?' Método: '+ctx:'')+'. Transformación: "'+prompt+
+            '". JSON: {"descripcion":"...","cambios":["..."]}'}]})
+      });
+      var data = await resp.json();
+      var r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+      var rd=document.getElementById('ai-result'),rt=document.getElementById('ai-result-text');
+      if(rd&&rt){
+        rt.innerHTML='<p style="margin-bottom:8px">'+(r.descripcion||'')+'</p>'+
+          '<ul style="padding-left:16px">'+(r.cambios||[]).map(function(c){return'<li>'+c+'</li>';}).join('')+'</ul>';
+        rd.style.display='block';
+      }
+      if(PAT.App) PAT.App.toast('✦ Transformación lista','success');
+    } catch(e){
+      if(PAT.App) PAT.App.toast('Error al conectar con IA','error');
+    } finally {
+      this.disabled=false; this.innerHTML='✦ Aplicar transformación';
+    }
+  };
 
-  console.log('[PatrónAI Inline] ✓ Inicializado');
-};
+  // Tabla de tallas
+  var TALLAS=[
+    {t:'XS (32)',b:80,w:60,h:86,s:36,e:38,m:58},
+    {t:'S  (34)',b:84,w:64,h:90,s:37,e:39,m:59},
+    {t:'M  (36)',b:88,w:68,h:94,s:38,e:40,m:60},
+    {t:'L  (38)',b:92,w:72,h:98,s:39,e:41,m:60},
+    {t:'XL (40)',b:96,w:76,h:102,s:40,e:42,m:61},
+    {t:'2XL(42)',b:100,w:80,h:106,s:41,e:43,m:61},
+    {t:'3XL(44)',b:106,w:86,h:112,s:42,e:44,m:62},
+    {t:'4XL(46)',b:112,w:92,h:118,s:43,e:45,m:62},
+  ];
+  var tbody=document.getElementById('tallas-body');
+  if(tbody) tbody.innerHTML=TALLAS.map(function(t,i){
+    return '<tr onclick="loadTalla('+i+')">' +
+      '<td style="font-weight:700;color:var(--acc);text-align:left">'+t.t+'</td>'+
+      '<td>'+t.b+'</td><td>'+t.w+'</td><td>'+t.h+'</td>'+
+      '<td>'+t.s+'</td><td>'+t.e+'</td><td>'+t.m+'</td></tr>';
+  }).join('');
 
-// Refrescar lista de guardados
-function refreshSavedList(){
-  const list=document.getElementById('saved-list');
-  if(!list) return;
-  const saves=JSON.parse(localStorage.getItem('patronai_saves')||'[]');
-  if(!saves.length){
-    list.innerHTML='<p style="text-align:center;color:var(--tx3);padding:24px;font-size:12px">📂 No hay patrones guardados</p>';
-    return;
-  }
-  list.innerHTML=saves.map((s,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;border:1px solid var(--brd);margin-bottom:6px;background:var(--panel)">
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:var(--tx)">${s.name}</div>
-        <div style="font-size:10px;color:var(--tx3);font-family:var(--mono)">${s.garment} · ${new Date(s.date).toLocaleDateString()}</div>
-      </div>
-      <button onclick="loadSaved(${i})" style="background:var(--acc);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer">Cargar</button>
-      <button onclick="deleteSaved(${i})" style="background:none;border:1px solid var(--brd);color:var(--tx3);border-radius:6px;padding:6px 8px;font-size:11px;cursor:pointer">✕</button>
-    </div>`).join('');
-}
+  window.loadTalla = function(i) {
+    var t=TALLAS[i]; if(!t) return;
+    var map={bust:t.b,waist:t.w,hip:t.h,shoulder:t.s,backLength:t.e,sleeveLength:t.m};
+    Object.entries(map).forEach(function(e) {
+      var inp=document.querySelector('input[data-measure="'+e[0]+'"]');
+      if(inp){ inp.value=e[1]; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+    });
+    document.getElementById('modal-tallas').classList.remove('open');
+    if(PAT.App) PAT.App.toast('✓ Talla '+t.t+' cargada','success');
+  };
 
-window.loadSaved=function(i){
-  const saves=JSON.parse(localStorage.getItem('patronai_saves')||'[]');
-  const s=saves[i]; if(!s)return;
-  Object.assign(STATE.measures, s.measures);
-  STATE.garment=s.garment;
-  // Actualizar inputs
-  Object.entries(s.measures).forEach(([k,v])=>{
-    const inp=document.querySelector(`.m-input[data-measure="${k}"]`);
-    if(inp) inp.value=v;
-  });
-  closeModal('modal-load');
-  triggerPattern();
-  showToast(`✓ ${s.name} cargado`,'ok');
-};
+  // Botón tallas en topbar (si existe)
+  var btnT=document.getElementById('btn-tallas');
+  if(btnT) btnT.onclick=function(){document.getElementById('modal-tallas').classList.add('open');};
 
-window.deleteSaved=function(i){
-  const saves=JSON.parse(localStorage.getItem('patronai_saves')||'[]');
-  saves.splice(i,1);
-  localStorage.setItem('patronai_saves',JSON.stringify(saves));
-  refreshSavedList();
-};
-
-// Trigger del patrón via engine existente
-function triggerPattern(){
-  // Sync to window vars
-  window.__PAT_GARMENT = STATE.garment;
-  window.__PAT_MEASURES = {...STATE.measures};
-  // Update info bar
-  const gNames={franela:'Franela',blusa:'Blusa',camisa:'Camisa',falda:'Falda',vestido:'Vestido'};
-  const pi = document.getElementById('pattern-info');
-  if(pi) pi.textContent = (gNames[STATE.garment]||STATE.garment)+' · '+STATE.measures.bust+'cm';
-  if(window.PAT&&PAT.Engine){
-    try{ PAT.Engine.render(STATE.garment,STATE.measures); }catch(e){ console.warn('[PatrónAI] Engine error:',e); }
-  }
-}
-
+});
 </script>
 </body>
 </html>
