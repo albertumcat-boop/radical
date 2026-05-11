@@ -2845,39 +2845,53 @@ window.__PAT_INLINE_INIT = function() {
   if(logo) logo.onclick = ()=>showScreen('screen-pattern');
 
   // Garment cards
-  document.querySelectorAll('#sb-garment-grid .g-card').forEach(card=>{
+  document.querySelectorAll('#garment-grid .g-card, .g-card[data-g]').forEach(card=>{
     card.addEventListener('click', function(){
       document.querySelectorAll('#sb-garment-grid .g-card').forEach(c=>c.classList.remove('active'));
       this.classList.add('active');
-      STATE.garment = this.dataset.garment;
+      STATE.garment = this.dataset.g || this.dataset.garment;
+      window.__PAT_GARMENT = STATE.garment;
       // Mostrar/ocultar filas según prenda
       const hasSleeve = ['franela','blusa','camisa','vestido'].includes(STATE.garment);
       const hasSkirt  = ['falda','vestido'].includes(STATE.garment);
-      const sr = document.getElementById('sb-sleeve-row');
-      const skr = document.getElementById('sb-skirt-row');
+      const sr = document.getElementById('row-sleeve');
+      const skr = document.getElementById('row-skirt');
       if(sr)  sr.style.display  = hasSleeve?'flex':'none';
       if(skr) skr.style.display = hasSkirt?'flex':'none';
     });
   });
 
   // Botones +/- de medidas
-  document.querySelectorAll('.m-step-btn').forEach(btn=>{
+  // Botones +/- medidas (clase m-pm, data-t, data-m)
+  document.querySelectorAll('.m-pm').forEach(btn=>{
     btn.addEventListener('click', function(){
-      const inp = document.querySelector(`.m-input[data-measure="${this.dataset.target}"]`);
+      const target = this.dataset.t || this.dataset.target;
+      const inp = document.querySelector(`.m-inp[data-m="${target}"]`) ||
+                  document.querySelector(`input[data-measure="${target}"]`);
       if(!inp) return;
       const step = parseFloat(inp.step)||0.5;
       const dir  = parseInt(this.dataset.dir);
       let val = parseFloat(inp.value)+dir*step;
       val = Math.min(Math.max(val, parseFloat(inp.min)||0), parseFloat(inp.max)||999);
       inp.value = Math.round(val*10)/10;
-      STATE.measures[this.dataset.target] = val;
+      const key = target;
+      STATE.measures[key] = val;
+      window.__PAT_MEASURES = {...STATE.measures};
+      triggerPattern();
     });
   });
 
   // Inputs de medidas
-  document.querySelectorAll('.m-input[data-measure]').forEach(inp=>{
+  // Inputs de medidas (data-m y data-measure)
+  document.querySelectorAll('.m-inp[data-m], input[data-measure]').forEach(inp=>{
     inp.addEventListener('change', function(){
-      STATE.measures[this.dataset.measure] = parseFloat(this.value)||0;
+      const key = this.dataset.m || this.dataset.measure;
+      STATE.measures[key] = parseFloat(this.value)||0;
+      window.__PAT_MEASURES = {...STATE.measures};
+    });
+    inp.addEventListener('input', function(){
+      const key = this.dataset.m || this.dataset.measure;
+      STATE.measures[key] = parseFloat(this.value)||0;
     });
   });
 
@@ -2885,6 +2899,7 @@ window.__PAT_INLINE_INIT = function() {
   document.querySelectorAll('[data-param]').forEach(el=>{
     el.addEventListener('change', function(){
       STATE.measures[this.dataset.param] = parseFloat(this.value)||this.value;
+      window.__PAT_MEASURES = {...STATE.measures};
     });
   });
 
@@ -2908,7 +2923,15 @@ window.__PAT_INLINE_INIT = function() {
   if(btnTallas) btnTallas.onclick = ()=>openModal('modal-tallas');
 
   const btnPdf = document.getElementById('btn-pdf');
-  if(btnPdf) btnPdf.onclick = ()=>{ if(window.PAT&&PAT.PDFExport) PAT.PDFExport.generate(); else showToast('PDF export no disponible','err'); };
+  if(btnPdf) btnPdf.onclick = ()=>{
+    if(window.PAT&&PAT.PDFExport){ PAT.PDFExport.generate(); return; }
+    window.__loadJsPDF(function(){ if(window.PAT&&PAT.PDFExport) PAT.PDFExport.generate(); else showToast('PDF no disponible','err'); });
+  };
+  const resultPdfBtn = document.getElementById('result-pdf-btn');
+  if(resultPdfBtn) resultPdfBtn.onclick = ()=>{
+    if(window.PAT&&PAT.PDFExport){ PAT.PDFExport.generate(); return; }
+    window.__loadJsPDF(function(){ if(window.PAT&&PAT.PDFExport) PAT.PDFExport.generate(); else showToast('PDF no disponible','err'); });
+  };
 
   const btnAtelier = document.getElementById('btn-atelier-panel');
   if(btnAtelier) btnAtelier.onclick = ()=>{ if(window.PAT&&PAT.AtelierPanel) PAT.AtelierPanel.open(); };
@@ -2929,8 +2952,7 @@ window.__PAT_INLINE_INIT = function() {
   // Resultado
   const resultEdit = document.getElementById('result-edit-btn');
   if(resultEdit) resultEdit.onclick = openDrafter;
-  const resultPdf = document.getElementById('result-pdf-btn');
-  if(resultPdf)  resultPdf.onclick = ()=>{ if(window.PAT&&PAT.PDFExport) PAT.PDFExport.generate(); };
+  // result-pdf-btn handled above
   const resultSave = document.getElementById('result-save-btn');
   if(resultSave) resultSave.onclick = ()=>openModal('modal-save');
 
@@ -3071,8 +3093,8 @@ window.__PAT_INLINE_INIT = function() {
   if(zIn) zIn.onclick=()=>{ zoom=Math.min(zoom+0.25,4); applyZoom(); };
   if(zOut) zOut.onclick=()=>{ zoom=Math.max(zoom-0.25,0.25); applyZoom(); };
   function applyZoom(){
-    const svgP=document.getElementById('svg-p');
-    if(svgP) svgP.style.transform=`scale(${zoom})`;
+    const svgPan=document.getElementById('svg-pan');
+    if(svgPan) svgPan.style.transform=`scale(${zoom}) translate(0,0)`;
     if(zLbl) zLbl.textContent=Math.round(zoom*100)+'%';
   }
 
@@ -3098,7 +3120,7 @@ window.__PAT_INLINE_INIT = function() {
   }
 
   console.log('[PatrónAI Inline] ✓ Inicializado');
-});
+};
 
 // Refrescar lista de guardados
 function refreshSavedList(){
@@ -3144,9 +3166,13 @@ window.deleteSaved=function(i){
 
 // Trigger del patrón via engine existente
 function triggerPattern(){
-  // Sync to window vars for engine re-trigger
+  // Sync to window vars
   window.__PAT_GARMENT = STATE.garment;
   window.__PAT_MEASURES = {...STATE.measures};
+  // Update info bar
+  const gNames={franela:'Franela',blusa:'Blusa',camisa:'Camisa',falda:'Falda',vestido:'Vestido'};
+  const pi = document.getElementById('pattern-info');
+  if(pi) pi.textContent = (gNames[STATE.garment]||STATE.garment)+' · '+STATE.measures.bust+'cm';
   if(window.PAT&&PAT.Engine){
     try{ PAT.Engine.render(STATE.garment,STATE.measures); }catch(e){ console.warn('[PatrónAI] Engine error:',e); }
   }
