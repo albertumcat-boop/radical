@@ -6,7 +6,7 @@
 <title>PatrónAI Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -218,7 +218,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
     </svg>
   </button>
   <div class="logo-wrap" id="logo-btn">
-    <div class="logo-icon">✂</div>
+    <div class="logo-icon" id="logo-mark">✂</div>
     <div><div class="logo-name">PatrónAI</div><div class="logo-sub">Atelier Pro</div></div>
   </div>
   <div id="breadcrumb"></div>
@@ -295,6 +295,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
     </div>
   </div>
 
+  <button id="sidebar-toggle" style="display:none">‹</button>
   <div style="padding:10px 16px;border-top:1px solid var(--brd);font-size:10px;color:var(--tx4);display:flex;align-items:center;gap:6px;margin-top:auto">
     <div style="width:6px;height:6px;border-radius:50%;background:var(--sage)"></div>
     Escala 1:1 garantizada
@@ -316,7 +317,29 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
         <button id="zoom-in" style="width:26px;height:26px;background:var(--inp);border:1px solid var(--brd);color:var(--tx2);border-radius:5px;cursor:pointer;font-size:13px">+</button>
       </div>
     </div>
-    <div id="svg-wrapper"><div id="svg-p"></div></div>
+    <div id="svg-wrapper" style="width:100%;height:100%;overflow:hidden;cursor:grab;position:relative">
+        <div id="svg-pan" style="transform-origin:0 0;will-change:transform">
+          <svg id="pattern-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <defs>
+              <pattern id="gs" width="50" height="50" patternUnits="userSpaceOnUse">
+                <path d="M50 0L0 0 0 50" fill="none" stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>
+              </pattern>
+              <pattern id="gl" width="500" height="500" patternUnits="userSpaceOnUse">
+                <rect width="500" height="500" fill="url(#gs)"/>
+                <path d="M500 0L0 0 0 500" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+              </pattern>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                <path d="M0,0 L0,8 L8,4 z" fill="#b86b2e"/>
+              </marker>
+              <marker id="arrow-rev" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
+                <path d="M0,0 L0,8 L8,4 z" fill="#b86b2e"/>
+              </marker>
+            </defs>
+            <rect id="svg-bg" x="-9999" y="-9999" width="19998" height="19998" fill="url(#gl)"/>
+            <g id="pattern-content"></g>
+          </svg>
+        </div>
+      </div>
     <div class="legend">
       <span>— Corte</span>
       <span>- - Costura</span>
@@ -527,6 +550,16 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px
 <script src="js/payment.js"></script>
 <script src="js/atelier-panel.js"></script>
 <script src="js/app.js"></script>
+<script>
+// Llamar nuestro init DESPUÉS de que app.js termine
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    if (window.__PAT_INLINE_INIT) {
+      window.__PAT_INLINE_INIT();
+    }
+  }, 200);
+});
+</script>
 
 <!-- SCRIPTS INLINE -->
 <script>
@@ -2757,7 +2790,8 @@ function closeSidebar() {
 }
 
 // ── Init ──
-window.addEventListener('load', function() {
+// Run after app.js - use setTimeout to ensure app.js ran first
+window.__PAT_INLINE_INIT = function() {
 
   // Tabla de tallas
   const tbody = document.getElementById('tallas-body');
@@ -3038,7 +3072,7 @@ window.addEventListener('load', function() {
     patternInfo.parentNode.insertBefore(sb,patternInfo.nextSibling);
   }
 
-  console.log('[PatrónAI] ✓ App lista');
+  console.log('[PatrónAI Inline] ✓ Inicializado');
 });
 
 // Refrescar lista de guardados
