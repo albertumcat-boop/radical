@@ -40,6 +40,7 @@ PAT.DEFAULTS = {
 
 // ─── Medidas predeterminadas (talla M femenina) ───────────────────────────
 PAT.DEFAULT_MEASURES = {
+  // ─ Torso ─
   bust:        88,    // cm — busto/pecho
   waist:       68,    // cm — cintura
   hip:         94,    // cm — cadera
@@ -47,11 +48,20 @@ PAT.DEFAULT_MEASURES = {
   neck:        36,    // cm — perímetro de cuello
   backLength:  40,    // cm — nuca a cintura (espalda)
   frontLength: 42,    // cm — hombro a cintura (frente)
-  totalLength: 65,    // cm — total de la prenda
+  totalLength: 65,    // cm — total de prenda (torso)
   sleeveLength:60,    // cm — largo de manga (hombro a muñeca)
   wrist:       16,    // cm — perímetro muñeca
+  // ─ Falda / Vestido ─
   skirtLength: 60,    // cm — largo de falda
   hipDepth:    20,    // cm — talle a cadera (profundidad)
+  // ─ Pantalón / Short ─
+  inseam:      76,    // cm — entrepierna (tiro a tobillo)
+  outseam:    100,    // cm — lateral total (cintura a tobillo)
+  thigh:       56,    // cm — contorno muslo
+  knee:        37,    // cm — contorno rodilla
+  ankle:       23,    // cm — contorno tobillo
+  shortLength: 45,    // cm — largo short (cintura a bajo)
+  rise:        28,    // cm — tiro (cintura a entrepierna)
 };
 
 // ─── Separación entre piezas en el canvas ─────────────────────────────────

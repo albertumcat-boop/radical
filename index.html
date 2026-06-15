@@ -318,8 +318,26 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
       <button class="garment-btn" data-garment="falda">
         <span class="g-icon">🩱</span><span class="g-label">Falda</span>
       </button>
+      <button class="garment-btn" data-garment="falda-lapiz">
+        <span class="g-icon">👘</span><span class="g-label">F. Lápiz</span>
+      </button>
       <button class="garment-btn" data-garment="vestido">
         <span class="g-icon">👗</span><span class="g-label">Vestido</span>
+      </button>
+      <button class="garment-btn" data-garment="vestido-cruzado">
+        <span class="g-icon">🎀</span><span class="g-label">V. Cruzado</span>
+      </button>
+      <button class="garment-btn" data-garment="pantalon">
+        <span class="g-icon">👖</span><span class="g-label">Pantalón</span>
+      </button>
+      <button class="garment-btn" data-garment="short">
+        <span class="g-icon">🩳</span><span class="g-label">Short</span>
+      </button>
+      <button class="garment-btn" data-garment="blazer">
+        <span class="g-icon">🧥</span><span class="g-label">Blazer</span>
+      </button>
+      <button class="garment-btn" data-garment="chaleco">
+        <span class="g-icon">🦺</span><span class="g-label">Chaleco</span>
       </button>
     </div>
     <div id="shirt-options" style="display:none;margin-top:7px">
@@ -485,6 +503,14 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
     <div class="aff-msg" id="aff-msg"></div>
   </div>
 
+  <!-- Selector de talla -->
+  <div class="sb-sec">
+    <div class="sec-title" style="margin-bottom:7px">
+      <span class="step-num" style="background:var(--acc)">T</span>Talla base
+    </div>
+    <div id="grading-selector"></div>
+  </div>
+
   <!-- Acciones -->
   <div class="sb-sec" style="display:flex;flex-direction:column;gap:7px">
     <button class="sb-btn prim" id="btn-generate" onclick="PAT.App&&PAT.App.generate(0)">
@@ -499,6 +525,10 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
     <div class="sb-btn-grid">
       <button class="sb-btn ghost" id="btn-save">💾 Guardar</button>
       <button class="sb-btn ghost" id="btn-load">📂 Cargar</button>
+    </div>
+    <div class="sb-btn-grid">
+      <button class="sb-btn ghost" id="btn-instructions">📋 Instrucciones</button>
+      <button class="sb-btn ghost" id="btn-share">🔗 Compartir</button>
     </div>
     <button class="sb-btn ghost" id="btn-atelier-panel" style="position:relative;border-color:rgba(196,152,48,.3);color:var(--gold)">
       👥 Panel Atelier
@@ -2660,5 +2690,97 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 </script>
+
+<!-- ── Scripts nuevos ─────────────────────────────────── -->
+<script src="js/grading.js"></script>
+<script src="js/instructions.js"></script>
+<script src="js/share.js"></script>
+
+<!-- ── Patrones nuevos ────────────────────────────────── -->
+<script src="js/patterns/pantalon.js"></script>
+<script src="js/patterns/short.js"></script>
+<script src="js/patterns/blazer.js"></script>
+<script src="js/patterns/chaleco.js"></script>
+<script src="js/patterns/falda-lapiz.js"></script>
+<script src="js/patterns/vestido-cruzado.js"></script>
+
+<script>
+// ── Inicializar grading selector ──────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  if (PAT.Grading) PAT.Grading.renderSelector('grading-selector');
+
+  // Botón instrucciones
+  var btnInst = document.getElementById('btn-instructions');
+  if (btnInst) {
+    btnInst.addEventListener('click', function() {
+      var g = PAT.App ? PAT.App.getState().garment : 'franela';
+      if (PAT.Instructions) PAT.Instructions.showInstructions(g);
+    });
+  }
+
+  // Botón compartir
+  var btnShare = document.getElementById('btn-share');
+  if (btnShare) {
+    btnShare.addEventListener('click', function() {
+      var state = PAT.App ? PAT.App.getState() : {};
+      if (PAT.Share) PAT.Share.showShareModal(
+        state.garment || 'franela',
+        state.measures || PAT.DEFAULT_MEASURES,
+        state.params   || PAT.DEFAULTS
+      );
+    });
+  }
+
+  // Cargar patrón compartido desde URL
+  if (PAT.Share) {
+    var shared = PAT.Share.loadFromURL();
+    if (shared && PAT.App) {
+      setTimeout(function() {
+        document.dispatchEvent(new CustomEvent('pat:importPattern', { detail: shared }));
+      }, 800);
+    }
+  }
+});
+
+// Escuchar importación de patrón
+document.addEventListener('pat:importPattern', function(e) {
+  var d = e.detail;
+  if (!d || !PAT.App) return;
+  if (d.garment) {
+    var btn = document.querySelector('[data-garment="' + d.garment + '"]');
+    if (btn) btn.click();
+  }
+  if (d.measures) {
+    Object.entries(d.measures).forEach(function(kv) {
+      var inp = document.querySelector('input[data-measure="' + kv[0] + '"]');
+      if (inp) { inp.value = kv[1]; inp.dispatchEvent(new Event('input', {bubbles:true})); }
+    });
+  }
+  if (PAT.App) PAT.App.toast('✅ Patrón importado', 'success');
+});
+
+// ── PWA Service Worker ────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(function(reg) {
+        console.log('[PWA] SW registrado:', reg.scope);
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              if (PAT.App) PAT.App.toast('🔄 Nueva versión disponible — recarga para actualizar', 'info');
+            }
+          });
+        });
+      })
+      .catch(function(err) { console.warn('[PWA] SW no registrado:', err); });
+  });
+}
+</script>
+
+<!-- PWA manifest -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8b5cf6">
 </body>
 </html>

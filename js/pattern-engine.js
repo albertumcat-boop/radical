@@ -39,12 +39,18 @@ PAT.PatternEngine = (function () {
     let pieces = [];
     try {
       switch (garmentType) {
-        case 'franela':  pieces = PAT.Patterns.Franela.generate(m, seam);  break;
-        case 'blusa':    pieces = PAT.Patterns.Blusa.generate(m, seam);    break;
-        case 'camisa':   pieces = PAT.Patterns.Camisa.generate(m, seam, params.shirtGender || 'dama'); break;
-        case 'falda':    pieces = PAT.Patterns.Falda.generate(m, seam);    break;
-        case 'vestido':  pieces = PAT.Patterns.Vestido.generate(m, seam);  break;
-        default:         pieces = PAT.Patterns.Franela.generate(m, seam);
+        case 'franela':        pieces = PAT.Patterns.Franela.generate(m, seam);  break;
+        case 'blusa':          pieces = PAT.Patterns.Blusa.generate(m, seam);    break;
+        case 'camisa':         pieces = PAT.Patterns.Camisa.generate(m, seam, params.shirtGender || 'dama'); break;
+        case 'falda':          pieces = PAT.Patterns.Falda.generate(m, seam);    break;
+        case 'vestido':        pieces = PAT.Patterns.Vestido.generate(m, seam);  break;
+        case 'pantalon':       pieces = PAT.Patterns.Pantalon.generate(m, seam); break;
+        case 'short':          pieces = PAT.Patterns.Short.generate(m, seam);    break;
+        case 'blazer':         pieces = PAT.Patterns.Blazer.generate(m, seam);   break;
+        case 'chaleco':        pieces = PAT.Patterns.Chaleco.generate(m, seam);  break;
+        case 'falda-lapiz':    pieces = PAT.Patterns.FaldaLapiz.generate(m, seam); break;
+        case 'vestido-cruzado':pieces = PAT.Patterns.VestidoCruzado.generate(m, seam); break;
+        default:               pieces = PAT.Patterns.Franela.generate(m, seam);
       }
     } catch (err) {
       console.error('[Engine] Error en generación:', err);
