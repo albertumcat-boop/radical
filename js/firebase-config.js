@@ -32,14 +32,69 @@ window.PAT = window.PAT || {};
     console.warn('[PatrónAI] Error Firebase:', e.message, '— Modo offline activado.');
   }
 
+  // ── Auth helpers ──────────────────────────────────────────────
+  function _getCurrentUid() {
+    try { return auth && auth.currentUser ? auth.currentUser.uid : null; }
+    catch (e) { return null; }
+  }
+
+  // Escuchar cambios de sesión y actualizar tier automáticamente
+  if (firebaseReady && auth) {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        console.log('[PatrónAI] Sesión activa:', user.email);
+        if (PAT.AuthTier && PAT.AuthTier.loadTierFromFirestore) {
+          await PAT.AuthTier.loadTierFromFirestore();
+        }
+        document.dispatchEvent(new CustomEvent('pat:authChanged', { detail: { uid: user.uid, email: user.email } }));
+      } else {
+        console.log('[PatrónAI] Sin sesión activa.');
+        document.dispatchEvent(new CustomEvent('pat:authChanged', { detail: null }));
+      }
+    });
+  }
+
   PAT.Firebase = {
     ready: firebaseReady,
 
+    // ── Auth ─────────────────────────────────────────────────────
+    async signUp(email, password) {
+      if (!firebaseReady) throw new Error('Firebase no disponible');
+      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      // Crear documento de usuario con tier free por defecto
+      await db.collection('users').doc(cred.user.uid).set({
+        email, tier: 'free', createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      return cred.user;
+    },
+
+    async signIn(email, password) {
+      if (!firebaseReady) throw new Error('Firebase no disponible');
+      const cred = await auth.signInWithEmailAndPassword(email, password);
+      return cred.user;
+    },
+
+    async signOut() {
+      if (!firebaseReady) return;
+      await auth.signOut();
+      localStorage.removeItem('pat_tier');
+      sessionStorage.removeItem('pat_session_token');
+      sessionStorage.removeItem('pat_purchases');
+    },
+
+    async resetPassword(email) {
+      if (!firebaseReady) throw new Error('Firebase no disponible');
+      await auth.sendPasswordResetEmail(email);
+    },
+
+    // ── Patrones (aislados por userId) ───────────────────────────
     async savePattern(name, data) {
-      if (!firebaseReady) return saveToLocalStorage(name, data);
+      const uid = _getCurrentUid();
+      if (!firebaseReady || !uid) return saveToLocalStorage(name, data);
       try {
         const docData = {
           name,
+          userId:    uid,
           garment:   data.garment,
           measures:  data.measures,
           params:    data.params,
@@ -56,10 +111,12 @@ window.PAT = window.PAT || {};
     },
 
     async loadPatterns() {
-      if (!firebaseReady) return loadFromLocalStorage();
+      const uid = _getCurrentUid();
+      if (!firebaseReady || !uid) return loadFromLocalStorage();
       try {
         const snap = await db
           .collection('patterns')
+          .where('userId', '==', uid)
           .orderBy('createdAt', 'desc')
           .limit(50)
           .get();
@@ -73,8 +130,15 @@ window.PAT = window.PAT || {};
     },
 
     async deletePattern(id) {
-      if (!firebaseReady) { deleteFromLocalStorage(id); return; }
+      const uid = _getCurrentUid();
+      if (!firebaseReady || !uid) { deleteFromLocalStorage(id); return; }
       try {
+        // Verificar que el patrón pertenece al usuario antes de borrar
+        const doc = await db.collection('patterns').doc(id).get();
+        if (!doc.exists || doc.data().userId !== uid) {
+          console.warn('[Firebase] Intento de borrar patrón ajeno bloqueado');
+          return;
+        }
         await db.collection('patterns').doc(id).delete();
       } catch (e) {
         console.error('[Firebase] Error al eliminar:', e);

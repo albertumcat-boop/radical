@@ -62,8 +62,9 @@ PAT.Patterns.Blusa = (function() {
       d += ` ${P.L(...shT)}`;
       d += ` ${P.C(shT[0]+5, shT[1]+(ahM[1]-shT[1])*0.4, ahM[0]+10, ahM[1]-15, ...ahM)}`;
       d += ` ${P.C(ahM[0]+8, ahM[1]+15, ahB[0]+5, ahB[1]-20, ...ahB)}`;
-      d += ` ${P.C(ahB[0], ahB[1]+(BL-adepth)*0.5, wW+s+5, s+BL-20, s+wW, s+BL)}`;
-      d += ` ${P.C(wW+s-5, s+BL+20, hW+s-8, s+BL+HD-20, s+hW, s+BL+HD)}`;
+      // Lateral espalda blusa: recto de sisa a cintura, luego recto a cadera
+      d += ` ${P.L(s+wW, s+BL)}`;
+      d += ` ${P.L(s+hW, s+BL+HD)}`;
       d += ` ${P.L(s + Math.max(bW,hW), s + TL)} ${P.L(s, s + TL)} Z`;
 
       const g = document.createElementNS(NS, 'g');
@@ -101,14 +102,14 @@ PAT.Patterns.Blusa = (function() {
       d += ` ${P.L(...shT)}`;
       d += ` ${P.C(shT[0]+5, shT[1]+(ahM[1]-shT[1])*0.4, ahM[0]+10, ahM[1]-15, ...ahM)}`;
       d += ` ${P.C(ahM[0]+8, ahM[1]+15, ahB[0]+5, ahB[1]-20, ...ahB)}`;
-      // Lateral: sisa → top pinza
-      d += ` ${P.C(ahB[0], ahB[1]+30, dartTop[0], dartTop[1]-20, ...dartTop)}`;
+      // Lateral recto: sisa → top pinza
+      d += ` ${P.L(...dartTop)}`;
       // Pinza: top → vértice (ápice de busto) → bot
       d += ` ${P.L(bustPoint.x, bustPoint.y)}`;
       d += ` ${P.L(...dartBot)}`;
-      // Lateral: bot pinza → cadera → hem
-      d += ` ${P.C(dartBot[0], dartBot[1]+20, s+wW+2, s+FL-10, s+wW, s+FL)}`;
-      d += ` ${P.C(s+wW-5, s+FL+20, s+hW-8, s+FL+HD-20, s+hW, s+FL+HD)}`;
+      // Lateral recto: bot pinza → cintura → cadera → hem
+      d += ` ${P.L(s+wW, s+FL)}`;
+      d += ` ${P.L(s+hW, s+FL+HD)}`;
       d += ` ${P.L(s+Math.max(bW,hW), s+TL)} ${P.L(s, s+TL)} Z`;
 
       const g = document.createElementNS(NS, 'g');

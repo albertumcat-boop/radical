@@ -2,32 +2,45 @@
  * api/stripe-webhook.js
  * Webhook de Stripe — actualiza el tier del usuario tras el pago.
  *
+ * Variables de entorno requeridas en Vercel:
+ *   STRIPE_SECRET_KEY          → sk_live_XXXX
+ *   STRIPE_WEBHOOK_SECRET      → whsec_XXXX
+ *   FIREBASE_SERVICE_ACCOUNT   → JSON completo del serviceAccount (en una sola línea)
+ *
  * Registrar en: https://dashboard.stripe.com/webhooks
- * Eventos a escuchar:
- *  - checkout.session.completed
- *  - customer.subscription.deleted
- *  - customer.subscription.updated
+ * Eventos: checkout.session.completed, customer.subscription.deleted,
+ *          customer.subscription.updated
  */
 
-const Stripe  = require('stripe');
-const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore }         = require('firebase-admin/firestore');
+const Stripe = require('stripe');
+const { initializeApp, getApps, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 
-// Firebase Admin (solo en el backend — nunca en el cliente)
-// HOOK: Descargar serviceAccountKey.json de Firebase Console → Configuración → Cuentas de servicio
-// const serviceAccount = require('./serviceAccountKey.json');
-// initializeApp({ credential: cert(serviceAccount) });
-// const db = getFirestore();
+// ── Firebase Admin — inicializar una sola vez ─────────────────────────
+let db;
+try {
+  if (!getApps().length) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    initializeApp({ credential: cert(serviceAccount) });
+  }
+  db = getFirestore();
+} catch (e) {
+  console.error('[Webhook] Error inicializando Firebase Admin:', e.message);
+}
 
+// Price IDs de Stripe — actualizar con los IDs reales del dashboard
 const TIER_BY_PRICE = {
-  'price_XXXXXXXXXX_pro_monthly':    'pro',
-  'price_XXXXXXXXXX_expert_monthly': 'expert',
-  'price_XXXXXXXXXX_pattern':        null,  // micropago, no cambia tier
+  [process.env.STRIPE_PRICE_PRO]:    'pro',
+  [process.env.STRIPE_PRICE_EXPERT]: 'expert',
 };
 
 module.exports = async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
   const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
   const sig    = req.headers['stripe-signature'];
+
+  if (!sig) return res.status(400).send('Missing stripe-signature header');
 
   let event;
   try {
@@ -41,65 +54,82 @@ module.exports = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  switch (event.type) {
+  if (!db) {
+    console.error('[Webhook] Firestore no disponible — evento ignorado:', event.type);
+    return res.status(500).json({ error: 'Firestore no disponible' });
+  }
 
-    case 'checkout.session.completed': {
-      const session = event.data.object;
-      const userId  = session.client_reference_id;
-      const tier    = session.metadata?.tier;
-      const affiliateCode = session.metadata?.affiliate;
+  try {
+    switch (event.type) {
 
-      console.log(`[Webhook] Pago completado: user=${userId}, tier=${tier}`);
+      case 'checkout.session.completed': {
+        const session       = event.data.object;
+        const userId        = session.client_reference_id;
+        const tier          = session.metadata?.tier;
+        const affiliateCode = session.metadata?.affiliate;
+        const amount        = (session.amount_total || 0) / 100;
 
-      // HOOK: Actualizar tier en Firestore
-      // if (userId && tier) {
-      //   await db.collection('users').doc(userId).set({ tier, updatedAt: new Date() }, { merge: true });
-      // }
+        console.log(`[Webhook] Pago completado: user=${userId}, tier=${tier}, amount=$${amount}`);
 
-      // HOOK: Registrar comisión del afiliado en Firestore
-      // if (affiliateCode) {
-      //   const commission = {
-      //     userId, affiliateCode, tier,
-      //     amount: session.amount_total / 100,
-      //     commissionPct: 15,
-      //     commission: (session.amount_total / 100) * 0.15,
-      //     timestamp: new Date(),
-      //     status: 'pending',
-      //   };
-      //   await db.collection('commissions').add(commission);
-      // }
+        if (userId && tier && TIER_BY_PRICE[Object.keys(TIER_BY_PRICE).find(k => TIER_BY_PRICE[k] === tier)]) {
+          await db.collection('users').doc(userId).set(
+            { tier, updatedAt: new Date(), stripeCustomer: session.customer },
+            { merge: true }
+          );
+          console.log(`[Webhook] Tier actualizado en Firestore: ${userId} → ${tier}`);
+        }
 
-      break;
+        if (affiliateCode && amount > 0) {
+          const commissionPct = 15;
+          await db.collection('commissions').add({
+            userId,
+            affiliateCode,
+            tier,
+            amount,
+            commissionPct,
+            commission: +(amount * commissionPct / 100).toFixed(2),
+            timestamp:  new Date(),
+            status:     'pending',
+          });
+          console.log(`[Webhook] Comisión registrada para: ${affiliateCode}`);
+        }
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const sub    = event.data.object;
+        const userId = sub.metadata?.userId;
+        if (userId) {
+          await db.collection('users').doc(userId).set(
+            { tier: 'free', updatedAt: new Date() },
+            { merge: true }
+          );
+          console.log(`[Webhook] Suscripción cancelada — tier degradado a free: ${userId}`);
+        }
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        const sub     = event.data.object;
+        const priceId = sub.items.data[0]?.price?.id;
+        const newTier = TIER_BY_PRICE[priceId];
+        const userId  = sub.metadata?.userId;
+        if (userId && newTier) {
+          await db.collection('users').doc(userId).set(
+            { tier: newTier, updatedAt: new Date() },
+            { merge: true }
+          );
+          console.log(`[Webhook] Suscripción actualizada: ${userId} → ${newTier}`);
+        }
+        break;
+      }
+
+      default:
+        console.log(`[Webhook] Evento no manejado: ${event.type}`);
     }
-
-    case 'customer.subscription.deleted': {
-      const sub    = event.data.object;
-      const userId = sub.metadata?.userId;
-
-      // HOOK: Degradar a tier free cuando cancela
-      // if (userId) {
-      //   await db.collection('users').doc(userId).set({ tier: 'free' }, { merge: true });
-      // }
-      console.log(`[Webhook] Suscripción cancelada: user=${userId}`);
-      break;
-    }
-
-    case 'customer.subscription.updated': {
-      const sub     = event.data.object;
-      const priceId = sub.items.data[0]?.price?.id;
-      const newTier = TIER_BY_PRICE[priceId];
-      const userId  = sub.metadata?.userId;
-
-      // HOOK: Actualizar tier al cambiar de plan
-      // if (userId && newTier) {
-      //   await db.collection('users').doc(userId).set({ tier: newTier }, { merge: true });
-      // }
-      console.log(`[Webhook] Suscripción actualizada: user=${userId}, tier=${newTier}`);
-      break;
-    }
-
-    default:
-      console.log(`[Webhook] Evento no manejado: ${event.type}`);
+  } catch (err) {
+    console.error('[Webhook] Error procesando evento:', err.message);
+    return res.status(500).json({ error: err.message });
   }
 
   return res.status(200).json({ received: true });

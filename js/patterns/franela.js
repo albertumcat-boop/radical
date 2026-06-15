@@ -108,30 +108,23 @@ PAT.Patterns.Franela = (function() {
       const cp2_1 = [ahMid[0] + 8, ahMid[1] + 15];
       const cp2_2 = [ahBottom[0] + 5, ahBottom[1] - 20];
 
-      // ── Control points para lado con molde ───────────────────────
-      const cpWaist1 = [ahBottom[0], ahBottom[1] + (BL - armholeDepth) * 0.5];
-      const cpWaist2 = [wW + s + 5, s + BL - 20];
-      const cpHip1   = [wW + s - 5, s + BL + 20];
-      const cpHip2   = [hW + s - 8, s + BL + HD - 20];
-
       // ── Construir path ────────────────────────────────────────────
       let d = '';
       d += P.M(...nkCenter);
-      // Curva de cuello (espalda): cuadrática suave
-      d += ` ${P.Q(s + neckW_back * 0.1, s, ...nkShoulder)}`;
+      // Cuello espalda: cuadrática plana (apenas una ligera curva en CB)
+      d += ` ${P.Q(s + neckW_back * 0.15, s + neckD_back * 0.05, ...nkShoulder)}`;
       // Hombro: línea recta
       d += ` ${P.L(...shTip)}`;
-      // Sisa: dos beziers cúbicos
+      // Sisa: dos beziers cúbicos (curva natural de axila)
       d += ` ${P.C(...cp1_1, ...cp1_2, ...ahMid)}`;
       d += ` ${P.C(...cp2_1, ...cp2_2, ...ahBottom)}`;
-      // Lateral con molde en cintura y cadera
-      d += ` ${P.C(...cpWaist1, ...cpWaist2, ...waistSide)}`;
-      d += ` ${P.C(...cpHip1, ...cpHip2, ...hipSide)}`;
-      // Hasta dobladillo
-      d += ` ${P.L(...hemSide)}`;
+      // Lateral RECTO: franela es corte suelto, sin molde en cintura
+      d += ` ${P.L(...waistSide)}`;
+      d += ` ${P.L(...hipSide)}`;
       // Dobladillo recto
+      d += ` ${P.L(...hemSide)}`;
       d += ` ${P.L(...hemCenter)}`;
-      // Cierre por CB (línea de doblez — vertical)
+      // Cierre CB
       d += ' Z';
 
       // ── Crear grupo SVG ───────────────────────────────────────────
@@ -214,23 +207,21 @@ PAT.Patterns.Franela = (function() {
       const hemCenterF = [s, s + TL];
 
       const cpWaist1F = [ahBottomF[0], ahBottomF[1] + (FL - armholeDepth) * 0.5];
-      const cpWaist2F = [wWf + s + 5, s + FL - 20];
-      const cpHip1F   = [wWf + s - 5, s + FL + 20];
-      const cpHip2F   = [hWf + s - 8, s + FL + HD - 20];
-
       let d = '';
       d += P.M(...nkCenterF);
 
-      // Curva de cuello frente: más profunda y redondeada
-      const nkCPX = s + neckW_front * 0.8;
-      const nkCPY = s + neckD_front * 0.9;
-      d += ` ${P.Q(s + neckW_front * 0.1, s + neckD_front * 0.95, ...nkShoulderF)}`;
+      // Cuello frente: curva redondeada pronunciada (más profundo que espalda)
+      // Usamos bezier cúbico para lograr la curva característica del cuello redondo
+      const nkCP1F = [s + neckW_front * 0.05, s + neckD_front * 0.8];
+      const nkCP2F = [s + neckW_front * 0.5,  s + neckD_front * 0.05];
+      d += ` ${P.C(...nkCP1F, ...nkCP2F, ...nkShoulderF)}`;
 
       d += ` ${P.L(...shTipF)}`;
       d += ` ${P.C(...cp1_1F, ...cp1_2F, ...ahMidF)}`;
       d += ` ${P.C(...cp2_1F, ...cp2_2F, ...ahBottomF)}`;
-      d += ` ${P.C(...cpWaist1F, ...cpWaist2F, ...waistSideF)}`;
-      d += ` ${P.C(...cpHip1F, ...cpHip2F, ...hipSideF)}`;
+      // Lateral RECTO: franela es corte suelto
+      d += ` ${P.L(...waistSideF)}`;
+      d += ` ${P.L(...hipSideF)}`;
       d += ` ${P.L(...hemSideF)}`;
       d += ` ${P.L(...hemCenterF)}`;
       d += ' Z';
