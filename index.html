@@ -1039,9 +1039,11 @@ PAT.DrafterUI = (function () {
   let _selected    = null;
   let _pieceName   = 'Mi Pieza';
   let _curSave     = null;
-  let _snapEnabled = false;
-  let _snapSize    = 5; // mm
-  let _showDims    = true;
+  let _snapEnabled  = false;
+  let _snapSize     = 5; // mm
+  let _showDims     = true;
+  let _unifiedMode  = true;  // Modo unificado: click vacío=punto, click punto=línea
+  let _buildLog     = [];    // Historial de construcción (Feature 4)
 
   // ════════════════════════════════════════════════════════════
   function open() {
@@ -1295,7 +1297,8 @@ PAT.DrafterUI = (function () {
           <div class="dv6-prow"><span class="dv6-plb">Nombre</span><input class="dv6-pi" id="dv6-pnm" maxlength="4" placeholder="A, B, 1…"></div>
           <div class="dv6-prow"><span class="dv6-plb">X (mm)</span><input type="number" class="dv6-pi" id="dv6-px" step="0.5"></div>
           <div class="dv6-prow"><span class="dv6-plb">Y (mm)</span><input type="number" class="dv6-pi" id="dv6-py" step="0.5"></div>
-          <div class="dv6-prow"><span class="dv6-plb">Fórmula</span><input class="dv6-pi" id="dv6-pf" style="color:#a78bfa" placeholder="B4, TALLE_ESP…"></div>
+          <div class="dv6-prow"><span class="dv6-plb">Fórm. X</span><input class="dv6-pi" id="dv6-pfx" style="color:#a78bfa" placeholder="B4, pecho/4+10…"></div>
+          <div class="dv6-prow"><span class="dv6-plb">Fórm. Y</span><input class="dv6-pi" id="dv6-pfy" style="color:#a78bfa" placeholder="TALLE_ESP, largo…"></div>
           <div class="dv6-fv" id="dv6-fv">—</div>
           <div class="dv6-prow" style="padding-bottom:8px">
             <button class="tb red" id="dv6-dpt" style="width:100%;justify-content:center;font-size:10px;padding:4px 0">🗑 Eliminar punto</button>
@@ -1325,14 +1328,23 @@ PAT.DrafterUI = (function () {
         </div>
       </div>
 
+      <!-- Historial de construcción (Feature 4) -->
+      <div class="dv6-psec" style="max-height:120px;overflow:hidden;display:flex;flex-direction:column">
+        <div class="dv6-ptl">Historial <span id="dv6-logcnt" style="color:#5a5678;font-weight:400">0</span></div>
+        <div id="dv6-log" style="overflow-y:auto;flex:1;font-size:9px;padding:2px 8px;color:#9490b0;font-family:monospace"></div>
+      </div>
+
       <div class="dv6-psec" style="max-height:90px;overflow:hidden;display:flex;flex-direction:column">
         <div class="dv6-ptl">Guardados</div>
         <div class="dv6-sl" id="dv6-sl"></div>
       </div>
 
       <div class="dv6-keys">
-        <kbd>S</kbd> Sel &nbsp;<kbd>P</kbd> Punto &nbsp;<kbd>L</kbd> Línea<br>
-        <kbd>C</kbd> Curva &nbsp;<kbd>F</kbd> Doblez &nbsp;<kbd>D</kbd> Pinza<br>
+        <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          <span style="font-size:9px;color:#9490b0">Modo:</span>
+          <button id="dv6-unified-btn" onclick="PAT.DrafterUI._toggleUnified()" style="font-size:9px;padding:2px 8px;border-radius:4px;border:1px solid #8b5cf6;background:#1a1730;color:#a78bfa;cursor:pointer">⚡ Unificado ON</button>
+        </div>
+        <kbd>L</kbd> Línea &nbsp;<kbd>C</kbd> Curva &nbsp;<kbd>F</kbd> Doblez &nbsp;<kbd>D</kbd> Pinza<br>
         <kbd>R</kbd> Rect. &nbsp;<kbd>M</kbd> Espejo &nbsp;<kbd>Esc</kbd> Cancel<br>
         <kbd>Ctrl+Z</kbd> Atrás &nbsp;<kbd>Ctrl+Y</kbd> Adelante<br>
         <kbd>Del</kbd> Borrar &nbsp;<kbd>Rueda</kbd> Zoom &nbsp;<kbd>Alt+drag</kbd> Pan
@@ -1390,9 +1402,11 @@ PAT.DrafterUI = (function () {
     _refreshSaved();
     _snapshot(); // snapshot inicial vacío
     _renderAll();
-    // Abrir siempre en modo Añadir Punto para que el primer clic
-    // coloque un punto en lugar de no hacer nada
-    setTimeout(() => _setTool('addPoint'), 60);
+    // Abrir en modo unificado (addLine) — click vacío=punto, click punto=línea
+    setTimeout(() => {
+      _setTool('addLine');
+      _instr('⚡ Modo unificado: clic vacío = nuevo punto · clic en punto = trazar línea (C=curva)');
+    }, 60);
   }
 
   // ════════════════════════════════════════════════════════════
@@ -1545,7 +1559,8 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-pnm').oninput = _applyProps;
     document.getElementById('dv6-px').oninput  = _applyProps;
     document.getElementById('dv6-py').oninput  = _applyProps;
-    document.getElementById('dv6-pf').oninput  = _applyFormula;
+    document.getElementById('dv6-pfx').oninput = _applyFormula;
+    document.getElementById('dv6-pfy').oninput = _applyFormula;
 
     document.getElementById('dv6-csl').oninput = function() {
       const val = parseInt(this.value);
@@ -1611,6 +1626,41 @@ PAT.DrafterUI = (function () {
       _selectLine(nearCtrl);
       return;
     }
+
+    // ── MODO UNIFICADO (Feature 3) ──────────────────────────────────
+    // Click vacío = agregar punto; Click en punto existente = iniciar/completar línea
+    if (_unifiedMode && _tool !== 'addDart' && _tool !== 'select') {
+      // El "tool" en modo unificado actúa como tipo de línea por defecto
+      if (near) {
+        // Clic en punto existente: iniciar o completar segmento
+        if (!_lnStart) {
+          _lnStart = near;
+          _renderAll();
+          _instr(`⚡ ${_points[near].name} — ahora clic en otro punto para trazar (C=curva, L=línea recta)`);
+        } else if (near !== _lnStart) {
+          _snapshot();
+          _addLn(_lnStart, near, _tool);
+          _lnStart = null;
+          _tempLine.setAttribute('opacity','0');
+          _instr(_toolMsg());
+        } else {
+          _lnStart = null;
+          _tempLine.setAttribute('opacity','0');
+          _renderAll();
+          _instr(_toolMsg());
+        }
+      } else {
+        // Clic en vacío: agregar punto y continuar la línea si hay inicio
+        _snapshot();
+        const newId = _addPt(mm.x, mm.y);
+        if (_lnStart) {
+          _addLn(_lnStart, newId, _tool);
+          _lnStart = newId; // encadenar: el nuevo punto es el siguiente inicio
+        }
+      }
+      return;
+    }
+    // ────────────────────────────────────────────────────────────────
 
     if (_tool === 'addPoint') {
       _snapshot();
@@ -1849,11 +1899,14 @@ PAT.DrafterUI = (function () {
   // ════════════════════════════════════════════════════════════
   const ALFA='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-  function _addPt(xMm,yMm,name,formula) {
+  function _addPt(xMm,yMm,name,fx,fy) {
     _ptCtr++;
     const id='pt'+Date.now()+_ptCtr;
     const nm=name||(ALFA[Object.keys(_points).length%26]||String(_ptCtr));
-    _points[id]={x:xMm,y:yMm,name:nm,formula:formula||''};
+    _points[id]={x:xMm,y:yMm,name:nm,fx:fx||'',fy:fy||''};
+    // Historial de construcción
+    _buildLog.push({type:'point',desc:`${nm} (${Math.round(xMm)}, ${Math.round(yMm)})mm`,t:Date.now()});
+    _refreshHistory();
     _selectPt(id); _renderAll(); return id;
   }
 
@@ -1928,6 +1981,10 @@ PAT.DrafterUI = (function () {
   function _addLn(fromId,toId,tool){
     const type=tool==='addCurve'?'curve':tool==='addFold'?'fold':'line';
     _lines.push({from:fromId,to:toId,type,ctrl:20,cpx:null,cpy:null});
+    // Historial de construcción
+    const a=_points[fromId],b=_points[toId];
+    if(a&&b)_buildLog.push({type:'line',desc:`${a.name}→${b.name} (${type})`,t:Date.now()});
+    _refreshHistory();
     const newIdx=_lines.length-1;
     _renderAll();
     // Después de trazar una curva: auto-seleccionar y mostrar controles
@@ -2080,46 +2137,65 @@ PAT.DrafterUI = (function () {
 
   function _renderCurveControls(){
     while(_ctrlG.firstChild)_ctrlG.removeChild(_ctrlG.firstChild);
-    const sz=4; // mm — más grande para facilitar agarre
+    const sz=5; // mm — tamaño del diamante
 
     _lines.forEach((ln,i)=>{
       if(ln.type!=='curve')return;
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       const{cpx,cpy}=_curveCP(a,b,ln);
-      const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+      const sel=i===_selectedLine;
 
-      // Línea de guía
-      const guide=document.createElementNS(NS,'line');
-      guide.setAttribute('x1',mx);guide.setAttribute('y1',my);
-      guide.setAttribute('x2',cpx);guide.setAttribute('y2',cpy);
-      guide.setAttribute('stroke','rgba(96,165,250,.4)');guide.setAttribute('stroke-width','0.4');
-      guide.setAttribute('stroke-dasharray','2,1.5');
-      _ctrlG.appendChild(guide);
+      // ── Líneas de tangente A→CP y B→CP (como en sistemas pro: Valentina/Seamly2D)
+      const gA=document.createElementNS(NS,'line');
+      gA.setAttribute('x1',a.x);gA.setAttribute('y1',a.y);
+      gA.setAttribute('x2',cpx);gA.setAttribute('y2',cpy);
+      gA.setAttribute('stroke',sel?'rgba(147,197,253,.7)':'rgba(96,165,250,.35)');
+      gA.setAttribute('stroke-width','0.5');gA.setAttribute('stroke-dasharray','2,1.5');
+      _ctrlG.appendChild(gA);
 
-      // Zona de hit invisible (grande) para facilitar agarre
+      const gB=document.createElementNS(NS,'line');
+      gB.setAttribute('x1',b.x);gB.setAttribute('y1',b.y);
+      gB.setAttribute('x2',cpx);gB.setAttribute('y2',cpy);
+      gB.setAttribute('stroke',sel?'rgba(147,197,253,.7)':'rgba(96,165,250,.35)');
+      gB.setAttribute('stroke-width','0.5');gB.setAttribute('stroke-dasharray','2,1.5');
+      _ctrlG.appendChild(gB);
+
+      // ── Nódulo en A y B (círculos pequeños en extremos de tangente)
+      [a,b].forEach(pt=>{
+        const nc=document.createElementNS(NS,'circle');
+        nc.setAttribute('cx',pt.x);nc.setAttribute('cy',pt.y);nc.setAttribute('r','1.2');
+        nc.setAttribute('fill','none');nc.setAttribute('stroke',sel?'#93c5fd':'#60a5fa');
+        nc.setAttribute('stroke-width','0.4');
+        _ctrlG.appendChild(nc);
+      });
+
+      // ── Zona de hit invisible (grande) para facilitar agarre del CP
       const hitZone=document.createElementNS(NS,'circle');
       hitZone.setAttribute('cx',cpx);hitZone.setAttribute('cy',cpy);hitZone.setAttribute('r',sz*2);
       hitZone.setAttribute('fill','transparent');hitZone.setAttribute('stroke','none');
       hitZone.style.cursor='move';
       _ctrlG.appendChild(hitZone);
 
-      // Diamante visible
-      const pts=`${cpx},${cpy-sz} ${cpx+sz},${cpy} ${cpx},${cpy+sz} ${cpx-sz},${cpy}`;
+      // ── Diamante del punto de control — siempre visible, más grande si seleccionado
+      const dsz=sel?sz*1.4:sz;
+      const pts=`${cpx},${cpy-dsz} ${cpx+dsz},${cpy} ${cpx},${cpy+dsz} ${cpx-dsz},${cpy}`;
       const diamond=document.createElementNS(NS,'polygon');
       diamond.setAttribute('points',pts);
-      diamond.setAttribute('fill',i===_selectedLine?'#93c5fd':'#60a5fa');
-      diamond.setAttribute('stroke','#ede9fe');
-      diamond.setAttribute('stroke-width',i===_selectedLine?'0.5':'0.3');
+      diamond.setAttribute('fill',sel?'#93c5fd':'rgba(96,165,250,.85)');
+      diamond.setAttribute('stroke',sel?'#fff':'#ede9fe');
+      diamond.setAttribute('stroke-width',sel?'0.6':'0.3');
       diamond.style.cursor='move';
       _ctrlG.appendChild(diamond);
 
-      // Etiqueta con valor de curvatura
-      const lbl=document.createElementNS(NS,'text');
-      lbl.setAttribute('x',cpx+sz*1.4);lbl.setAttribute('y',cpy);
-      lbl.setAttribute('font-size','3.5');lbl.setAttribute('fill','#60a5fa');
-      lbl.setAttribute('font-family','monospace');
-      lbl.textContent=Math.round(ln.ctrl)+'mm';
-      _ctrlG.appendChild(lbl);
+      // ── Etiqueta con curvatura (solo cuando seleccionada)
+      if(sel){
+        const lbl=document.createElementNS(NS,'text');
+        lbl.setAttribute('x',cpx+dsz*1.4);lbl.setAttribute('y',cpy+1);
+        lbl.setAttribute('font-size','3.5');lbl.setAttribute('fill','#93c5fd');
+        lbl.setAttribute('font-family','monospace');
+        lbl.textContent=Math.round(ln.ctrl)+'mm';
+        _ctrlG.appendChild(lbl);
+      }
     });
   }
 
@@ -2150,11 +2226,12 @@ PAT.DrafterUI = (function () {
       t.setAttribute('font-family','Arial');t.setAttribute('font-weight','bold');
       t.textContent=p.name;g.appendChild(t);
 
-      if(p.formula){
+      if(p.fx||p.fy){
+        const fstr=(p.fx?'x:'+p.fx:'')+((p.fx&&p.fy)?' ':'')+( p.fy?'y:'+p.fy:'');
         const ft=document.createElementNS(NS,'text');
-        ft.setAttribute('x',p.x+r*1.6);ft.setAttribute('y',p.y+fs*0.9);
-        ft.setAttribute('font-size',fs*0.7);ft.setAttribute('fill','#3d3d58');
-        ft.setAttribute('font-family','monospace');ft.textContent=p.formula;g.appendChild(ft);
+        ft.setAttribute('x',p.x+r*1.6);ft.setAttribute('y',p.y+fs*1.1);
+        ft.setAttribute('font-size',fs*0.65);ft.setAttribute('fill','#8b5cf6');
+        ft.setAttribute('font-family','monospace');ft.textContent=fstr;g.appendChild(ft);
       }
 
       _pointsG.appendChild(g);
@@ -2225,15 +2302,23 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-pnm').value=p.name;
     document.getElementById('dv6-px').value=Math.round(p.x*10)/10;
     document.getElementById('dv6-py').value=Math.round(p.y*10)/10;
-    document.getElementById('dv6-pf').value=p.formula||'';
+    document.getElementById('dv6-pfx').value=p.fx||'';
+    document.getElementById('dv6-pfy').value=p.fy||'';
     _updateFVal();
   }
 
   function _updateFVal(){
     const p=_selected&&_points[_selected];
-    if(!p||!p.formula){document.getElementById('dv6-fv').textContent='—';return;}
-    const v=_evalF(p.formula);
-    document.getElementById('dv6-fv').textContent=v!==null?`= ${Math.round(v)}mm`:'— fórmula inválida';
+    const fv=document.getElementById('dv6-fv');
+    if(!p||(!(p.fx)&&!(p.fy))){fv.textContent='—';return;}
+    const vx=p.fx?_evalF(p.fx):null;
+    const vy=p.fy?_evalF(p.fy):null;
+    const parts=[];
+    if(vx!==null&&p.fx)parts.push(`X=${Math.round(vx)}mm`);
+    else if(p.fx)parts.push('X=inválida');
+    if(vy!==null&&p.fy)parts.push(`Y=${Math.round(vy)}mm`);
+    else if(p.fy)parts.push('Y=inválida');
+    fv.textContent=parts.length?'= '+parts.join(' · '):'—';
   }
 
   function _applyProps(){
@@ -2248,7 +2333,14 @@ PAT.DrafterUI = (function () {
 
   function _applyFormula(){
     if(!_selected||!_points[_selected])return;
-    _points[_selected].formula=document.getElementById('dv6-pf').value.trim();
+    const p=_points[_selected];
+    p.fx=document.getElementById('dv6-pfx').value.trim();
+    p.fy=document.getElementById('dv6-pfy').value.trim();
+    // Aplicar inmediatamente si la fórmula es válida
+    const vx=p.fx?_evalF(p.fx):null;
+    const vy=p.fy?_evalF(p.fy):null;
+    if(vx!==null&&p.fx){p.x=vx;document.getElementById('dv6-px').value=Math.round(vx*10)/10;}
+    if(vy!==null&&p.fy){p.y=vy;document.getElementById('dv6-py').value=Math.round(vy*10)/10;}
     _updateFVal();_renderAll();
   }
 
@@ -2262,7 +2354,8 @@ PAT.DrafterUI = (function () {
     ptKeys.forEach(id=>{
       const p=_points[id];
       const div=document.createElement('div');div.className='dv6-pti'+(id===_selected?' on':'');
-      div.innerHTML=`<div class="dv6-pdot"></div><span class="dv6-pnm">${p.name}</span><span class="dv6-pco">${Math.round(p.x)},${Math.round(p.y)}mm</span>${p.formula?`<span style="font-size:9px;color:#a78bfa;font-family:monospace">${p.formula}</span>`:''}<button class="dv6-pdel">✕</button>`;
+      const fLabel=(p.fx||p.fy)?`<span style="font-size:9px;color:#a78bfa;font-family:monospace">${p.fx?'X:'+p.fx:''}${(p.fx&&p.fy)?' ':''}${p.fy?'Y:'+p.fy:''}</span>`:'';
+      div.innerHTML=`<div class="dv6-pdot"></div><span class="dv6-pnm">${p.name}</span><span class="dv6-pco">${Math.round(p.x)},${Math.round(p.y)}mm</span>${fLabel}<button class="dv6-pdel">✕</button>`;
       div.addEventListener('click',e=>{if(e.target.classList.contains('dv6-pdel'))return;_selectPt(id);});
       div.querySelector('.dv6-pdel').addEventListener('click',()=>{_snapshot();_lines=_lines.filter(l=>l.from!==id&&l.to!==id);delete _points[id];if(_selected===id)_selected=null;_renderAll();});
       ptlist.appendChild(div);
@@ -2301,10 +2394,16 @@ PAT.DrafterUI = (function () {
       sp.title=v.v+'mm';sp.textContent=v.k;
       sp.onclick=()=>{
         if(_selected&&_points[_selected]){
-          _points[_selected].formula=v.k;
-          document.getElementById('dv6-pf').value=v.k;
-          document.getElementById('dv6-fv').textContent='= '+v.v+'mm';
-          _renderAll();
+          // Insertar variable en el campo con foco (pfx o pfy), o pfx por defecto
+          const fxEl=document.getElementById('dv6-pfx');
+          const fyEl=document.getElementById('dv6-pfy');
+          const activeEl=(document.activeElement===fyEl)?fyEl:fxEl;
+          // Insertar en la posición del cursor o reemplazar si vacío
+          const cur=activeEl.value;
+          const pos=activeEl.selectionStart||cur.length;
+          activeEl.value=cur.slice(0,pos)+v.k+cur.slice(activeEl.selectionEnd||pos);
+          activeEl===fxEl?(_points[_selected].fx=activeEl.value):(_points[_selected].fy=activeEl.value);
+          _updateFVal();_renderAll();
         }
       };
       el.appendChild(sp);
@@ -2348,31 +2447,36 @@ PAT.DrafterUI = (function () {
     const scaleX=(newM.bust/4*10)/(oldM.bust/4*10)||1;
     const scaleY=(newM.backLength*10)/(oldM.backLength*10)||1;
 
+    // Construir mapa de variables con las nuevas medidas sin modificar los inputs
+    const newVars={
+      BUSTO:newM.bust*10,CINTURA:newM.waist*10,CADERA:newM.hip*10,
+      ESPALDA:newM.shoulder*10,CUELLO:newM.neck*10,
+      TALLE_ESP:newM.backLength*10,TALLE_DEL:(newM.totalLength-5)*10,
+      LARGO:newM.totalLength*10,MANGA:60*10,FALDA:60*10,CADERA_PROF:20*10,
+      B4:newM.bust*10/4,B6:newM.bust*10/6,B8:newM.bust*10/8,
+      B10:newM.bust*10/10,B12:newM.bust*10/12,
+      W4:newM.waist*10/4,H4:newM.hip*10/4,E2:newM.shoulder*10/2,
+      pecho:newM.bust*10,cintura:newM.waist*10,cadera:newM.hip*10,
+      hombros:newM.shoulder*10,cuello:newM.neck*10,
+      talle:newM.backLength*10,largo:newM.totalLength*10,
+      manga:60*10,falda:60*10,
+    };
+    function _evalWithVars(expr){
+      if(!expr)return null;
+      let c=String(expr).trim();
+      Object.entries(newVars).forEach(([k,v])=>{c=c.replace(new RegExp('\\b'+k+'\\b','g'),v.toFixed(4));});
+      if(!/^[\d\s+\-*/().]+$/.test(c))return null;
+      try{return Function('"use strict";return('+c+')')();}catch(e){return null;}
+    }
+
     Object.values(_points).forEach(p=>{
-      if(p.formula){
-        // Re-evaluar la fórmula con nuevas medidas (temporalmente cambiar los inputs)
-        const oldVars=_buildVarsMap();
-        const newVars={
-          BUSTO:newM.bust*10,CINTURA:newM.waist*10,CADERA:newM.hip*10,
-          ESPALDA:newM.shoulder*10,CUELLO:newM.neck*10,
-          TALLE_ESP:newM.backLength*10,TALLE_DEL:(newM.totalLength-5)*10,
-          LARGO:newM.totalLength*10,MANGA:60*10,FALDA:60*10,CADERA_PROF:20*10,
-          B4:newM.bust*10/4,B6:newM.bust*10/6,B8:newM.bust*10/8,
-          B10:newM.bust*10/10,B12:newM.bust*10/12,
-          W4:newM.waist*10/4,H4:newM.hip*10/4,E2:newM.shoulder*10/2,
-        };
-        let c=String(p.formula).trim();
-        Object.entries(newVars).forEach(([k,v])=>{c=c.replace(new RegExp('\\b'+k+'\\b','g'),v.toFixed(4));});
-        if(/^[\d\s+\-*/().]+$/.test(c)){
-          try{const val=Function('"use strict";return('+c+')')();p.x=val;p.y=val;}catch(e){}
-        }
-        // Para fórmulas simples de una dimensión: actualizar x o y según dirección esperada
-        // Aproximación: si la fórmula era un valor horizontal → escalar X, si vertical → Y
-        const oldVal=_evalF(p.formula);
-        if(oldVal!==null){
-          // Intentar re-evaluar con nuevas medidas globales
-          // Simplificación: escalar proporcional si no se puede re-evaluar
-        }
+      if(p.fx||p.fy){
+        // Re-evaluar fórmulas X e Y por separado con las nuevas medidas
+        if(p.fx){const v=_evalWithVars(p.fx);if(v!==null)p.x=v;}
+        if(p.fy){const v=_evalWithVars(p.fy);if(v!==null)p.y=v;}
+        // Si solo tiene una, escalar la otra proporcionalmente
+        if(p.fx&&!p.fy)p.y*=scaleY;
+        if(p.fy&&!p.fx)p.x*=scaleX;
       }else{
         // Sin fórmula: escalar proporcionalmente
         p.x*=scaleX;
@@ -2427,7 +2531,19 @@ PAT.DrafterUI = (function () {
   function _buildVarsMap(){
     const m=_getMeasures();
     const b=m.bust*10,w=m.waist*10,h=m.hip*10,sh=m.shoulder*10,nk=m.neck*10;
-    return{BUSTO:b,CINTURA:w,CADERA:h,ESPALDA:sh,CUELLO:nk,TALLE_ESP:m.backLength*10,TALLE_DEL:m.frontLength*10,LARGO:m.totalLength*10,MANGA:m.sleeveLength*10,FALDA:m.skirtLength*10,CADERA_PROF:m.hipDepth*10,B4:b/4,B6:b/6,B8:b/8,B10:b/10,B12:b/12,W4:w/4,H4:h/4,E2:sh/2};
+    // Mayúsculas (histórico) + alias minúsculas amigables
+    return{
+      BUSTO:b,CINTURA:w,CADERA:h,ESPALDA:sh,CUELLO:nk,
+      TALLE_ESP:m.backLength*10,TALLE_DEL:m.frontLength*10,
+      LARGO:m.totalLength*10,MANGA:m.sleeveLength*10,
+      FALDA:m.skirtLength*10,CADERA_PROF:m.hipDepth*10,
+      B4:b/4,B6:b/6,B8:b/8,B10:b/10,B12:b/12,
+      W4:w/4,H4:h/4,E2:sh/2,
+      // Alias minúsculas: pecho/cintura/cadera/hombros/cuello/talle/largo/manga/falda
+      pecho:b,cintura:w,cadera:h,hombros:sh,cuello:nk,
+      talle:m.backLength*10,largo:m.totalLength*10,
+      manga:m.sleeveLength*10,falda:m.skirtLength*10,
+    };
   }
 
   function _evalF(expr){
@@ -2610,7 +2726,42 @@ PAT.DrafterUI = (function () {
     _instr('🪞 Pieza reflejada en espejo. Los puntos nuevos tienen el mismo nombre con apostrofe.');
   }
 
-  return { open, close, validate: _validatePattern };
+  // ════════════════════════════════════════════════════════════
+  // HISTORIAL DE CONSTRUCCIÓN (Feature 4)
+  // ════════════════════════════════════════════════════════════
+  function _refreshHistory(){
+    const el=document.getElementById('dv6-log');
+    const cnt=document.getElementById('dv6-logcnt');
+    if(!el)return;
+    cnt&&(cnt.textContent=_buildLog.length);
+    el.innerHTML='';
+    _buildLog.slice().reverse().forEach((entry,i)=>{
+      const div=document.createElement('div');
+      div.style.cssText='padding:1px 0;border-bottom:1px solid rgba(255,255,255,0.04)';
+      const icon=entry.type==='point'?'●':'─';
+      div.textContent=`${icon} ${entry.desc}`;
+      el.appendChild(div);
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // MODO UNIFICADO — toggle (Feature 3)
+  // ════════════════════════════════════════════════════════════
+  function _toggleUnified(){
+    _unifiedMode=!_unifiedMode;
+    const btn=document.getElementById('dv6-unified-btn');
+    if(btn)btn.textContent=_unifiedMode?'⚡ Unificado ON':'☰ Modos separados';
+    if(btn)btn.style.color=_unifiedMode?'#a78bfa':'#9490b0';
+    if(_unifiedMode){
+      _setTool('addLine'); // herramienta por defecto = línea recta en modo unificado
+      _instr('⚡ Modo unificado: clic vacío = nuevo punto · clic en punto = trazar línea (C=curva)');
+    } else {
+      _setTool('addPoint');
+      _instr(_toolMsg());
+    }
+  }
+
+  return { open, close, validate: _validatePattern, _toggleUnified };
 })();
 
 
