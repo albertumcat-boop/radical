@@ -33,12 +33,13 @@ PAT.Patterns.Blusa = (function() {
     const wW = (W + ease) / 4;
     const hW = (H + ease) / 4;
 
-    const neckW   = B / 12 + 5;
-    const neckD_b = 25;
-    const neckD_f = FL * 0.12 + 20;
+    const NK      = m.neck * 10;
+    const neckW   = NK / 6 + 10;           // Aldrich: cuello/6 + 1cm
+    const neckD_b = NK / 10 + 15;          // profundidad espalda ~2.2cm
+    const neckD_f = NK / 5 + 20;           // frente más profundo ~9.2cm
     const shLen   = Sh / 2 - neckW;
-    const shSlope = 15;
-    const adepth  = B * 0.14 + 50;
+    const shSlope = 18;
+    const adepth  = B / 8 + 70;            // Aldrich: busto/8 + 7cm
 
     // ── PINZA DE BUSTO ────────────────────────────────────────────────
     // La pinza sale del costado, a nivel del punto de busto.
@@ -53,14 +54,18 @@ PAT.Patterns.Blusa = (function() {
       const nkC = [s, s + neckD_b], nkS = [s + neckW, s];
       const shT = [s + neckW + shLen, s + shSlope];
       const ahB = [s + bW, s + adepth];
-      const ahMX = shT[0] + (ahB[0]-shT[0])*0.7, ahMY = shT[1] + (ahB[1]-shT[1])*0.45;
-      const ahM  = [ahMX, ahMY];
+      // Sisa espalda: bezier tangente al costado (G1 continuo)
+      const sdx_b = wW - bW, sdy_b = BL - adepth;
+      const slen_b = Math.hypot(sdx_b, sdy_b) || 1;
+      const T_b = adepth * 0.38;
+      const ahCP1_b = [shT[0]+(ahB[0]-shT[0])*0.15, shT[1]+adepth*0.55];
+      const ahCP2_b = [ahB[0]-(sdx_b/slen_b)*T_b, ahB[1]-(sdy_b/slen_b)*T_b];
+      const ahM = [(ahCP1_b[0]+ahCP2_b[0])/2, (ahCP1_b[1]+ahCP2_b[1])/2]; // muesca
 
       let d = P.M(...nkC);
       d += ` ${P.Q(s + neckW * 0.1, s, ...nkS)}`;
       d += ` ${P.L(...shT)}`;
-      d += ` ${P.C(shT[0]+5, shT[1]+(ahM[1]-shT[1])*0.4, ahM[0]+10, ahM[1]-15, ...ahM)}`;
-      d += ` ${P.C(ahM[0]+8, ahM[1]+15, ahB[0]+5, ahB[1]-20, ...ahB)}`;
+      d += ` ${P.C(...ahCP1_b, ...ahCP2_b, ...ahB)}`;
       // Lateral espalda blusa: recto de sisa a cintura, luego recto a cadera
       d += ` ${P.L(s+wW, s+BL)}`;
       d += ` ${P.L(s+hW, s+BL+HD)}`;
@@ -89,8 +94,14 @@ PAT.Patterns.Blusa = (function() {
       const nkC = [s, s + neckD_f], nkS = [s + neckW, s];
       const shT = [s + neckW + shLen, s + shSlope];
       const ahB = [s + bW, s + adepth];
-      const ahMX = shT[0]+(ahB[0]-shT[0])*0.7, ahMY = shT[1]+(ahB[1]-shT[1])*0.45;
-      const ahM  = [ahMX, ahMY];
+      // Sisa frente: bezier tangente al costado superior (hacia dartTop)
+      const sdx_f = (s + bW) - (s + bW);     // frente sisa → dartTop tiene dx=0
+      const sdy_f = dartTop[1] - (s + adepth); // dy positivo = baja
+      const slen_f = Math.hypot(0, sdy_f) || 1;
+      const T_f = adepth * 0.38;
+      const ahCP1_f = [shT[0]+(ahB[0]-shT[0])*0.15, shT[1]+adepth*0.55];
+      const ahCP2_f = [ahB[0], ahB[1] - T_f];  // tangente vertical hacia dartTop
+      const ahM = [(ahCP1_f[0]+ahCP2_f[0])/2, (ahCP1_f[1]+ahCP2_f[1])/2]; // muesca
 
       // La parte superior del costado va de la sisa hasta el extremo top de la pinza
       // La parte inferior va del extremo bot de la pinza hasta el dobladillo
@@ -99,8 +110,7 @@ PAT.Patterns.Blusa = (function() {
       // Cuello frente (curva más pronunciada)
       d += ` ${P.Q(s+neckW*0.2, s+neckD_f*0.8, ...nkS)}`;
       d += ` ${P.L(...shT)}`;
-      d += ` ${P.C(shT[0]+5, shT[1]+(ahM[1]-shT[1])*0.4, ahM[0]+10, ahM[1]-15, ...ahM)}`;
-      d += ` ${P.C(ahM[0]+8, ahM[1]+15, ahB[0]+5, ahB[1]-20, ...ahB)}`;
+      d += ` ${P.C(...ahCP1_f, ...ahCP2_f, ...ahB)}`;
       // Lateral recto: sisa → top pinza
       d += ` ${P.L(...dartTop)}`;
       // Pinza: top → vértice (ápice de busto) → bot

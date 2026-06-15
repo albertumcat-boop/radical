@@ -44,23 +44,25 @@ PAT.Patterns.Franela = (function() {
     const HD = m.hipDepth * 10;       // profundidad cadera mm
 
     // ── Medidas de bloque (con facilidad) ──────────────────────────────
-    const bW = (B + ease) / 4;    // ancho de bloque (¼ busto + facilidad)
-    const wW = (W + ease) / 4;    // ancho cintura
-    const hW = (H + ease) / 4;    // ancho cadera
+    const NK = m.neck * 10;                   // cuello mm
+    const bW = (B + ease) / 4;               // ancho de bloque (¼ busto + facilidad)
+    const wW = (W + ease) / 4;               // ancho cintura
+    const hW = (H + ease) / 4;               // ancho cadera
 
-    // ── Parámetros de cuello ──────────────────────────────────────────
-    const neckW_back  = B / 12 + 5;           // ancho cuello espalda (mm) desde CB
-    const neckD_back  = 25;                    // profundidad cuello espalda 2.5cm
-    const neckW_front = B / 12 + 5;           // igual que espalda para redondo
-    const neckD_front = BL * 0.15 + 20;       // más profundo al frente (~10-15% BL)
+    // ── Parámetros de cuello (fórmula Aldrich — basada en cuello real) ──
+    // Ancho desde CB: NK/6 + 1cm
+    const neckW_back  = NK / 6 + 10;         // mm desde CB (ej. 36cm → 70mm)
+    const neckD_back  = NK / 10 + 15;        // profundidad espalda: ~2-2.5cm
+    const neckW_front = neckW_back;           // igual que espalda (cuello redondo)
+    // Frente más profundo: NK/5 + 1cm adicional
+    const neckD_front = NK / 5 + 20;         // profundidad frente: ~9-10cm para redondo
 
-    // ── Profundidad sisa ──────────────────────────────────────────────
-    // Fórmula Aldrich: sisa desde línea de hombros
-    const armholeDepth = B * 0.14 + 50;      // mm
+    // ── Profundidad sisa (Aldrich: B/8 + 7cm) ────────────────────────
+    const armholeDepth = B / 8 + 70;         // mm (ej. bust88 → 180mm = 18cm)
 
     // ── Hombro ────────────────────────────────────────────────────────
     const shLength = Sh / 2 - neckW_back;    // largo del hombro por pieza
-    const shSlope  = 15;                      // caída del hombro: 1.5cm
+    const shSlope  = 18;                      // caída del hombro: 1.8cm (Aldrich std)
 
     // ═══════════════════════════════════════════════════════════════════
     // PIEZA 1: ESPALDA (½ pieza — doblar en tela al lado izquierdo)
