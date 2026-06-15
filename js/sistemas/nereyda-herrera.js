@@ -408,6 +408,466 @@ PAT.Sistemas.NereydaHerrera = (function () {
   };
 
   // ══════════════════════════════════════════════════════════════
+  // 5. TABLA ATELIER ESCUELA — CABALLERO (versión actualizada NH)
+  //    Fuente: "Tablas para medidas para camisas" — Atelier Escuela
+  //    Tallas: SS, S, M, L, XL, 2XL, 3XL
+  // ══════════════════════════════════════════════════════════════
+  const TALLAS_ATELIER_CAB = {
+    etiquetas: ['SS','S','M','L','XL','2XL','3XL'],
+    medidas: {
+      bust:        { SS:90,  S:93,  M:97,  L:102, XL:107, '2XL':112, '3XL':117 },
+      shoulder:    { SS:42,  S:44,  M:46,  L:47,  XL:49,  '2XL':50,  '3XL':52  },
+      shirtLength: { SS:65,  S:66,  M:68,  L:70,  XL:72,  '2XL':74,  '3XL':76  },
+      neck:        { SS:38,  S:39,  M:40,  L:42,  XL:44,  '2XL':46,  '3XL':48  },
+      sleeveShort: { SS:18,  S:19,  M:20,  L:21,  XL:22,  '2XL':23,  '3XL':24  },
+      armCirc:     { SS:32,  S:33,  M:34,  L:35,  XL:36,  '2XL':37,  '3XL':38  },
+      sleeveLong:  { SS:56,  S:58,  M:59,  L:61,  XL:63,  '2XL':64,  '3XL':66  },
+      wrist:       { SS:14,  S:15,  M:16,  L:17,  XL:18,  '2XL':19,  '3XL':20  },
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // 6. CAMISA PARTE DELANTERA
+  //    Fuente: "Trazado de Camisa Parte Delantera" Nereyda Herrera
+  //
+  //    A.B   = pecho/4 + 2cm
+  //    B.C   = largo camisa
+  //    A.1   = cuello/6 - 1cm     (prof. escote)
+  //    A.2   = pecho/4 + 1cm      (ancho escote)
+  //    A.8   = cuello/6            (ancho cuello)
+  //    A.9   = cuello/6            (ídem, referencia)
+  //    1.10  = espalda/2           (mitad ancho espalda)
+  //    10.11 = 1cm
+  //    8.12  = 1cm
+  //    11.13 = 1cm
+  //    A.14  = cuello/6 (sport) o 9cm fijo (vista ojal)
+  //    Bolsillo: referencia 2–2.5cm de línea 2, ancho 10–12cm
+  // ══════════════════════════════════════════════════════════════
+  const CAMISA_DELANTERA = {
+    nombre: 'Camisa Parte Delantera',
+    generar(m, s = 10) {
+      const T   = m.bust * 10;
+      const NK  = m.neck * 10;
+      const ESP = m.shoulder * 10;
+      const LC  = m.totalLength * 10;
+      const SF  = s;
+      const HOLGURA = 20;
+
+      const rectW = T / 4 + HOLGURA;
+      const rectH = LC;
+
+      const A  = { x: SF + rectW, y: SF,        name: 'A'  };
+      const B_ = { x: SF,         y: SF,         name: 'B'  };
+      const C_ = { x: SF + rectW, y: SF + rectH, name: 'C'  };
+      const D  = { x: SF,         y: SF + rectH, name: 'D'  };
+
+      // A.1 = cuello/6 - 1cm (profundidad escote)
+      const p1  = { x: SF + rectW,          y: SF + NK/6 - 10,   name: '1'  };
+      // A.2 = pecho/4 + 1cm (ancho escote lateral — línea de apertura botones)
+      const p2  = { x: SF + rectW - (T/4 + 10), y: SF,           name: '2'  };
+      // A.8 = cuello/6 (ancho cuello en hombro)
+      const p8  = { x: SF + rectW - NK/6,    y: SF,               name: '8'  };
+      // A.9 = cuello/6 (referencia adicional)
+      const p9  = { x: SF + rectW - NK/6,    y: SF + NK/6,        name: '9'  };
+      // 1.10 = espalda/2 (mitad ancho espalda desde p1)
+      const p10 = { x: SF + rectW - ESP/2,   y: SF + NK/6 - 10,  name: '10' };
+      // 10.11 = 1cm (hacia abajo)
+      const p11 = { x: SF + rectW - ESP/2,   y: SF + NK/6 + 0,   name: '11' };
+      // 8.12 = 1cm (desde p8 hacia costado)
+      const p12 = { x: SF + rectW - NK/6 - 10, y: SF,            name: '12' };
+      // 11.13 = 1cm (desde p11)
+      const p13 = { x: SF + rectW - ESP/2 - 10, y: SF + NK/6,    name: '13' };
+      // A.14 = cuello/6 (vista sport) — a la izquierda de A
+      const p14 = { x: SF + rectW + NK/6,    y: SF,               name: '14' };
+      // Bolsillo: sobre línea 2, a 2.5cm, ancho 11cm
+      const bolsL= { x: SF + rectW - (T/4 + 10) - 55, y: SF + 200, name: 'BL' };
+      const bolsR= { x: SF + rectW - (T/4 + 10) + 55, y: SF + 200, name: 'BR' };
+      const bolsB= { x: SF + rectW - (T/4 + 10),      y: SF + 320, name: 'BB' };
+
+      const points = {};
+      [A, B_, C_, D, p1, p2, p8, p9, p10, p11, p12, p13, p14, bolsL, bolsR, bolsB]
+        .forEach((p, i) => { points['cd' + i] = { x:p.x, y:p.y, name:p.name, fx:'', fy:'' }; });
+      const byName = {};
+      Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
+
+      const lines = [];
+      function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
+
+      ln('A', 'B',  'line');  // tope superior
+      ln('B', 'D',  'fold');  // centro delantero (doblez)
+      ln('D', 'C',  'line');  // dobladillo
+      ln('C', 'A',  'line');  // costado
+      ln('A', '2',  'line');  // apertura (vista botones)
+      ln('1', '9',  'curve'); // curva escote
+      ln('9', '12', 'curve'); // curva cuello hombro
+      ln('12','13', 'line');  // hombro
+      ln('13','10', 'curve'); // sisa
+      ln('10','2',  'line');  // costado desde sisa
+      // Bolsillo
+      ln('BL','BR', 'line');
+      ln('BR','BB', 'curve');
+      ln('BB','BL', 'curve');
+
+      return { points, lines };
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // 7. MANGA CORTA — CAMISAS
+  //    Fuente: "Manga para Camisas — Base Corta" Nereyda Herrera
+  //
+  //    Ejemplo Talla 32:
+  //    1. Largo de manga corta
+  //    2. Mitad del ancho de la espalda
+  //    3. Sexta del ancho de espalda
+  //    4. Mitad del contorno del Brazo
+  //
+  //    PROCEDIMIENTO (Base Manga Larga → mismos puntos):
+  //    A.B = espalda/2 + 1cm       (ancho de la manga)
+  //    B.C = largo manga
+  //    B.1 = pecho/10 + 1cm        (décima parte pecho + 1cm)
+  //    2   = B.1 / 2               (mitad de B.1)
+  //    3   = B.2 / 2               (mitad de B.2)
+  //    4   = A.B / 2               (mitad de A.B)
+  //    5   = brazo / 2             (mitad contorno brazo)
+  //    6   = 3cm
+  //    Sisa configurada con semicurvas
+  // ══════════════════════════════════════════════════════════════
+  const MANGA_CAMISA = {
+    nombre: 'Manga para Camisa',
+    generar(m, s = 10, tipo = 'corta') {
+      const T   = m.bust * 10;
+      const ESP = m.shoulder * 10;
+      const BR  = (m.armCirc || m.wrist * 2 + 20) * 10; // contorno brazo
+      const ML  = tipo === 'larga' ? (m.sleeveLength || 58) * 10 : (m.sleeveShort || 20) * 10;
+      const PU  = (m.wrist || 18) * 10;
+      const SF  = s;
+
+      // Rectángulo: A (inf-izq), B (sup-izq), C (sup-der), D (inf-der)
+      const AB = ESP / 2 + 10;  // espalda/2 + 1cm (ancho manga)
+      const BC = ML;             // largo manga
+
+      const A  = { x: SF,       y: SF + BC,  name: 'A' };
+      const B_ = { x: SF,       y: SF,       name: 'B' };
+      const C_ = { x: SF + AB,  y: SF,       name: 'C' };
+      const D  = { x: SF + AB,  y: SF + BC,  name: 'D' };
+
+      // B.1 = pecho/10 + 1cm (desde B hacia la derecha)
+      const dist1 = T / 10 + 10;
+      const p1  = { x: SF + dist1,          y: SF,        name: '1' };
+      // 2 = B.1/2
+      const p2  = { x: SF + dist1 / 2,      y: SF,        name: '2' };
+      // 3 = mitad entre B y 2 → B.2/2
+      const p3  = { x: SF + dist1 / 4,      y: SF,        name: '3' };
+      // 4 = A.B/2 (mitad del ancho en el eje vertical)
+      const p4  = { x: SF + AB / 2,         y: SF,        name: '4' };
+      // 5 = brazo/2 (a media altura de la manga — cabeza de manga)
+      const p5  = { x: SF + AB / 2,         y: SF + BC * 0.35, name: '5' };
+      // 6 = 3cm desde D (marca del ruedo)
+      const p6  = { x: SF + AB,             y: SF + BC - 30,   name: '6' };
+
+      // Puntos de sisa (curva cabeza de manga)
+      // La cabeza va de A→3→2→1→C en semicurva
+      const sisaL = { x: SF,       y: SF + BC * 0.3, name: 'SL' }; // izquierda
+      const sisaR = { x: SF + AB,  y: SF + BC * 0.3, name: 'SR' }; // derecha
+
+      // Para manga larga: agregar puño
+      let p_puno = null, p_abertura = null;
+      if (tipo === 'larga') {
+        // C.4 = descontar puño (~6cm)
+        const descPuno = { x: SF + AB, y: SF + BC - 60, name: 'C4' };
+        // 5.6 = puño/2 + 3cm (ancho del puño)
+        p_puno = { x: SF + PU/2 + 30, y: SF + BC, name: 'PU' };
+        p_abertura = { x: SF + AB - 100, y: SF + BC, name: 'AB' }; // 10cm abertura
+      }
+
+      const points = {};
+      const allPts = [A, B_, C_, D, p1, p2, p3, p4, p5, p6, sisaL, sisaR];
+      if (tipo === 'larga' && p_puno) allPts.push(p_puno, p_abertura);
+      allPts.forEach((p, i) => { if(p) points['mg'+i] = { x:p.x, y:p.y, name:p.name, fx:'', fy:'' }; });
+      const byName = {};
+      Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
+
+      const lines = [];
+      function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
+
+      // Cuerpo
+      ln('A', 'SL', 'line');  // lateral izq inferior
+      ln('D', 'SR', 'line');  // lateral der inferior
+      ln('SL','B',  'curve'); // cabeza manga izq
+      ln('B', '3',  'line');  // tope sup izq
+      ln('3', '2',  'line');
+      ln('2', '1',  'line');
+      ln('1', '4',  'line');
+      ln('4', 'C',  'line');
+      ln('C', 'SR', 'curve'); // cabeza manga der
+
+      if (tipo === 'corta') {
+        ln('A', 'D', 'fold');   // doblez (doblar para obtener modelo entero)
+      } else {
+        ln('A',  'PU', 'line');
+        ln('PU', 'D',  'fold');
+        if(byName['AB']) ln('AB','D', 'line'); // abertura carterita
+      }
+
+      return { points, lines };
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // 8. MANGA CORTA — VESTIDOS
+  //    Fuente: "Manga Corta" Nereyda Herrera (ejemplo talla 8)
+  //    Medidas ejemplo: largo=20, espalda/2-1=17.5, busto/10=8.8, brazo/2=14
+  //
+  //    A.B = espalda/2 - 1cm
+  //    B.C = largo manga
+  //    B.1 = busto/10 + 3cm
+  //    2   = B.1 / 2
+  //    3   = B.2 / 2
+  //    4   = A.B / 2
+  //    D.5 = brazo/2 + 2cm
+  //    D.6 = 3cm (ruedo)
+  //    Sisa con semicurvas
+  //    (Para larga: mismos puntos + puño)
+  // ══════════════════════════════════════════════════════════════
+  const MANGA_VESTIDO = {
+    nombre: 'Manga para Vestido',
+    generar(m, s = 10, tipo = 'corta') {
+      const B   = m.bust * 10;
+      const ESP = m.shoulder * 10;
+      const BR  = (m.armCirc || 28) * 10;
+      const ML  = tipo === 'larga' ? (m.sleeveLength || 55) * 10 : (m.sleeveShort || 20) * 10;
+      const MU  = (m.wrist || 17) * 10;
+      const SF  = s;
+
+      const AB = ESP / 2 - 10;  // espalda/2 - 1cm
+      const BC = ML;
+
+      const A  = { x: SF,       y: SF,        name: 'A' }; // doblez (derecha)
+      const B_ = { x: SF,       y: SF + BC,   name: 'B' }; // esquina inf
+      const C_ = { x: SF + AB,  y: SF + BC,   name: 'C' };
+      const D  = { x: SF + AB,  y: SF,        name: 'D' };
+
+      // B.1 = busto/10 + 3cm
+      const d1  = B / 10 + 30;
+      const p1  = { x: SF + d1,       y: SF + BC,   name: '1' };
+      const p2  = { x: SF + d1/2,     y: SF + BC,   name: '2' }; // mitad B.1
+      const p3  = { x: SF + d1/4,     y: SF + BC,   name: '3' }; // mitad B.2
+      const p4  = { x: SF + AB/2,     y: SF + BC,   name: '4' }; // mitad A.B
+      // D.5 = brazo/2 + 2cm (a media altura en el lateral)
+      const p5  = { x: SF + AB,       y: SF + BC/2, name: '5' };
+      // D.6 = 3cm ruedo
+      const p6  = { x: SF + AB,       y: SF + 30,   name: '6' };
+      // XX = punto doblez
+      const XX  = { x: SF + AB*0.4,   y: SF,        name: 'XX' };
+
+      const points = {};
+      [A, B_, C_, D, p1, p2, p3, p4, p5, p6, XX]
+        .forEach((p,i) => { points['mv'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
+      const byName = {};
+      Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
+
+      const lines = [];
+      function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
+
+      ln('A',  'B',  'fold');   // doblez
+      ln('B',  '3',  'line');
+      ln('3',  '2',  'line');
+      ln('2',  '1',  'line');
+      ln('1',  'C',  'line');
+      ln('C',  '5',  'curve');  // sisa der (semicurva)
+      ln('5',  'D',  'line');
+      ln('D',  '6',  'line');
+      ln('6',  'A',  'curve');  // sisa izq (semicurva)
+      ln('D',  'XX', 'line');   // marca doblez superior
+
+      return { points, lines };
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // 9. CUELLO CAMISERO SPORT
+  //    Fuente: "Cuello Camisero Sport" Nereyda Herrera
+  //
+  //    A.B = mitad contorno del escote
+  //    B.C = ancho del cuello (6cm)
+  //    C.1 = 1cm
+  //    B.2 = 1 a 2cm (generalmente 1.5cm)
+  //    3   = mitad de A.B y de C.D
+  //    Marcar DOBLAR en el centro
+  // ══════════════════════════════════════════════════════════════
+  const CUELLO_SPORT = {
+    nombre: 'Cuello Camisero Sport',
+    generar(m, s = 10) {
+      const NK  = m.neck * 10;   // contorno cuello
+      const SF  = s;
+
+      // El escote = cuello + holgura ≈ cuello (ya es el contorno medido en la blusa)
+      // A.B = escote/2 (medida tomada uniendo las bases de la blusa)
+      const AB = NK / 2;
+      const BC = 60;  // ancho cuello 6cm
+
+      const A = { x: SF + AB, y: SF,        name: 'A' }; // der-sup
+      const B_= { x: SF,      y: SF,        name: 'B' }; // izq-sup
+      const C_= { x: SF,      y: SF + BC,   name: 'C' }; // izq-inf
+      const D = { x: SF + AB, y: SF + BC,   name: 'D' }; // der-inf (doblez)
+
+      // C.1 = 1cm (desde C hacia la derecha — escuadra inf)
+      const p1 = { x: SF + 10, y: SF + BC,  name: '1' };
+      // B.2 = 1.5cm (desde B hacia abajo — ajuste escote)
+      const p2 = { x: SF,      y: SF + 15,  name: '2' };
+      // 3 = mitad de A.B y de C.D (punto medio de cada línea horizontal)
+      const p3t= { x: SF + AB/2, y: SF,     name: '3t' }; // mitad superior
+      const p3b= { x: SF + AB/2, y: SF + BC,name: '3b' }; // mitad inferior
+
+      const points = {};
+      [A, B_, C_, D, p1, p2, p3t, p3b]
+        .forEach((p,i) => { points['cs'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
+      const byName = {};
+      Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
+
+      const lines = [];
+      function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
+
+      ln('B',  'A',  'line');   // tope superior
+      ln('A',  'D',  'fold');   // doblez (DOBLAR)
+      ln('D',  '1',  'line');   // base inferior der
+      ln('1',  'C',  'line');   // base inferior izq
+      ln('C',  '2',  'line');   // lateral izq
+      ln('2',  'B',  'curve');  // curva escote
+      ln('3t', '3b', 'line');   // referencia media (construcción)
+
+      return { points, lines };
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // 10. CUELLO CAMISERO CON PIE (2 piezas)
+  //     Fuente: "Cuello Camisero con Pie" Nereyda Herrera
+  //
+  //     PIEZA 1 — CUELLO:
+  //     A.B = escote/2
+  //     B.C = 4cm (ancho cuello)
+  //     C.1 = 1cm, B.2 = 2cm, 3 = mitad A.B y C.D
+  //
+  //     PIEZA 2 — PIE O BASE:
+  //     A.B = escote/2 + 3cm
+  //     B.C = 3cm (ancho pie)
+  //     C.1 = 1cm, B.2 = 2cm, 3 = mitad C.D
+  // ══════════════════════════════════════════════════════════════
+  const CUELLO_CON_PIE = {
+    nombre: 'Cuello con Pie',
+    generar(m, s = 10) {
+      const NK = m.neck * 10;
+      const SF = s;
+      const GAP = 30; // separación entre las dos piezas
+
+      // ── PIEZA 1: CUELLO ────────────────────────────────────
+      const AB1 = NK / 2;
+      const BC1 = 40; // 4cm
+
+      const A1 = { x: SF + AB1, y: SF,        name: 'A'  };
+      const B1 = { x: SF,       y: SF,         name: 'B'  };
+      const C1 = { x: SF,       y: SF + BC1,   name: 'C'  };
+      const D1 = { x: SF + AB1, y: SF + BC1,   name: 'D'  };
+      const p1_1 = { x: SF + 10,    y: SF + BC1,  name: '1'  }; // C.1 = 1cm
+      const p2_1 = { x: SF,         y: SF + 20,   name: '2'  }; // B.2 = 2cm
+      const p3_1 = { x: SF + AB1/2, y: SF + BC1,  name: '3c' }; // mitad inferior
+
+      // ── PIEZA 2: PIE ───────────────────────────────────────
+      const yOff = SF + BC1 + GAP;
+      const AB2  = NK / 2 + 30; // escote/2 + 3cm
+      const BC2  = 30;           // 3cm
+
+      const A2 = { x: SF + AB2, y: yOff,        name: 'A2' };
+      const B2 = { x: SF,       y: yOff,         name: 'B2' };
+      const C2 = { x: SF,       y: yOff + BC2,   name: 'C2' };
+      const D2 = { x: SF + AB2, y: yOff + BC2,   name: 'D2' };
+      const p1_2 = { x: SF + 10,    y: yOff + BC2, name: '1p' }; // C.1 = 1cm
+      const p2_2 = { x: SF,         y: yOff + 20,  name: '2p' }; // B.2 = 2cm
+      const p3_2 = { x: SF + AB2/2, y: yOff + BC2, name: '3p' }; // mitad inf
+
+      const points = {};
+      [A1,B1,C1,D1,p1_1,p2_1,p3_1, A2,B2,C2,D2,p1_2,p2_2,p3_2]
+        .forEach((p,i) => { points['cp'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
+      const byName = {};
+      Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
+
+      const lines = [];
+      function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
+
+      // Cuello
+      ln('B',  'A',  'line');
+      ln('A',  'D',  'fold');
+      ln('D',  '1',  'line');
+      ln('1',  'C',  'line');
+      ln('C',  '2',  'line');
+      ln('2',  'B',  'curve');
+      ln('3c', 'D',  'line');
+
+      // Pie
+      ln('B2', 'A2', 'line');
+      ln('A2', 'D2', 'fold');
+      ln('D2', '1p', 'line');
+      ln('1p', 'C2', 'line');
+      ln('C2', '2p', 'line');
+      ln('2p', 'B2', 'curve');
+      ln('3p', 'D2', 'line');
+
+      return { points, lines };
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // 11. BOLSILLO PARA CAMISA
+  //     Fuente: "Bolsillos para Camisa" Nereyda Herrera
+  //
+  //     A.B = ancho del bolsillo (10–12cm, referencia del patrón delantero)
+  //     B.C = ancho + 2cm (largo total)
+  //     A.1 = 3cm para dobladillo
+  //     3 modelos de base: en pico, en punta recta, semi curva
+  // ══════════════════════════════════════════════════════════════
+  const BOLSILLO_CAMISA = {
+    nombre: 'Bolsillo para Camisa',
+    generar(m, s = 10, modelo = 'pico') {
+      const SF   = s;
+      const ancho = 110; // 11cm por defecto
+      const largo = ancho + 20; // +2cm
+
+      const A  = { x: SF + ancho, y: SF,         name: 'A' };
+      const B_ = { x: SF,         y: SF,         name: 'B' };
+      const C_ = { x: SF,         y: SF + largo,  name: 'C' };
+      const D  = { x: SF + ancho, y: SF + largo,  name: 'D' };
+      // A.1 = 3cm dobladillo
+      const p1 = { x: SF + ancho, y: SF + 30,    name: '1' };
+      const p1L= { x: SF,         y: SF + 30,    name: '1L' };
+      // Punto de base (modelo pico = mitad sube 2.5cm)
+      const pMid = { x: SF + ancho/2, y: SF + largo + (modelo==='pico' ? -25 : 0), name: 'M' };
+
+      const points = {};
+      [A, B_, C_, D, p1, p1L, pMid]
+        .forEach((p,i) => { points['bo'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
+      const byName = {};
+      Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
+
+      const lines = [];
+      function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
+
+      ln('A',  'B',  'line'); // tope (dobladillo)
+      ln('B',  '1L', 'line'); // lateral izq
+      ln('A',  '1',  'line'); // lateral der
+      ln('1L', 'M',  modelo==='semicurva'?'curve':'line'); // base izq
+      ln('M',  '1',  modelo==='semicurva'?'curve':'line'); // base der
+      if(modelo==='pico') {
+        ln('C', 'M', 'line'); // líneas al pico
+        ln('D', 'M', 'line');
+      }
+
+      return { points, lines };
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
   // 5. API — obtener medidas por talla
   // ══════════════════════════════════════════════════════════════
 
@@ -419,8 +879,9 @@ PAT.Sistemas.NereydaHerrera = (function () {
   function getMedidasDama(talla) {
     const t = talla.toUpperCase();
     const d = TALLAS_DAMA.medidas;
+    const bust = d.bust[t] || 92;
     return {
-      bust:        d.bust[t]        || 92,
+      bust,
       shoulder:    d.shoulder[t]    || 38,
       backLength:  d.backLength[t]  || 41,
       frontLength: d.frontLength[t] || 44,
@@ -428,9 +889,12 @@ PAT.Sistemas.NereydaHerrera = (function () {
       hipDepth:    d.hipDepth[t]    || 18,
       hip:         d.hip[t]         || 96,
       skirtLength: d.skirtLength[t] || 62,
+      sleeveShort: d.sleeveShort[t] || 20,
+      armCirc:     d.armCirc[t]     || 28,
       sleeveLength:d.sleeveLong[t]  || 53,
       wrist:       d.wrist[t]       || 16,
-      neck:        Math.round((d.bust[t]||92) * 0.39), // aprox (no en tabla original)
+      neck:        Math.round(bust * 0.39), // aprox cuello dama
+      totalLength: d.frontLength[t] || 44,
     };
   }
 
@@ -445,6 +909,8 @@ PAT.Sistemas.NereydaHerrera = (function () {
       shoulder:    d.shoulder[talla]    || 42,
       totalLength: d.shirtLength[talla] || 70,
       neck:        d.neck[talla]        || 40,
+      sleeveShort: d.sleeveShort[talla] || 20,
+      armCirc:     d.armCirc[talla]     || 32,
       sleeveLength:d.sleeveLong[talla]  || 58,
       wrist:       d.wrist[talla]       || 20,
     };
@@ -452,22 +918,91 @@ PAT.Sistemas.NereydaHerrera = (function () {
 
   /**
    * Genera un bloque listo para guardar en PAT.Bloques
-   * @param {string} pieza - 'blusa-trasera' | 'camisa-posterior'
-   * @param {object} medidas - medidas en cm
+   * Piezas soportadas:
+   *   Dama:      blusa-trasera, camisa-delantera,
+   *              manga-corta-vestido, manga-larga-vestido,
+   *              cuello-sport, cuello-con-pie, bolsillo-pico,
+   *              bolsillo-recto, bolsillo-semicurva
+   *   Caballero: camisa-posterior, manga-corta-camisa, manga-larga-camisa
    */
   function generarBloque(pieza, medidas, talla = 'S') {
     let resultado, nombre, categoria;
 
-    if (pieza === 'blusa-trasera') {
-      resultado = BLUSA_TRASERA.generar(medidas);
-      nombre    = `Blusa Trasera NH — Talla ${talla}`;
-      categoria = 'espalda';
-    } else if (pieza === 'camisa-posterior') {
-      resultado = CAMISA_POSTERIOR.generar(medidas);
-      nombre    = `Camisa Posterior NH — Talla ${talla}`;
-      categoria = 'espalda';
-    } else {
-      throw new Error('Pieza no reconocida: ' + pieza);
+    switch (pieza) {
+      case 'blusa-trasera':
+        resultado = BLUSA_TRASERA.generar(medidas);
+        nombre    = `Blusa Trasera NH — Talla ${talla}`;
+        categoria = 'espalda';
+        break;
+
+      case 'camisa-posterior':
+        resultado = CAMISA_POSTERIOR.generar(medidas);
+        nombre    = `Camisa Posterior NH — Talla ${talla}`;
+        categoria = 'espalda';
+        break;
+
+      case 'camisa-delantera':
+        resultado = CAMISA_DELANTERA.generar(medidas);
+        nombre    = `Camisa Delantera NH — Talla ${talla}`;
+        categoria = 'frente';
+        break;
+
+      case 'manga-corta-camisa':
+        resultado = MANGA_CAMISA.generar(medidas, 10, 'corta');
+        nombre    = `Manga Corta Camisa NH — Talla ${talla}`;
+        categoria = 'manga';
+        break;
+
+      case 'manga-larga-camisa':
+        resultado = MANGA_CAMISA.generar(medidas, 10, 'larga');
+        nombre    = `Manga Larga Camisa NH — Talla ${talla}`;
+        categoria = 'manga';
+        break;
+
+      case 'manga-corta-vestido':
+        resultado = MANGA_VESTIDO.generar(medidas, 10, 'corta');
+        nombre    = `Manga Corta Vestido NH — Talla ${talla}`;
+        categoria = 'manga';
+        break;
+
+      case 'manga-larga-vestido':
+        resultado = MANGA_VESTIDO.generar(medidas, 10, 'larga');
+        nombre    = `Manga Larga Vestido NH — Talla ${talla}`;
+        categoria = 'manga';
+        break;
+
+      case 'cuello-sport':
+        resultado = CUELLO_SPORT.generar(medidas);
+        nombre    = `Cuello Sport NH — Talla ${talla}`;
+        categoria = 'otro';
+        break;
+
+      case 'cuello-con-pie':
+        resultado = CUELLO_CON_PIE.generar(medidas);
+        nombre    = `Cuello con Pie NH — Talla ${talla}`;
+        categoria = 'otro';
+        break;
+
+      case 'bolsillo-pico':
+        resultado = BOLSILLO_CAMISA.generar(medidas, 10, 'pico');
+        nombre    = `Bolsillo en Pico NH`;
+        categoria = 'otro';
+        break;
+
+      case 'bolsillo-recto':
+        resultado = BOLSILLO_CAMISA.generar(medidas, 10, 'recto');
+        nombre    = `Bolsillo Recto NH`;
+        categoria = 'otro';
+        break;
+
+      case 'bolsillo-semicurva':
+        resultado = BOLSILLO_CAMISA.generar(medidas, 10, 'semicurva');
+        nombre    = `Bolsillo Semicurva NH`;
+        categoria = 'otro';
+        break;
+
+      default:
+        throw new Error('Pieza no reconocida: ' + pieza);
     }
 
     return {
@@ -483,7 +1018,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 6. REGISTRAR EN EL TRAZADOR (para el menú de sistemas)
+  // 12. REGISTRAR EN EL TRAZADOR (para el menú de sistemas)
   // ══════════════════════════════════════════════════════════════
   PAT.Sistemas.NereydaHerrera = {
     nombre: NOMBRE,
@@ -497,8 +1032,37 @@ PAT.Sistemas.NereydaHerrera = (function () {
     generarBloque,
     tablasDama:      TALLAS_DAMA,
     tablasCaballero: TALLAS_CABALLERO,
+    // Acceso directo a módulos
     blusaTrasera:    BLUSA_TRASERA,
     camisaPosterior: CAMISA_POSTERIOR,
+    camisaDelantera: CAMISA_DELANTERA,
+    mangaCamisa:     MANGA_CAMISA,
+    mangaVestido:    MANGA_VESTIDO,
+    cuelloSport:     CUELLO_SPORT,
+    cuelloConPie:    CUELLO_CON_PIE,
+    bolsilloCamisa:  BOLSILLO_CAMISA,
+    // Tabla Atelier Escuela
+    tablasAtelierCab: TALLAS_ATELIER_CAB,
+    // Lista de piezas para UI
+    piezasDama: [
+      { id: 'blusa-trasera',      label: 'Blusa Trasera',          tipo: 'dama' },
+      { id: 'camisa-delantera',   label: 'Camisa Delantera',        tipo: 'dama' },
+      { id: 'manga-corta-vestido',label: 'Manga Corta (Vestido)',   tipo: 'dama' },
+      { id: 'manga-larga-vestido',label: 'Manga Larga (Vestido)',   tipo: 'dama' },
+      { id: 'cuello-sport',       label: 'Cuello Sport',            tipo: 'dama' },
+      { id: 'cuello-con-pie',     label: 'Cuello con Pie',          tipo: 'dama' },
+      { id: 'bolsillo-pico',      label: 'Bolsillo en Pico',        tipo: 'dama' },
+      { id: 'bolsillo-recto',     label: 'Bolsillo Recto',          tipo: 'dama' },
+      { id: 'bolsillo-semicurva', label: 'Bolsillo Semicurva',      tipo: 'dama' },
+    ],
+    piezasCaballero: [
+      { id: 'camisa-posterior',   label: 'Camisa Posterior',        tipo: 'caballero' },
+      { id: 'manga-corta-camisa', label: 'Manga Corta (Camisa)',    tipo: 'caballero' },
+      { id: 'manga-larga-camisa', label: 'Manga Larga (Camisa)',    tipo: 'caballero' },
+      { id: 'cuello-sport',       label: 'Cuello Sport',            tipo: 'caballero' },
+      { id: 'cuello-con-pie',     label: 'Cuello con Pie',          tipo: 'caballero' },
+      { id: 'bolsillo-pico',      label: 'Bolsillo en Pico',        tipo: 'caballero' },
+    ],
   };
 
   return PAT.Sistemas.NereydaHerrera;

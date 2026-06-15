@@ -110,10 +110,16 @@ PAT.SistemasUI = (function () {
     card.className = 'sis-card';
     card.id = 'sis-card-' + sis.nombre.replace(/\s+/g,'_');
 
-    // Piezas disponibles
+    // Piezas disponibles — combinadas de piezasDama + piezasCaballero si existen,
+    // o fallback al método anterior por compatibilidad
     const piezas = [];
-    if (sis.blusaTrasera)    piezas.push({ id:'blusa-trasera',    label:'Blusa Trasera (Dama)' });
-    if (sis.camisaPosterior) piezas.push({ id:'camisa-posterior', label:'Camisa Posterior (Caballero)' });
+    if (sis.piezasDama || sis.piezasCaballero) {
+      (sis.piezasDama      || []).forEach(p => piezas.push(p));
+      (sis.piezasCaballero || []).forEach(p => piezas.push(p));
+    } else {
+      if (sis.blusaTrasera)    piezas.push({ id:'blusa-trasera',    label:'Blusa Trasera',    tipo:'dama' });
+      if (sis.camisaPosterior) piezas.push({ id:'camisa-posterior', label:'Camisa Posterior', tipo:'caballero' });
+    }
 
     // Tallas
     const tallasD = (sis.tallasDisponibles?.dama      || []).map(t => `<option value="${t}">${t}</option>`).join('');
@@ -133,7 +139,7 @@ PAT.SistemasUI = (function () {
         <div class="sis-row">
           <span class="sis-lbl">Pieza</span>
           <select class="sis-sel" id="sis-pieza-${sis.nombre.replace(/\s+/g,'_')}">
-            ${piezas.map(p=>`<option value="${p.id}">${p.label}</option>`).join('')}
+            ${piezas.map(p=>`<option value="${p.id}" data-tipo="${p.tipo||'dama'}">${p.label}</option>`).join('')}
           </select>
         </div>
 
@@ -169,9 +175,10 @@ PAT.SistemasUI = (function () {
     const preview  = document.getElementById('sis-preview-'  + key);
 
     function actualizarUI() {
-      const pieza = piezaSel.value;
-      const esCab = pieza === 'camisa-posterior';
-      rowDama.style.display = esCab ? 'none'  : '';
+      const pieza   = piezaSel.value;
+      const piezaObj= piezas.find(p => p.id === pieza);
+      const esCab   = piezaObj ? piezaObj.tipo === 'caballero' : pieza === 'camisa-posterior';
+      rowDama.style.display = esCab ? 'none' : '';
       rowCab.style.display  = esCab ? ''     : 'none';
       _renderPreview(sis, pieza, esCab, preview, key);
     }
@@ -217,7 +224,9 @@ PAT.SistemasUI = (function () {
 
     const key    = nombreSistema.replace(/\s+/g,'_');
     const pieza  = document.getElementById('sis-pieza-' + key).value;
-    const esCab  = pieza === 'camisa-posterior';
+    const piezaSel_ = document.getElementById('sis-pieza-' + key);
+    const selOpt    = piezaSel_ ? piezaSel_.options[piezaSel_.selectedIndex] : null;
+    const esCab     = selOpt ? (selOpt.getAttribute('data-tipo') === 'caballero') : pieza === 'camisa-posterior';
     const talla  = esCab
       ? document.getElementById('sis-talla-c-' + key).value
       : document.getElementById('sis-talla-d-' + key).value;
