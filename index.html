@@ -1232,6 +1232,7 @@ PAT.DrafterUI = (function () {
     <button class="tb" id="dv6-mirror" title="M — Copiar en espejo">🪞 Espejo</button>
     <div class="dv6-sep"></div>
     <button class="tb" id="dv6-demo" style="border-color:rgba(52,211,153,.4);color:#34d399" title="Trazar espalda básica automáticamente">▶ Demo Espalda</button>
+    <button class="tb" id="dv6-sistemas" style="border-color:rgba(251,191,36,.4);color:#fbbf24" title="Cargar desde sistema de patronaje registrado">🧵 Sistemas</button>
   </div>
 
   <div class="dv6-body">
@@ -1541,6 +1542,7 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-validate').onclick = _validatePattern;
     document.getElementById('dv6-mirror').onclick = _mirrorSelected;
     document.getElementById('dv6-demo').onclick = _runDemo;
+    document.getElementById('dv6-sistemas').onclick = () => { if(PAT.SistemasUI) PAT.SistemasUI.open(); };
     document.getElementById('dv6-dpt').onclick  = _delSelected;
 
     document.getElementById('dv6-snap').onclick = function() {
@@ -3057,6 +3059,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/share.js"></script>
 <script src="js/bloques.js"></script>
 <script src="js/bloques-ui.js"></script>
+<script src="js/sistemas/nereyda-herrera.js"></script>
+<script src="js/sistemas/sistemas-ui.js"></script>
 
 <!-- ── Patrones nuevos ────────────────────────────────── -->
 <script src="js/patterns/pantalon.js"></script>
