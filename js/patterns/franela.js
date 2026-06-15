@@ -206,7 +206,6 @@ PAT.Patterns.Franela = (function() {
       const hemSideF   = [s + Math.max(bWf, hWf), s + TL];
       const hemCenterF = [s, s + TL];
 
-      const cpWaist1F = [ahBottomF[0], ahBottomF[1] + (FL - armholeDepth) * 0.5];
       let d = '';
       d += P.M(...nkCenterF);
 

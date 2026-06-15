@@ -44,8 +44,7 @@ PAT.Patterns.Blusa = (function() {
     // La pinza sale del costado, a nivel del punto de busto.
     // Valor de pinza = diferencia busto-cintura / 4 / 2 (simplificado)
     const bustPoint = { x: s + bW * 0.55, y: s + FL * 0.45 };  // ápice de busto
-    const dartWidth   = Math.max(10, (B - W) / 4 * 0.5);        // mm
-    const dartLength  = Math.min(80, (B - W) / 4 * 3.5);        // mm desde costado
+    const dartWidth = Math.max(10, (B - W) / 4 * 0.5);  // mm
 
     // ═════════════════════════════════════════════════════════════════
     // ESPALDA (igual que franela pero con pinza de hombro opcional)

@@ -71,7 +71,7 @@ module.exports = async (req, res) => {
 
         console.log(`[Webhook] Pago completado: user=${userId}, tier=${tier}, amount=$${amount}`);
 
-        if (userId && tier && TIER_BY_PRICE[Object.keys(TIER_BY_PRICE).find(k => TIER_BY_PRICE[k] === tier)]) {
+        if (userId && (tier === 'pro' || tier === 'expert')) {
           await db.collection('users').doc(userId).set(
             { tier, updatedAt: new Date(), stripeCustomer: session.customer },
             { merge: true }
