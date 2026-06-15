@@ -69,15 +69,15 @@ PAT.PIECE_GAP = 30;  // mm entre piezas
 
 // ─── Colores SVG ──────────────────────────────────────────────────────────
 PAT.COLORS = {
-  cutLine:   '#e2e8f0',   // línea de corte (exterior)
-  seamLine:  '#666688',   // línea de costura (interior, punteada)
-  foldLine:  '#ef4444',   // línea de doblez (roja, punteada)
-  grainLine: '#3b82f6',   // línea de hilo
-  dartLine:  '#f59e0b',   // pinza
+  cutLine:   '#2a2018',   // línea de corte (exterior) — oscuro visible en fondo beige
+  seamLine:  '#6b5a45',   // línea de costura (interior, punteada)
+  foldLine:  '#b84040',   // línea de doblez (roja, punteada)
+  grainLine: '#3a6ea8',   // línea de hilo
+  dartLine:  '#c49830',   // pinza
   dimLine:   '#7c3aed',   // cotas/dimensiones
-  notch:     '#e2e8f0',   // muescas
-  fill:      'rgba(255,255,255,0.025)',
-  bgGrid:    'rgba(255,255,255,0.04)',
+  notch:     '#2a2018',   // muescas
+  fill:      'rgba(184,107,46,0.04)',  // relleno sutil cálido
+  bgGrid:    'rgba(0,0,0,0.04)',
 };
 
 // ─── Tamaños de texto en SVG (en mm) ─────────────────────────────────────

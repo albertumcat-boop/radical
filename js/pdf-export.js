@@ -8,13 +8,18 @@ window.PAT = window.PAT || {};
 
 PAT.PDFExport = (function() {
 
-  const { jsPDF } = window.jspdf;
-
   function exportTiledPDF(patternData, params) {
     if (!patternData) {
       PAT.App.toast('No hay patrón generado aún', 'error');
       return;
     }
+
+    // Lazy-load jsPDF — se verifica aquí para no crashear al cargar el módulo
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      PAT.App.toast('⚠ Librería PDF no cargada. Recarga la página.', 'error');
+      return;
+    }
+    const { jsPDF } = window.jspdf;
 
     // ── VERIFICACIÓN DE TIER ────────────────────────────────────
     const tierId    = PAT.AuthTier.getTierId();
