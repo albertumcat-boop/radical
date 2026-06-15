@@ -1278,7 +1278,7 @@ PAT.DrafterUI = (function () {
         </g>
       </svg>
 
-      <div id="dv6-instr">▶ Seleccionar activo — clic en punto para editar · R=Rectángulo base · P=Punto · C=Curva · M=Espejo</div>
+      <div id="dv6-instr">＋ Modo Punto activo — haz clic en el canvas para colocar puntos · luego usa L=Línea o C=Curva para conectarlos · R=Rectángulo base rápido</div>
       <div id="dv6-coord">x: 0mm · y: 0mm</div>
       <div id="dv6-dist"></div>
     </div>
@@ -1390,6 +1390,9 @@ PAT.DrafterUI = (function () {
     _refreshSaved();
     _snapshot(); // snapshot inicial vacío
     _renderAll();
+    // Abrir siempre en modo Añadir Punto para que el primer clic
+    // coloque un punto en lugar de no hacer nada
+    setTimeout(() => _setTool('addPoint'), 60);
   }
 
   // ════════════════════════════════════════════════════════════

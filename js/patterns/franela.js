@@ -95,29 +95,37 @@ PAT.Patterns.Franela = (function() {
       const hemCenter = [s, s + TL];
 
       // ── Control points para sisa ─────────────────────────────────
-      // Curva en dos segmentos para sisa natural
-      // Segmento 1: hombro → punto medio sisa (curva exterior)
-      const ahMidX = shTip[0] + (ahBottom[0] - shTip[0]) * 0.7;
-      const ahMidY = shTip[1] + (ahBottom[1] - shTip[1]) * 0.45;
-      const ahMid  = [ahMidX, ahMidY];
+      // Un único bezier cúbico shTip → ahBottom con tangencia al costado
+      // en ahBottom (garantiza continuidad G1 sin ángulo brusco).
 
-      // Cubic bezier: hombro → mid sisa
-      const cp1_1 = [shTip[0] + 5, shTip[1] + (ahMid[1] - shTip[1]) * 0.4];
-      const cp1_2 = [ahMid[0] + 10, ahMid[1] - 15];
-      // Cubic bezier: mid sisa → bottom sisa
-      const cp2_1 = [ahMid[0] + 8, ahMid[1] + 15];
-      const cp2_2 = [ahBottom[0] + 5, ahBottom[1] - 20];
+      // Dirección del costado en ahBottom → waistSide
+      const sdx = wW - bW;                        // negativo = entra hacia CB
+      const sdy = BL - armholeDepth;              // positivo = baja
+      const slen = Math.hypot(sdx, sdy) || 1;
+      const TANG = armholeDepth * 0.38;           // longitud del brazo de control
+
+      // cp1: desde hombro, baja verticalmente y avanza hacia el ancho
+      const ahCP1 = [shTip[0] + (ahBottom[0] - shTip[0]) * 0.15,
+                     shTip[1] + armholeDepth * 0.55];
+      // cp2: llega a ahBottom desde la dirección del costado (tangente)
+      const ahCP2 = [ahBottom[0] - (sdx / slen) * TANG,
+                     ahBottom[1] - (sdy / slen) * TANG];
+
+      // Muesca ahMid para ensamble
+      const ahMid = [
+        (ahCP1[0] + ahCP2[0]) / 2,
+        (ahCP1[1] + ahCP2[1]) / 2,
+      ];
 
       // ── Construir path ────────────────────────────────────────────
       let d = '';
       d += P.M(...nkCenter);
-      // Cuello espalda: cuadrática plana (apenas una ligera curva en CB)
+      // Cuello espalda: cuadrática plana
       d += ` ${P.Q(s + neckW_back * 0.15, s + neckD_back * 0.05, ...nkShoulder)}`;
       // Hombro: línea recta
       d += ` ${P.L(...shTip)}`;
-      // Sisa: dos beziers cúbicos (curva natural de axila)
-      d += ` ${P.C(...cp1_1, ...cp1_2, ...ahMid)}`;
-      d += ` ${P.C(...cp2_1, ...cp2_2, ...ahBottom)}`;
+      // Sisa: único bezier cúbico, tangente al costado en el extremo inferior
+      d += ` ${P.C(...ahCP1, ...ahCP2, ...ahBottom)}`;
       // Lateral RECTO: franela es corte suelto, sin molde en cintura
       d += ` ${P.L(...waistSide)}`;
       d += ` ${P.L(...hipSide)}`;
@@ -191,15 +199,20 @@ PAT.Patterns.Franela = (function() {
       const shTipF      = [s + neckW_front + shLength, s + shSlope];
       const ahBottomF   = [s + bWf, s + armholeDepth];
 
-      // Sisa idéntica a espalda
-      const ahMidXF = shTipF[0] + (ahBottomF[0] - shTipF[0]) * 0.7;
-      const ahMidYF = shTipF[1] + (ahBottomF[1] - shTipF[1]) * 0.45;
-      const ahMidF  = [ahMidXF, ahMidYF];
+      // Sisa frente — mismo método: un bezier cúbico tangente al costado
+      const sdxF = wWf - bWf;
+      const sdyF = FL - armholeDepth;
+      const slenF = Math.hypot(sdxF, sdyF) || 1;
+      const TANGF = armholeDepth * 0.38;
 
-      const cp1_1F = [shTipF[0] + 5, shTipF[1] + (ahMidF[1] - shTipF[1]) * 0.4];
-      const cp1_2F = [ahMidF[0] + 10, ahMidF[1] - 15];
-      const cp2_1F = [ahMidF[0] + 8, ahMidF[1] + 15];
-      const cp2_2F = [ahBottomF[0] + 5, ahBottomF[1] - 20];
+      const ahCP1F = [shTipF[0] + (ahBottomF[0] - shTipF[0]) * 0.15,
+                      shTipF[1] + armholeDepth * 0.55];
+      const ahCP2F = [ahBottomF[0] - (sdxF / slenF) * TANGF,
+                      ahBottomF[1] - (sdyF / slenF) * TANGF];
+      const ahMidF = [
+        (ahCP1F[0] + ahCP2F[0]) / 2,
+        (ahCP1F[1] + ahCP2F[1]) / 2,
+      ];
 
       const waistSideF = [s + wWf, s + FL];
       const hipSideF   = [s + hWf, s + FL + HD];
@@ -216,8 +229,7 @@ PAT.Patterns.Franela = (function() {
       d += ` ${P.C(...nkCP1F, ...nkCP2F, ...nkShoulderF)}`;
 
       d += ` ${P.L(...shTipF)}`;
-      d += ` ${P.C(...cp1_1F, ...cp1_2F, ...ahMidF)}`;
-      d += ` ${P.C(...cp2_1F, ...cp2_2F, ...ahBottomF)}`;
+      d += ` ${P.C(...ahCP1F, ...ahCP2F, ...ahBottomF)}`;
       // Lateral RECTO: franela es corte suelto
       d += ` ${P.L(...waistSideF)}`;
       d += ` ${P.L(...hipSideF)}`;
