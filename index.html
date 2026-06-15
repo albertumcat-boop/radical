@@ -1229,6 +1229,8 @@ PAT.DrafterUI = (function () {
     <button class="tb pri" id="dv6-ap">＋ Al patrón</button>
     <button class="tb yel" id="dv6-validate" style="border-color:rgba(251,191,36,.4)">🔍 Verificar</button>
     <button class="tb" id="dv6-mirror" title="M — Copiar en espejo">🪞 Espejo</button>
+    <div class="dv6-sep"></div>
+    <button class="tb" id="dv6-demo" style="border-color:rgba(52,211,153,.4);color:#34d399" title="Trazar espalda básica automáticamente">▶ Demo Espalda</button>
   </div>
 
   <div class="dv6-body">
@@ -1537,6 +1539,7 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-apb').onclick  = _addToPattern;
     document.getElementById('dv6-validate').onclick = _validatePattern;
     document.getElementById('dv6-mirror').onclick = _mirrorSelected;
+    document.getElementById('dv6-demo').onclick = _runDemo;
     document.getElementById('dv6-dpt').onclick  = _delSelected;
 
     document.getElementById('dv6-snap').onclick = function() {
@@ -2727,6 +2730,102 @@ PAT.DrafterUI = (function () {
   }
 
   // ════════════════════════════════════════════════════════════
+  // DEMO AUTOMÁTICO — traza una ESPALDA BÁSICA paso a paso
+  // Usa las medidas actuales del panel principal (m.bust, etc.)
+  // ════════════════════════════════════════════════════════════
+  function _runDemo() {
+    // Confirmar si hay trabajo previo
+    if (Object.keys(_points).length > 0) {
+      if (!confirm('⚠️ Esto borrará el trazado actual y dibujará una espalda de demostración.\n¿Continuar?')) return;
+    }
+
+    // ── Limpiar y preparar ────────────────────────────────────
+    _points = {}; _lines = []; _ptCtr = 0;
+    _buildLog = []; _selected = null; _lnStart = null;
+    _selectedLine = null;
+    _snapshot();
+
+    const m = _getMeasures();
+    const B  = m.bust * 10;       // busto en mm
+    const NK = m.neck * 10;
+    const SH = m.shoulder * 10;
+    const BL = m.backLength * 10; // talle espalda en mm
+    const TL = m.totalLength * 10;
+    const HD = m.hipDepth * 10;
+    const H  = m.hip * 10;
+    const W  = m.waist * 10;
+    const s  = 10; // margen de costura
+
+    // ── Fórmulas Aldrich para espalda ─────────────────────────
+    const bW      = B / 4;                     // ancho busto ¼
+    const wW      = W / 4;                     // ancho cintura ¼
+    const hW      = H / 4;                     // ancho cadera ¼
+    const neckW   = NK / 6 + 10;               // ancho cuello
+    const neckD   = NK / 10 + 15;             // prof. cuello espalda
+    const shLen   = SH / 2 - neckW;           // largo del hombro
+    const shSlope = 18;                        // caída hombro (1.8cm)
+    const adepth  = B / 8 + 70;               // profundidad sisa
+
+    // PASO 1 — Origen (esquina cuello-doblez)
+    const delay = 320; // ms entre pasos (animación suave)
+    let step = 0;
+
+    function next(fn) { setTimeout(fn, delay * step++); }
+
+    _instr('▶ Demo: trazando espalda básica Aldrich…');
+
+    // ── PUNTOS ───────────────────────────────────────────────
+    // A = origen (cuello centro-espalda)
+    let A,B1,C1,D1,E1,F1,G1,H1,I1;
+
+    next(()=>{ _snapshot(); A  = _addPt(s,          s,            'A','','' ); _instr('A — origen: cuello × línea de centro espalda'); });
+    // B = cuello lateral (hombro)
+    next(()=>{ _snapshot(); B1 = _addPt(s+neckW,    s,            'B','',''); _instr('B — cuello lateral: A + cuello/6+1cm'); });
+    // C = punto de hombro (caída 1.8cm)
+    next(()=>{ _snapshot(); C1 = _addPt(s+neckW+shLen, s+shSlope, 'C','',''); _instr('C — hombro: B + largo hombro, caída 1.8cm'); });
+    // D = sisa (punto más ancho)
+    next(()=>{ _snapshot(); D1 = _addPt(s+bW,       s+adepth,     'D','',''); _instr('D — fondo sisa: busto/4 de CE, profundidad busto/8+7cm'); });
+    // E = cintura lado
+    next(()=>{ _snapshot(); E1 = _addPt(s+wW,       s+BL,         'E','',''); _instr('E — cintura lateral: cintura/4'); });
+    // F = cadera lado
+    next(()=>{ _snapshot(); F1 = _addPt(s+hW,       s+BL+HD,      'F','',''); _instr('F — cadera lateral: cadera/4'); });
+    // G = dobladillo lado
+    next(()=>{ _snapshot(); G1 = _addPt(s+Math.max(bW,hW), s+TL, 'G','',''); _instr('G — dobladillo lateral'); });
+    // H = dobladillo centro espalda
+    next(()=>{ _snapshot(); H1 = _addPt(s,          s+TL,         'H','',''); _instr('H — dobladillo centro espalda'); });
+    // I = cuello fondo (prof. cuello)
+    next(()=>{ _snapshot(); I1 = _addPt(s,          s+neckD,      'I','',''); _instr('I — prof. cuello espalda: cuello/10+1.5cm'); });
+
+    // ── LÍNEAS ───────────────────────────────────────────────
+    // Cuello: I → A (línea de doblez/pliegue)
+    next(()=>{ _snapshot(); _addLn(I1,A,'addFold');   _instr('Línea de doblez: I → A (centro espalda)'); });
+    // Cuello curva: I → B
+    next(()=>{ _snapshot(); _addLn(I1,B1,'addCurve'); _instr('Curva de cuello: I → B'); });
+    // Hombro: B → C
+    next(()=>{ _snapshot(); _addLn(B1,C1,'addLine');  _instr('Hombro: B → C (línea recta)'); });
+    // Sisa: C → D (curva — ajustar con el diamante azul)
+    next(()=>{ _snapshot(); _addLn(C1,D1,'addCurve'); _instr('Sisa: C → D (curva — arrastra el ◆ azul para moldear)'); });
+    // Lateral: D → E → F → G
+    next(()=>{ _snapshot(); _addLn(D1,E1,'addLine');  _instr('Lateral: D → E (sisa a cintura)'); });
+    next(()=>{ _snapshot(); _addLn(E1,F1,'addLine');  _instr('Lateral: E → F (cintura a cadera)'); });
+    next(()=>{ _snapshot(); _addLn(F1,G1,'addLine');  _instr('Lateral: F → G (cadera a dobladillo)'); });
+    // Dobladillo: G → H
+    next(()=>{ _snapshot(); _addLn(G1,H1,'addLine');  _instr('Dobladillo: G → H'); });
+    // Centro espalda: H → I (línea de doblez/pliegue)
+    next(()=>{ _snapshot(); _addLn(H1,I1,'addFold');  _instr('Centro espalda: H → I (línea de doblez)'); });
+
+    // ── Finalizar ─────────────────────────────────────────────
+    next(()=>{
+      _pieceName = 'Espalda Demo';
+      document.getElementById('dv6-nm').value = _pieceName;
+      _setTool('select');
+      _fitView();
+      _instr('✅ Espalda básica Aldrich trazada. Arrastra los ◆ azules para ajustar las curvas. Edita las fórmulas X/Y de cada punto para parametrizarlo.');
+      if(PAT.App) PAT.App.toast('✅ Demo espalda trazada — ' + Object.keys(_points).length + ' puntos, ' + _lines.length + ' líneas', 'success');
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
   // HISTORIAL DE CONSTRUCCIÓN (Feature 4)
   // ════════════════════════════════════════════════════════════
   function _refreshHistory(){
@@ -2761,7 +2860,7 @@ PAT.DrafterUI = (function () {
     }
   }
 
-  return { open, close, validate: _validatePattern, _toggleUnified };
+  return { open, close, validate: _validatePattern, _toggleUnified, demo: _runDemo };
 })();
 
 
