@@ -466,6 +466,74 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
         <button class="m-btn" onclick="stepInput('hipDepth',1)">+</button>
       </div>
     </div>
+
+    <!-- Medidas pantalón / short (ocultas por defecto) -->
+    <div id="grp-pants" style="display:none">
+      <div class="m-group-title">🩲 Pantalón / Short</div>
+      <div class="m-row">
+        <div class="m-dot" style="background:#a78bfa"></div>
+        <label>Tiro (rise)</label>
+        <div class="m-ctrl">
+          <button class="m-btn" onclick="stepInput('rise',-1)">−</button>
+          <input class="m-inp" type="number" data-measure="rise" value="28" min="18" max="45" step="0.5">
+          <button class="m-btn" onclick="stepInput('rise',1)">+</button>
+        </div>
+      </div>
+      <div class="m-row">
+        <div class="m-dot" style="background:#a78bfa"></div>
+        <label>Entrepierna</label>
+        <div class="m-ctrl">
+          <button class="m-btn" onclick="stepInput('inseam',-1)">−</button>
+          <input class="m-inp" type="number" data-measure="inseam" value="76" min="30" max="100" step="0.5">
+          <button class="m-btn" onclick="stepInput('inseam',1)">+</button>
+        </div>
+      </div>
+      <div class="m-row" id="row-outseam">
+        <div class="m-dot" style="background:#a78bfa"></div>
+        <label>Lateral total</label>
+        <div class="m-ctrl">
+          <button class="m-btn" onclick="stepInput('outseam',-1)">−</button>
+          <input class="m-inp" type="number" data-measure="outseam" value="100" min="50" max="130" step="0.5">
+          <button class="m-btn" onclick="stepInput('outseam',1)">+</button>
+        </div>
+      </div>
+      <div class="m-row">
+        <div class="m-dot" style="background:#a78bfa"></div>
+        <label>Muslo</label>
+        <div class="m-ctrl">
+          <button class="m-btn" onclick="stepInput('thigh',-1)">−</button>
+          <input class="m-inp" type="number" data-measure="thigh" value="56" min="35" max="90" step="0.5">
+          <button class="m-btn" onclick="stepInput('thigh',1)">+</button>
+        </div>
+      </div>
+      <div class="m-row" id="row-knee">
+        <div class="m-dot" style="background:#a78bfa"></div>
+        <label>Rodilla</label>
+        <div class="m-ctrl">
+          <button class="m-btn" onclick="stepInput('knee',-1)">−</button>
+          <input class="m-inp" type="number" data-measure="knee" value="37" min="25" max="65" step="0.5">
+          <button class="m-btn" onclick="stepInput('knee',1)">+</button>
+        </div>
+      </div>
+      <div class="m-row" id="row-ankle">
+        <div class="m-dot" style="background:#a78bfa"></div>
+        <label>Tobillo</label>
+        <div class="m-ctrl">
+          <button class="m-btn" onclick="stepInput('ankle',-1)">−</button>
+          <input class="m-inp" type="number" data-measure="ankle" value="23" min="18" max="45" step="0.5">
+          <button class="m-btn" onclick="stepInput('ankle',1)">+</button>
+        </div>
+      </div>
+      <div class="m-row" id="row-shortLength">
+        <div class="m-dot" style="background:#a78bfa"></div>
+        <label>Largo short</label>
+        <div class="m-ctrl">
+          <button class="m-btn" onclick="stepInput('shortLength',-1)">−</button>
+          <input class="m-inp" type="number" data-measure="shortLength" value="45" min="20" max="70" step="0.5">
+          <button class="m-btn" onclick="stepInput('shortLength',1)">+</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 3. Parámetros -->

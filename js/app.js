@@ -419,8 +419,15 @@ if (overrides && overrides[overrideKey]) {
       franela: 'Franela Básica', blusa: 'Blusa con Pinzas',
       camisa: `Camisa ${state.shirtGender === 'dama' ? 'Dama' : 'Caballero'}`,
       falda: 'Falda Recta', vestido: 'Vestido Básico',
+      'falda-lapiz': 'Falda Lápiz', 'vestido-cruzado': 'Vestido Cruzado',
+      pantalon: 'Pantalón Clásico', short: 'Short',
+      blazer: 'Blazer Sastre', chaleco: 'Chaleco',
     };
-    const counts = { franela: 3, blusa: 3, camisa: 7, falda: 3, vestido: 2 };
+    const counts = {
+      franela: 3, blusa: 3, camisa: 7, falda: 3, vestido: 2,
+      'falda-lapiz': 2, 'vestido-cruzado': 4,
+      pantalon: 4, short: 3, blazer: 5, chaleco: 3,
+    };
     const demo = PAT.AuthTier?.needsWatermark?.()
       ? ' <span style="background:rgba(248,113,113,.12);color:#f87171;padding:1px 8px;border-radius:20px;font-size:10px;border:1px solid rgba(248,113,113,.25)">DEMO</span>'
       : '';
@@ -436,8 +443,15 @@ if (overrides && overrides[overrideKey]) {
     const show = (id, v) => { const e = $(id); if (e) e.style.display = v ? '' : 'none'; };
     show('row-sleeve-length', ['franela', 'blusa', 'camisa'].includes(g));
     show('row-wrist',         ['camisa', 'blusa'].includes(g));
-    show('row-skirt-length',  ['falda', 'vestido'].includes(g));
+    show('row-skirt-length',  ['falda', 'vestido', 'falda-lapiz', 'vestido-cruzado'].includes(g));
     show('shirt-options',     g === 'camisa');
+    // Grupo medidas de pantalón
+    const isPants = ['pantalon', 'short'].includes(g);
+    show('grp-pants',         isPants);
+    show('row-shortLength',   g === 'short');
+    show('row-outseam',       g === 'pantalon');
+    show('row-ankle',         g === 'pantalon');
+    show('row-knee',          g === 'pantalon');
   }
 
   // ─── LISTA DE PATRONES ─────────────────────────────────────────
