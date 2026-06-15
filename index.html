@@ -593,6 +593,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
       <button class="sb-btn ghost" id="btn-drafter">✏ Trazar</button>
       <button class="sb-btn ghost" id="btn-export-pdf">📄 PDF</button>
     </div>
+    <button class="sb-btn ghost" id="btn-bloques" style="border-color:rgba(139,92,246,.4);color:#a78bfa">📚 Mis Bloques Base</button>
     <div class="sb-btn-grid">
       <button class="sb-btn ghost" id="btn-save">💾 Guardar</button>
       <button class="sb-btn ghost" id="btn-load">📂 Cargar</button>
@@ -2860,7 +2861,42 @@ PAT.DrafterUI = (function () {
     }
   }
 
-  return { open, close, validate: _validatePattern, _toggleUnified, demo: _runDemo };
+  // ════════════════════════════════════════════════════════════
+  // INTEGRACIÓN CON BLOQUES BASE
+  // ════════════════════════════════════════════════════════════
+  let _bloqueId = null; // id del bloque en Firestore (si fue cargado desde biblioteca)
+
+  /** Devuelve el estado actual del Trazador para guardarlo como bloque */
+  function _getState() {
+    return {
+      points:   JSON.parse(JSON.stringify(_points)),
+      lines:    JSON.parse(JSON.stringify(_lines)),
+      ptCtr:    _ptCtr,
+      name:     _pieceName,
+      bloqueId: _bloqueId,
+    };
+  }
+
+  /** Carga un bloque (desde la biblioteca) en el Trazador */
+  function _cargarBloque(data) {
+    _points   = JSON.parse(JSON.stringify(data.points || {}));
+    _lines    = JSON.parse(JSON.stringify(data.lines  || []));
+    _ptCtr    = data.ptCtr || 0;
+    _pieceName= data.name  || 'Bloque';
+    _bloqueId = data.bloqueId || null;
+    _buildLog = [];
+    _selected = null; _lnStart = null; _selectedLine = null;
+    const nm = document.getElementById('dv6-nm');
+    if (nm) nm.value = _pieceName;
+    _tempLine && _tempLine.setAttribute('opacity', '0');
+    _snapshot(); _renderAll(); _fitView(); _refreshHistory();
+    _instr(`✅ "${_pieceName}" cargado — ${Object.keys(_points).length} puntos · ${_lines.length} líneas`);
+  }
+
+  function _setBloqueId(id) { _bloqueId = id; }
+
+  return { open, close, validate: _validatePattern, _toggleUnified, demo: _runDemo,
+           getState: _getState, cargarBloque: _cargarBloque, setBloqueId: _setBloqueId };
 })();
 
 
@@ -3019,6 +3055,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/grading.js"></script>
 <script src="js/instructions.js"></script>
 <script src="js/share.js"></script>
+<script src="js/bloques.js"></script>
+<script src="js/bloques-ui.js"></script>
 
 <!-- ── Patrones nuevos ────────────────────────────────── -->
 <script src="js/patterns/pantalon.js"></script>

@@ -221,6 +221,12 @@ PAT.App = (function () {
       else console.error('[PatrónAI] DrafterUI no cargado');
     });
 
+    // Biblioteca de Bloques Base
+    $('btn-bloques')?.addEventListener('click', function() {
+      if (PAT.BloquesUI) PAT.BloquesUI.open();
+      else console.error('[PatrónAI] BloquesUI no cargado');
+    });
+
     // PDF
     $('btn-export-pdf')?.addEventListener('click', doPDFExport);
     // Logo clickeable cuando sidebar está colapsado
