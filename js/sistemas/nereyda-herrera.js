@@ -134,133 +134,131 @@ PAT.Sistemas.NereydaHerrera = (function () {
      * @returns {object} { points, lines } en mm
      */
     generar(m, s = 10) {
-      // Conversión a mm
-      const B   = m.bust        * 10;   // contorno de busto
-      const ESP = m.shoulder    * 10;   // ancho de espalda
-      const TP  = m.backLength  * 10;   // talle posterior
-      const CIN = m.waist       * 10;   // contorno cintura
-      const CAD = m.hip         * 10;   // contorno cadera
-      const ACA = m.hipDepth    * 10;   // alto de cadera
-      const SF  = s;                     // margen (mm)
+      // ── Conversión a mm ───────────────────────────────────────
+      const B   = m.bust       * 10;   // contorno busto
+      const ESP = m.shoulder   * 10;   // ancho de espalda (total)
+      const TP  = m.backLength * 10;   // talle posterior
+      const CIN = m.waist      * 10;   // cintura
+      const CAD = m.hip        * 10;   // cadera
+      const ACA = (m.hipDepth || 18) * 10;
 
-      // ── Rectángulo base ─────────────────────────────────────
-      // Punto B (esquina sup derecha) = origen del rectángulo
-      // A.B = busto/4 (ancho del rectángulo)
-      // B.C = talle posterior (alto)
-      const rectW = B / 4;    // ancho = busto/4
-      const rectH = TP;       // alto  = talle posterior
+      // Origen del canvas — dejamos 30mm arriba para que el punto 4a
+      // (que sube 2cm sobre la línea de referencia A) quede visible
+      const OX = s;        // margen izquierdo
+      const OY = s + 30;   // margen superior ampliado
 
-      // Coordenadas absolutas (origen en SF, SF)
-      // A = esquina superior izquierda (la "A" de Nereyda Herrera)
-      // B = esquina superior derecha
-      // C = esquina inferior derecha
-      // D = esquina inferior izquierda
+      // ── Rectángulo de construcción ────────────────────────────
+      // AB = busto/4 (ancho)   BC = talle posterior (alto)
+      const RW = B / 4;   // ancho del rectángulo
+      const RH = TP;      // alto del rectángulo
 
-      const A  = { x: SF,          y: SF,           name:'A'  };
-      const B_ = { x: SF + rectW,  y: SF,           name:'B'  };
-      const C_ = { x: SF + rectW,  y: SF + rectH,   name:'C'  };
-      const D  = { x: SF,          y: SF + rectH,   name:'D'  };
+      // Esquinas del rectángulo base
+      const A  = { x: OX,       y: OY,       name:'A' };
+      const B_ = { x: OX + RW,  y: OY,       name:'B' };
+      const C_ = { x: OX + RW,  y: OY + RH,  name:'C' };
+      const D  = { x: OX,       y: OY + RH,  name:'D' };
 
-      // ── Puntos de construcción desde A ──────────────────────
-      // A.1 = mitad del ancho de espalda (hacia la izquierda de A)
-      // Nota: "hacia su izquierda" en el documento = hacia el centro del patrón
-      const p1  = { x: SF + ESP/2,            y: SF,           name:'1'  };
+      // ── ESCOTE / CUELLO ───────────────────────────────────────
+      // A.4  = espalda/6 hacia la DERECHA → ancho del escote
+      const p4  = { x: OX + ESP/6,        y: OY,        name:'4'  };
+      // A.5  = 2 cm hacia ABAJO → profundidad del escote espalda
+      const p5  = { x: OX,                y: OY + 20,   name:'5'  };
+      // 4.4a = subir 2cm (el punto de encuentro cuello-hombro sube ligeramente)
+      const p4a = { x: OX + ESP/6,        y: OY - 20,   name:'4a' };
+      // Curva de escote: 5 → 4a  (semicurva cóncava)
 
-      // 1.2 = 4 cm (caída de hombro, hacia abajo desde 1)
-      const p2  = { x: SF + ESP/2,            y: SF + 40,      name:'2'  };
+      // ── HOMBRO ───────────────────────────────────────────────
+      // A.1  = espalda/2 → extremo del hombro al nivel de A
+      const p1  = { x: OX + ESP/2,        y: OY,        name:'1'  };
+      // 1.2  = 4 cm hacia abajo → caída de hombro
+      const p2  = { x: OX + ESP/2,        y: OY + 40,   name:'2'  };
+      // 2.2a = subir 2cm (punto de costura real en el hombro)
+      const p2a = { x: OX + ESP/2,        y: OY + 20,   name:'2a' };
+      // Hombro: 4a → 2a  (línea recta diagonal)
 
-      // 2.3 = mitad de espalda menos 1cm (hacia la derecha desde 2 → nivel sisa)
-      const p3  = { x: SF + ESP/2 + ESP/2 - 10, y: SF + 40,   name:'3'  };
-      // (2.3 define la línea horizontal E = nivel de la sisa)
+      // ── SISA (ARMHOLE) ────────────────────────────────────────
+      // 2.3  = espalda/2 − 1cm, medida VERTICAL hacia abajo desde 2
+      //        define la profundidad de la sisa
+      const sisaDepth = ESP/2 - 10;                         // ≈ 18cm para talla S
+      const p3  = { x: OX + ESP/2,        y: OY + 40 + sisaDepth, name:'3' };
 
-      // A.4 = sexta parte del ancho de espalda (subiendo desde A)
-      const p4  = { x: SF + ESP/6,            y: SF,           name:'4'  };
-
-      // 2.2a = punto 2 subir 2cm
-      const p2a = { x: SF + ESP/2,            y: SF + 40 - 20, name:'2a' };
-
-      // 4.4a = punto 4 subir 2cm (da la curva del escote en el hombro)
-      const p4a = { x: SF + ESP/6,            y: SF - 20,      name:'4a' };
-
-      // A.5 = 2 cm desde A hacia el costado del cuello
-      const p5  = { x: SF + 20,               y: SF,           name:'5'  };
-
-      // D.6 = cuarta parte cintura + 3cm (costado cintura)
-      const p6  = { x: SF + CIN/4 + 30,       y: SF + rectH,   name:'6'  };
-
-      // Punto E (mitad del rectángulo vertical = nivel sisa)
-      const E   = { x: SF,                    y: SF + 40,      name:'E'  };
-      const F   = { x: SF + rectW,            y: SF + 40,      name:'F'  };
-
-      // Sisa: punto medio entre 2 y 3, metido 1cm hacia el cuerpo
-      const sisaMid = {
-        x: (p2.x + p3.x) / 2 - 10,  // 1cm hacia dentro
-        y: SF + 40,
-        name: 'SM'
+      // SM   = punto medio de la sisa, metido 1cm hacia el centro (izq)
+      const SM  = {
+        x: OX + ESP/2 - 10,
+        y: OY + 40 + sisaDepth / 2,
+        name:'SM'
       };
 
-      // D1 = alto de cadera bajo D
-      const D1  = { x: SF,          y: SF + rectH + ACA,  name:'D1' };
-      // D2 = cuarta parte de cadera
-      const D2  = { x: SF + CAD/4,  y: SF + rectH + ACA,  name:'D2' };
+      // F    = costado a nivel de sisa (extremo derecho del rectángulo en p3.y)
+      const E   = { x: OX,                y: OY + 40,   name:'E'  }; // nivel hombro
+      const F   = { x: OX + RW,           y: p3.y,      name:'F'  }; // nivel sisa (costado)
 
-      // Pinza trasera:
-      // 7 = mitad entre E y p3
-      const p7  = { x: (E.x + p3.x) / 2,    y: SF + 40,      name:'7'  };
-      // 7→8 = 5 cm hacia abajo desde 7
-      const p8  = { x: p7.x,                  y: SF + 40 + 50, name:'8'  };
-      // 8.9 = 1.5 cm a cada lado en p8
-      const p9L = { x: p7.x - 15,             y: p8.y,         name:'9L' };
-      const p9R = { x: p7.x + 15,             y: p8.y,         name:'9R' };
+      // ── CINTURA Y CADERA ──────────────────────────────────────
+      // D.6  = cintura/4 + 3cm (punto de cintura en costado)
+      const p6  = { x: OX + CIN/4 + 30,   y: OY + RH,   name:'6'  };
+      const D1  = { x: OX,                y: OY + RH + ACA, name:'D1' };
+      const D2  = { x: OX + CAD/4,        y: OY + RH + ACA, name:'D2' };
 
-      // ── Construir objetos points y lines ────────────────────
+      // ── PINZA TRASERA ─────────────────────────────────────────
+      // 7 = mitad entre E y p3 (centro de la pinza)
+      const p7  = { x: (E.x + p3.x) / 2,  y: p3.y,      name:'7'  };
+      const p8  = { x: p7.x,               y: p3.y + 50,  name:'8'  };
+      const p9L = { x: p7.x - 15,          y: p8.y,       name:'9L' };
+      const p9R = { x: p7.x + 15,          y: p8.y,       name:'9R' };
+
+      // ── Ensamblar puntos ──────────────────────────────────────
       const points = {};
-      const allPts = [A, B_, C_, D, p1, p2, p3, p4, p2a, p4a, p5, p6,
-                      E, F, sisaMid, D1, D2, p7, p8, p9L, p9R];
-      allPts.forEach((p, i) => {
-        const id = 'nh' + i;
-        points[id] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' };
-      });
+      [A, B_, C_, D, p1, p2, p3, p4, p2a, p4a, p5, p6,
+       E, F, SM, D1, D2, p7, p8, p9L, p9R]
+        .forEach((p, i) => {
+          points['nh' + i] = { x: p.x, y: p.y, name: p.name, fx:'', fy:'' };
+        });
 
-      // Índice por nombre para construir líneas
       const byName = {};
       Object.entries(points).forEach(([id, p]) => { byName[p.name] = id; });
 
       const lines = [];
-      function ln(a, b, type='line') { lines.push({ from:byName[a], to:byName[b], type, ctrl:20, cpx:null, cpy:null }); }
+      function ln(a, b, t='line') {
+        if (byName[a] && byName[b])
+          lines.push({ from:byName[a], to:byName[b], type:t, ctrl:20, cpx:null, cpy:null });
+      }
 
-      // Rectángulo base (líneas de construcción)
-      ln('A',  'B',  'line');   // tope superior
-      ln('B',  'C',  'line');   // costado derecho (CF)
-      ln('C',  '6',  'line');   // dobladillo (ajustado a cintura)
-      ln('D',  'A',  'fold');   // centro espalda (doblez)
-      ln('D',  '6',  'line');   // línea de cintura
+      // Centro espalda (doblez)
+      ln('D',  'A',   'fold');
+      ln('D',  'D1',  'fold');
 
-      // Hombro: A→2a (curva escote) y 2a→2 (hombro)
-      ln('A',   '5',  'line');   // tope del cuello
-      ln('4a',  '2a', 'line');   // línea del hombro
-      ln('5',   '4a', 'curve');  // curva del escote espalda
+      // Escote (cuello)
+      ln('A',  '5',   'line');   // A → 2cm abajo (profundidad escote)
+      ln('5',  '4a',  'curve');  // curva escote: centro espalda → hombro
 
-      // Sisa: 2 → SM → 3 (semicurva)
-      ln('2a',  '2',  'line');   // caída de hombro
-      ln('2',   'SM', 'curve');  // sisa parte superior
-      ln('SM',  '3',  'curve');  // sisa parte inferior
+      // Hombro
+      ln('4a', '2a',  'line');   // línea de hombro
 
-      // Lateral: 3 → 6 (costado con entalle)
-      ln('3',   '6',  'line');   // costado sisa→cintura
+      // Sisa (armhole) — semicurva desde hombro hasta nivel sisa
+      ln('2a', '2',   'line');   // caída de hombro (2cm vertical)
+      ln('2',  'SM',  'curve');  // sisa superior
+      ln('SM', '3',   'curve');  // sisa inferior
+
+      // Nivel sisa → costado
+      ln('3',  'F',   'line');   // sisa horizontal hasta costado
+      ln('F',  '6',   'line');   // costado sisa → cintura
+      ln('6',  'C',   'line');   // cintura → esquina inferior
+
+      // Dobladillo inferior
+      ln('C',  'D',   'line');
 
       // Cadera
-      ln('D',   'D1', 'fold');   // centro espalda bajo cintura
-      ln('D1',  'D2', 'line');   // línea de cadera
-      ln('D2',  '6',  'line');   // costado cadera→cintura
+      ln('D1', 'D2',  'line');
+      ln('D2', '6',   'line');
 
-      // Línea E (nivel sisa, referencia)
-      ln('E',   'F',  'line');
+      // Líneas de referencia (construcción)
+      ln('E',  'F',   'line');   // nivel hombro (referencia)
+      ln('A',  'B',   'line');   // línea tope (referencia)
 
       // Pinza trasera
-      ln('7',   '8',  'line');   // eje de la pinza
-      ln('8',   '9L', 'line');   // rama izquierda
-      ln('8',   '9R', 'line');   // rama derecha
+      ln('7',  '8',   'line');
+      ln('8',  '9L',  'line');
+      ln('8',  '9R',  'line');
 
       return { points, lines };
     },
