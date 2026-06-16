@@ -218,9 +218,9 @@ PAT.Sistemas.NereydaHerrera = (function () {
       Object.entries(points).forEach(([id, p]) => { byName[p.name] = id; });
 
       const lines = [];
-      function ln(a, b, t='line') {
+      function ln(a, b, t='line', lbl='', ctrl=20) {
         if (byName[a] && byName[b])
-          lines.push({ from:byName[a], to:byName[b], type:t, ctrl:20, cpx:null, cpy:null });
+          lines.push({ from:byName[a], to:byName[b], type:t, ctrl, cpx:null, cpy:null });
       }
 
       // Centro espalda (doblez)
@@ -235,9 +235,9 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('4a', '2a',  'line');   // línea de hombro
 
       // Sisa (armhole) — curva corrida desde caída de hombro hasta nivel sisa
-      // SM es punto de referencia NH (1cm hacia adentro en el medio) — no es waypoint
+      // Vector 2→3 apunta hacia abajo (dy>0); ctrl negativo curva hacia ADENTRO del cuerpo (izq).
       ln('2a', '2',   'line');   // caída de hombro (2cm vertical)
-      ln('2',  '3',   'curve');  // sisa completa en un solo arco
+      ln('2',  '3',   'curve', '', -20);  // sisa completa — ctrl negativo = curva hacia adentro
 
       // Nivel sisa → costado
       ln('3',  'F',   'line');   // sisa horizontal hasta costado
@@ -819,14 +819,15 @@ PAT.Sistemas.NereydaHerrera = (function () {
       Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
 
       const lines = [];
-      function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
+      function ln(a,b,t='line',lbl='',ctrl=20){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl,cpx:null,cpy:null}); }
 
       ln('B',  'A',  'line');   // tope superior
       ln('A',  'D',  'fold');   // doblez (DOBLAR)
       ln('D',  '1',  'line');   // base inferior der
       ln('1',  'C',  'line');   // base inferior izq
       ln('C',  '2',  'line');   // lateral izq
-      ln('2',  'B',  'curve');  // curva escote
+      // Vector 2→B apunta hacia arriba (dy<0); ctrl negativo curva hacia la DERECHA (interior del cuello).
+      ln('2',  'B',  'curve', '', -20);  // curva escote — ctrl negativo = curva hacia adentro
       ln('3t', '3b', 'line');   // referencia media (construcción)
 
       return { points, lines };
@@ -886,7 +887,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
       Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
 
       const lines = [];
-      function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
+      function ln(a,b,t='line',lbl='',ctrl=20){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl,cpx:null,cpy:null}); }
 
       // Cuello
       ln('B',  'A',  'line');
@@ -894,7 +895,8 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('D',  '1',  'line');
       ln('1',  'C',  'line');
       ln('C',  '2',  'line');
-      ln('2',  'B',  'curve');
+      // Vector 2→B apunta hacia arriba (dy<0); ctrl negativo curva hacia la DERECHA (interior cuello).
+      ln('2',  'B',  'curve', '', -20);
       ln('3c', 'D',  'line');
 
       // Pie
@@ -903,7 +905,8 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('D2', '1p', 'line');
       ln('1p', 'C2', 'line');
       ln('C2', '2p', 'line');
-      ln('2p', 'B2', 'curve');
+      // Vector 2p→B2 apunta hacia arriba (dy<0); ctrl negativo curva hacia la DERECHA (interior pie).
+      ln('2p', 'B2', 'curve', '', -20);
       ln('3p', 'D2', 'line');
 
       return { points, lines };

@@ -146,8 +146,14 @@ PAT.MisSistemas = (function () {
     const piezasCaballero = [];
     (sistema.piezas || []).forEach(p => {
       const entry = { id: p.id, label: p.nombre, tipo: p.tipo || 'dama' };
-      if (p.tipo === 'caballero') piezasCaballero.push(entry);
-      else                        piezasDama.push(entry);
+      if (p.tipo === 'caballero') {
+        piezasCaballero.push(entry);
+      } else if (p.tipo === 'ambos') {
+        piezasDama.push(entry);
+        piezasCaballero.push(entry);
+      } else {
+        piezasDama.push(entry); // 'dama' o sin tipo
+      }
     });
 
     PAT.Sistemas[key] = {

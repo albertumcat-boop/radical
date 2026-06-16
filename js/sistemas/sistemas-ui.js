@@ -221,7 +221,16 @@ PAT.SistemasUI = (function () {
       ['Cintura',       m.waist,        'cm'],
       ['Cadera',        m.hip,          'cm'],
       ['Cuello',        m.neck,         'cm'],
-    ].filter(f => f[1]);
+    ].filter(f => f[1] != null && f[1] !== undefined);
+
+    if (!filas.length) {
+      el.innerHTML = '<div style="font-size:10px;color:#5a5678">Sin medidas disponibles para esta talla.</div>';
+      return;
+    }
+
+    const b4  = m.bust    ? Math.round(m.bust    * 10 / 4 / 10 * 10) / 10 : '—';
+    const sh2 = m.shoulder? Math.round(m.shoulder / 2 * 10) / 10           : '—';
+    const sh6 = m.shoulder? Math.round(m.shoulder / 6 * 10) / 10           : '—';
 
     el.innerHTML = `
       <table class="sis-tabla">
@@ -229,9 +238,9 @@ PAT.SistemasUI = (function () {
         <tr>${filas.map(f=>`<td class="hi">${f[1]}<small style="font-size:8px;color:#5a5678"> ${f[2]}</small></td>`).join('')}</tr>
       </table>
       <div style="font-size:9px;color:#5a5678;margin-top:4px">
-        Conversiones: busto/4 = ${Math.round(m.bust*10/4/10*10)/10}cm ·
-        espalda/2 = ${Math.round(m.shoulder/2*10)/10}cm ·
-        espalda/6 = ${Math.round(m.shoulder/6*10)/10}cm
+        Conversiones: busto/4 = ${b4}cm ·
+        espalda/2 = ${sh2}cm ·
+        espalda/6 = ${sh6}cm
       </div>
     `;
   }
@@ -258,6 +267,11 @@ PAT.SistemasUI = (function () {
       if (!PAT.DrafterUI) {
         alert('Abre el Trazador primero (botón ✏ Trazar)');
         return;
+      }
+
+      // Confirmar si hay trazado activo
+      if (PAT.DrafterUI.tieneContenido && PAT.DrafterUI.tieneContenido()) {
+        if (!confirm('⚠️ Esto reemplazará el trazado actual.\n¿Continuar?')) return;
       }
 
       // Abrir trazador si no está abierto

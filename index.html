@@ -2236,7 +2236,7 @@ PAT.DrafterUI = (function () {
     // ── Relleno (solo líneas de contorno, excluye construction) ──────────────
     let d='';
     _lines.forEach(ln=>{
-      if(ln.type==='construction')return; // excluir del relleno
+      if(ln.type==='construction'||ln.type==='fold'||ln.type==='dart')return; // excluir del relleno
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       if(!d)d=`M ${a.x} ${a.y}`;
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
@@ -3115,8 +3115,11 @@ PAT.DrafterUI = (function () {
 
   function _setBloqueId(id) { _bloqueId = id; }
 
+  function _tieneContenido() { return Object.keys(_points).length > 0; }
+
   return { open, close, validate: _validatePattern, _toggleUnified, demo: _runDemo,
-           getState: _getState, cargarBloque: _cargarBloque, setBloqueId: _setBloqueId };
+           getState: _getState, cargarBloque: _cargarBloque, setBloqueId: _setBloqueId,
+           tieneContenido: _tieneContenido };
 })();
 
 
@@ -3282,8 +3285,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/entrevista-sistema.js"></script>
 <script src="js/materiales.js"></script>
 <script src="js/materiales-ui.js"></script>
-<script src="js/wizard.js"></script>
 <script src="js/sistemas/nereyda-herrera.js"></script>
+<script src="js/wizard.js"></script>
 <script src="js/notas-usuario.js"></script>
 <script src="js/pizarra.js"></script>
 <script src="js/pizarra-ui.js"></script>
