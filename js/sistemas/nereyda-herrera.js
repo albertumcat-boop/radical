@@ -307,65 +307,70 @@ PAT.Sistemas.NereydaHerrera = (function () {
     autor:  'Nereyda Herrera',
     genero: 'caballero',
 
+    /**
+     * NH — Camisa Posterior (espalda caballero).
+     * CB (Centro Espalda) = IZQUIERDA (doblez).
+     * Costado/sisa = DERECHA.
+     *
+     * @param {object} m  { bust, neck, shoulder, totalLength }
+     */
     generar(m, s = 10) {
-      const T   = m.bust * 10;          // tórax (contorno de pecho) en mm
-      const NK  = m.neck * 10;          // cuello
-      const ESP = m.shoulder * 10;      // espalda
-      const LC  = m.totalLength * 10;   // largo de la camisa
-      const SF  = s;
+      const T   = m.bust * 10;
+      const NK  = m.neck * 10;
+      const ESP = m.shoulder * 10;
+      const LC  = (m.totalLength || 68) * 10;
 
-      // Holgura: +2cm por defecto (ajustado=0, holgado=+4cm)
-      const HOLGURA = 20; // mm
+      const HOLGURA = 20;  // 2cm holgura
 
-      // Rectángulo base
-      const rectW = T / 4 + HOLGURA;   // tórax/4 + 2cm
+      const OX = s;        // margen izquierdo = CB
+      const OY = s + 30;   // margen superior (+3cm para que 'a' quede visible)
+
+      const rectW = T / 4 + HOLGURA;
       const rectH = LC;
 
-      // Puntos del rectángulo
-      // B=sup-der, A=sup-izq (la A está a la derecha en el diagrama)
-      // El diagrama muestra: B izquierda, A derecha (estilo caballero)
-      const B_ = { x: SF,          y: SF,        name: 'B'  };
-      const A  = { x: SF + rectW,  y: SF,        name: 'A'  };
-      const D  = { x: SF + rectW,  y: SF + rectH, name: 'D' };
-      const C_ = { x: SF,          y: SF + rectH, name: 'C' };
+      // CB = IZQUIERDA, costado/sisa = DERECHA
+      const B_  = { x: OX,           y: OY,           name: 'B'  };  // CB top
+      const A   = { x: OX + rectW,   y: OY,           name: 'A'  };  // sisa top
+      const D   = { x: OX + rectW,   y: OY + rectH,   name: 'D'  };  // sisa bottom
+      const C_  = { x: OX,           y: OY + rectH,   name: 'C'  };  // CB bottom
 
-      // Desde A (lado cuello):
-      // A.1 = cuello/6 - 1cm (profundidad escote)
-      const p1  = { x: SF + rectW, y: SF + NK/6 - 10,     name: '1'  };
+      // ── CUELLO ────────────────────────────────────────────────
+      // A.1 = cuello/6 - 1cm (profundidad escote posterior)
+      const p1  = { x: OX + rectW,             y: OY + NK/6 - 10,     name: '1'  };
       // A.2 = cuello/4 + 1cm (ancho escote lateral)
-      const p2  = { x: SF + rectW - (NK/4 + 10), y: SF,   name: '2'  };
+      const p2  = { x: OX + rectW - (NK/4+10), y: OY,                 name: '2'  };
       // A.3 = cuello/6 (ancho cuello en hombro)
-      const p3  = { x: SF + rectW - NK/6,         y: SF,   name: '3'  };
-      // 3.4 = cuello/6 - 2cm (punto del escote curvo)
-      const p4  = { x: SF + rectW - NK/6,         y: SF + NK/6 - 20, name: '4' };
-      // A.5 = espalda/2 (mitad del ancho de espalda)
-      const p5  = { x: SF + rectW - ESP/2,         y: SF,   name: '5'  };
-      // 5.6 = 1cm (hacia abajo)
-      const p6  = { x: SF + rectW - ESP/2,         y: SF + 10, name: '6' };
-      // 6.7 = 1cm (hacia adentro, para la sisa)
-      const p7  = { x: SF + rectW - ESP/2 - 10,    y: SF + 10, name: '7' };
+      const p3  = { x: OX + rectW - NK/6,      y: OY,                 name: '3'  };
+      // 3.4 = cuello/6 - 2cm (punto de curva escote)
+      const p4  = { x: OX + rectW - NK/6,      y: OY + NK/6 - 20,     name: '4'  };
+      // A.a = subir 1cm (punto cuello elevado — queda dentro del margen OY)
+      const pa  = { x: OX + rectW,             y: OY - 10,            name: 'a'  };
 
-      // Punto E = mitad del largo (nivel del talle / codo)
-      const E   = { x: SF + rectW,  y: SF + rectH/2,         name: 'E' };
-      // E.F = 1cm de entalle
-      const F   = { x: SF + rectW + 10, y: SF + rectH/2,     name: 'F' };
+      // ── HOMBRO Y SISA ─────────────────────────────────────────
+      // A.5 = espalda/2 (mitad ancho espalda desde costado)
+      const p5  = { x: OX + rectW - ESP/2,     y: OY,                 name: '5'  };
+      // 5.6 = 1cm hacia abajo
+      const p6  = { x: OX + rectW - ESP/2,     y: OY + 10,            name: '6'  };
+      // 6.7 = 1cm hacia CB (hacia adentro, para la sisa)
+      const p7  = { x: OX + rectW - ESP/2 - 10, y: OY + 10,           name: '7'  };
 
-      // G = canesú (6cm aprox bajo el hombro)
-      const G   = { x: SF,          y: SF + 60,               name: 'G' };
+      // ── CANESÚ ────────────────────────────────────────────────
+      // G = 6cm bajo el hombro en CB
+      const G   = { x: OX,                     y: OY + 60,            name: 'G'  };
+      // Nivel sisa para canesú (inferior al hombro)
+      const p2D = { x: OX,                     y: OY + NK/4 + 30,     name: '2D' };
 
-      // A.a = subir 1cm (curva posterior cuello)
-      const pa  = { x: SF + rectW,  y: SF - 10,               name: 'a' };
-
-      // Punto 2 del diagrama = nivel sisa (donde termina el canesú)
-      const p2D = { x: SF,          y: SF + NK/4 + 10 + 20,   name: '2D' };
+      // ── ENTALLE ───────────────────────────────────────────────
+      // E = mitad del largo (en el costado)
+      const E   = { x: OX + rectW,             y: OY + rectH/2,       name: 'E'  };
+      // E.F = 1cm de entalle hacia adentro
+      const F   = { x: OX + rectW - 10,        y: OY + rectH/2,       name: 'F'  };
 
       const points = {};
-      const allPts = [B_, A, D, C_, p1, p2, p3, p4, p5, p6, p7, E, F, G, pa, p2D];
-      allPts.forEach((p, i) => {
-        points['nc' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' };
-      });
+      [B_, A, D, C_, p1, p2, p3, p4, pa, p5, p6, p7, G, p2D, E, F]
+        .forEach((p, i) => { points['nc'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
       const byName = {};
-      Object.entries(points).forEach(([id, p]) => { byName[p.name] = id; });
+      Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
 
       const lines = [];
       function ln(a, b, type='line') {
@@ -373,36 +378,32 @@ PAT.Sistemas.NereydaHerrera = (function () {
           lines.push({ from:byName[a], to:byName[b], type, ctrl:20, cpx:null, cpy:null });
       }
 
-      // Rectángulo base
-      ln('B',  'G',   'line');   // lateral izq (bajo canesú)
-      ln('C',  'D',   'line');   // dobladillo
-      ln('C',  'B',   'fold');   // centro espalda (doblez)
-      ln('D',  'F',   'line');   // costado (con entalle en F)
+      // ── Contorno principal ─────────────────────────────────────
+      // CB doblez (izquierda)
+      ln('C',  'B',  'fold');
+      // Dobladillo
+      ln('C',  'D',  'line');
+      // Costado (con entalle leve)
+      ln('D',  'F',  'line');
+      ln('F',  'a',  'line');
+      // Cuello y escote
+      ln('a',  '1',  'line');
+      ln('1',  '4',  'curve');
+      ln('4',  '3',  'curve');
+      // Hombro y sisa
+      ln('3',  '5',  'line');
+      ln('5',  '6',  'line');
+      ln('6',  '7',  'curve');
+      // Canesú / armhole base
+      ln('7',  '2D', 'line');
+      ln('2D', 'B',  'line');
 
-      // Canesú y cuello
-      ln('B',  '2D',  'line');   // lateral izq hasta nivel sisa
-      ln('2D', '7',   'line');   // línea del canesú
-      ln('7',  '6',   'curve');  // sisa
-      ln('6',  '5',   'line');   // hombro (5→6→7 sisa)
-      ln('5',  '3',   'line');   // hombro hasta escote
-      ln('3',  '4',   'curve');  // curva escote lado hombro
-      ln('4',  '1',   'curve');  // curva escote → cuello
-      ln('1',  'a',   'line');   // cuello centro (+1cm subida)
-      ln('a',  'D',   'line');   // costado derecho
-
-      // Entalle
-      ln('E',  'F',   'line');   // referencia entalle
+      // Referencias
+      ln('B',  'A',  'line');    // tope superior
+      ln('E',  'F',  'line');    // referencia entalle
 
       return { points, lines };
     },
-
-    formulas: {
-      'A':   { fx: 'pecho/4 + 20',   fy: '0',            nota: 'Ancho tórax/4 + 2cm holgura' },
-      '1':   { fx: 'pecho/4 + 20',   fy: 'cuello/6 - 10', nota: 'Cuello/6 - 1cm (prof escote)' },
-      '2':   { fx: 'pecho/4 - cuello/4', fy: '0',        nota: 'Cuello/4 + 1cm (ancho escote)' },
-      '3':   { fx: 'pecho/4 - cuello/6 + 20', fy: '0',   nota: 'Cuello/6 (ancho cuello hombro)' },
-      '5':   { fx: 'pecho/4 + 20 - hombros/2', fy: '0',  nota: 'Espalda/2 (mitad ancho espalda)' },
-    }
   };
 
   // ══════════════════════════════════════════════════════════════
@@ -579,80 +580,84 @@ PAT.Sistemas.NereydaHerrera = (function () {
   // ══════════════════════════════════════════════════════════════
   const MANGA_CAMISA = {
     nombre: 'Manga para Camisa',
+
+    /**
+     * NH — Manga para Camisa.
+     * Layout: cabeza de manga en la PARTE SUPERIOR (arco hacia arriba),
+     * puño/ruedo en la parte inferior.
+     * A = sisa izquierda, B = sisa derecha, P = pico de la cabeza.
+     * C = puño derecho, D = puño izquierdo.
+     *
+     * @param {object} m  { bust, shoulder, sleeveLength, sleeveShort, wrist }
+     */
     generar(m, s = 10, tipo = 'corta') {
       const T   = m.bust * 10;
       const ESP = m.shoulder * 10;
-      const BR  = (m.armCirc || m.wrist * 2 + 20) * 10; // contorno brazo
       const ML  = tipo === 'larga' ? (m.sleeveLength || 58) * 10 : (m.sleeveShort || 20) * 10;
       const PU  = (m.wrist || 18) * 10;
-      const SF  = s;
 
-      // Rectángulo: A (inf-izq), B (sup-izq), C (sup-der), D (inf-der)
-      const AB = ESP / 2 + 10;  // espalda/2 + 1cm (ancho manga)
-      const BC = ML;             // largo manga
+      const anchoM = ESP / 2 + 10;   // espalda/2 + 1cm (ancho de la manga en sisa)
+      const CH     = T / 10 + 10;    // pecho/10 + 1cm (altura cabeza de manga)
 
-      const A  = { x: SF,       y: SF + BC,  name: 'A' };
-      const B_ = { x: SF,       y: SF,       name: 'B' };
-      const C_ = { x: SF + AB,  y: SF,       name: 'C' };
-      const D  = { x: SF + AB,  y: SF + BC,  name: 'D' };
+      const OX = s;
+      const OY = s + CH + 20;        // nivel de sisa; la cabeza sube por encima de aquí
 
-      // B.1 = pecho/10 + 1cm (desde B hacia la derecha)
-      const dist1 = T / 10 + 10;
-      const p1  = { x: SF + dist1,          y: SF,        name: '1' };
-      // 2 = B.1/2
-      const p2  = { x: SF + dist1 / 2,      y: SF,        name: '2' };
-      // 3 = mitad entre B y 2 → B.2/2
-      const p3  = { x: SF + dist1 / 4,      y: SF,        name: '3' };
-      // 4 = A.B/2 (mitad del ancho en el eje vertical)
-      const p4  = { x: SF + AB / 2,         y: SF,        name: '4' };
-      // 5 = brazo/2 (a media altura de la manga — cabeza de manga)
-      const p5  = { x: SF + AB / 2,         y: SF + BC * 0.35, name: '5' };
-      // 6 = 3cm desde D (marca del ruedo)
-      const p6  = { x: SF + AB,             y: SF + BC - 30,   name: '6' };
+      // Puntos de sisa (base de la cabeza)
+      const A  = { x: OX,           y: OY,        name: 'A'  };  // sisa izq
+      const B_ = { x: OX + anchoM,  y: OY,        name: 'B'  };  // sisa der
 
-      // Puntos de sisa (curva cabeza de manga)
-      // La cabeza va de A→3→2→1→C en semicurva
-      const sisaL = { x: SF,       y: SF + BC * 0.3, name: 'SL' }; // izquierda
-      const sisaR = { x: SF + AB,  y: SF + BC * 0.3, name: 'SR' }; // derecha
+      // Pico de la cabeza de manga
+      const P  = { x: OX + anchoM/2, y: OY - CH,  name: 'P'  };
 
-      // Para manga larga: agregar puño
-      let p_puno = null, p_abertura = null;
+      // Puño/ruedo
+      const C_ = { x: OX + anchoM,  y: OY + ML,   name: 'C'  };  // puño der
+      const D  = { x: OX,           y: OY + ML,   name: 'D'  };  // puño izq
+
+      // Puntos de referencia NH sobre la línea de sisa (y=OY)
+      const d1 = T / 10 + 10;        // = CH
+      const p1 = { x: OX + d1,       y: OY,        name: '1'  };
+      const p2 = { x: OX + d1/2,     y: OY,        name: '2'  };
+      const p3 = { x: OX + d1/4,     y: OY,        name: '3'  };
+      const p4 = { x: OX + anchoM/2, y: OY,        name: '4'  };  // centro sisa
+
+      // Abertura y puño (manga larga)
+      let abertura = null;
       if (tipo === 'larga') {
-        // C.4 = descontar puño (~6cm)
-        const descPuno = { x: SF + AB, y: SF + BC - 60, name: 'C4' };
-        // 5.6 = puño/2 + 3cm (ancho del puño)
-        p_puno = { x: SF + PU/2 + 30, y: SF + BC, name: 'PU' };
-        p_abertura = { x: SF + AB - 100, y: SF + BC, name: 'AB' }; // 10cm abertura
+        abertura = { x: OX + anchoM - 100, y: OY + ML, name: 'AB' };
       }
 
       const points = {};
-      const allPts = [A, B_, C_, D, p1, p2, p3, p4, p5, p6, sisaL, sisaR];
-      if (tipo === 'larga' && p_puno) allPts.push(p_puno, p_abertura);
-      allPts.forEach((p, i) => { if(p) points['mg'+i] = { x:p.x, y:p.y, name:p.name, fx:'', fy:'' }; });
+      const allPts = [A, B_, P, C_, D, p1, p2, p3, p4];
+      if (abertura) allPts.push(abertura);
+      allPts.forEach((p, i) => { points['mg'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
       const byName = {};
       Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
 
       const lines = [];
       function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
 
-      // Cuerpo
-      ln('A', 'SL', 'line');  // lateral izq inferior
-      ln('D', 'SR', 'line');  // lateral der inferior
-      ln('SL','B',  'curve'); // cabeza manga izq
-      ln('B', '3',  'line');  // tope sup izq
-      ln('3', '2',  'line');
-      ln('2', '1',  'line');
-      ln('1', '4',  'line');
-      ln('4', 'C',  'line');
-      ln('C', 'SR', 'curve'); // cabeza manga der
+      // ── Cabeza de manga (arco en dos mitades) ─────────────────────
+      ln('A', 'P', 'curve');   // mitad izq del arco
+      ln('P', 'B', 'curve');   // mitad der del arco
 
+      // ── Costuras laterales ─────────────────────────────────────────
+      ln('A', 'D', 'line');    // costura lateral izq
+      ln('B', 'C', 'line');    // costura lateral der
+
+      // ── Ruedo / puño ──────────────────────────────────────────────
       if (tipo === 'corta') {
-        ln('A', 'D', 'fold');   // doblez (doblar para obtener modelo entero)
+        ln('D', 'C', 'fold');  // ruedo (se dobla)
       } else {
-        ln('A',  'PU', 'line');
-        ln('PU', 'D',  'fold');
-        if(byName['AB']) ln('AB','D', 'line'); // abertura carterita
+        if (abertura) {
+          ln('D',  'AB', 'line');
+          ln('AB', 'C',  'line'); // abertura carterita
+        } else {
+          ln('D', 'C', 'fold');
+        }
       }
+
+      // ── Referencias ───────────────────────────────────────────────
+      ln('A', 'B', 'line');    // línea de sisa (referencia)
 
       return { points, lines };
     }
@@ -676,54 +681,85 @@ PAT.Sistemas.NereydaHerrera = (function () {
   // ══════════════════════════════════════════════════════════════
   const MANGA_VESTIDO = {
     nombre: 'Manga para Vestido',
+
+    /**
+     * NH — Manga para Vestido.
+     * Mismo esquema que MANGA_CAMISA pero proporciones vestido:
+     *   ancho = espalda/2 - 1cm
+     *   CH    = busto/10 + 3cm (cabeza más alta)
+     *
+     * @param {object} m  { bust, shoulder, sleeveLength, sleeveShort, wrist }
+     */
     generar(m, s = 10, tipo = 'corta') {
-      const B   = m.bust * 10;
+      const T   = m.bust * 10;
       const ESP = m.shoulder * 10;
-      const BR  = (m.armCirc || 28) * 10;
       const ML  = tipo === 'larga' ? (m.sleeveLength || 55) * 10 : (m.sleeveShort || 20) * 10;
-      const MU  = (m.wrist || 17) * 10;
-      const SF  = s;
+      const PU  = (m.wrist || 17) * 10;
 
-      const AB = ESP / 2 - 10;  // espalda/2 - 1cm
-      const BC = ML;
+      const anchoM = ESP / 2 - 10;   // espalda/2 - 1cm
+      const CH     = T / 10 + 30;    // busto/10 + 3cm (cabeza vestido)
 
-      const A  = { x: SF,       y: SF,        name: 'A' }; // doblez (derecha)
-      const B_ = { x: SF,       y: SF + BC,   name: 'B' }; // esquina inf
-      const C_ = { x: SF + AB,  y: SF + BC,   name: 'C' };
-      const D  = { x: SF + AB,  y: SF,        name: 'D' };
+      const OX = s;
+      const OY = s + CH + 20;        // nivel de sisa
 
-      // B.1 = busto/10 + 3cm
-      const d1  = B / 10 + 30;
-      const p1  = { x: SF + d1,       y: SF + BC,   name: '1' };
-      const p2  = { x: SF + d1/2,     y: SF + BC,   name: '2' }; // mitad B.1
-      const p3  = { x: SF + d1/4,     y: SF + BC,   name: '3' }; // mitad B.2
-      const p4  = { x: SF + AB/2,     y: SF + BC,   name: '4' }; // mitad A.B
-      // D.5 = brazo/2 + 2cm (a media altura en el lateral)
-      const p5  = { x: SF + AB,       y: SF + BC/2, name: '5' };
-      // D.6 = 3cm ruedo
-      const p6  = { x: SF + AB,       y: SF + 30,   name: '6' };
-      // XX = punto doblez
-      const XX  = { x: SF + AB*0.4,   y: SF,        name: 'XX' };
+      // Puntos de sisa
+      const A  = { x: OX,            y: OY,        name: 'A'  };  // sisa izq
+      const B_ = { x: OX + anchoM,   y: OY,        name: 'B'  };  // sisa der
+
+      // Pico de la cabeza
+      const P  = { x: OX + anchoM/2, y: OY - CH,   name: 'P'  };
+
+      // Puño/ruedo
+      const C_ = { x: OX + anchoM,   y: OY + ML,   name: 'C'  };
+      const D  = { x: OX,            y: OY + ML,   name: 'D'  };
+
+      // Puntos de referencia NH en la línea de sisa
+      const d1 = T / 10 + 30;        // = CH para vestido
+      const p1 = { x: OX + d1,        y: OY,        name: '1'  };
+      const p2 = { x: OX + d1/2,      y: OY,        name: '2'  };
+      const p3 = { x: OX + d1/4,      y: OY,        name: '3'  };
+      const p4 = { x: OX + anchoM/2,  y: OY,        name: '4'  };
+
+      // Referencia puño manga larga (brazo/2 + 2cm)
+      const p5 = { x: OX + anchoM,    y: OY + ML/2, name: '5'  };
+
+      let abertura = null;
+      if (tipo === 'larga') {
+        abertura = { x: OX + anchoM - 100, y: OY + ML, name: 'AB' };
+      }
 
       const points = {};
-      [A, B_, C_, D, p1, p2, p3, p4, p5, p6, XX]
-        .forEach((p,i) => { points['mv'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
+      const allPts = [A, B_, P, C_, D, p1, p2, p3, p4, p5];
+      if (abertura) allPts.push(abertura);
+      allPts.forEach((p,i) => { points['mv'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
       const byName = {};
       Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
 
       const lines = [];
       function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
 
-      ln('A',  'B',  'fold');   // doblez
-      ln('B',  '3',  'line');
-      ln('3',  '2',  'line');
-      ln('2',  '1',  'line');
-      ln('1',  'C',  'line');
-      ln('C',  '5',  'curve');  // sisa der (semicurva)
-      ln('5',  'D',  'line');
-      ln('D',  '6',  'line');
-      ln('6',  'A',  'curve');  // sisa izq (semicurva)
-      ln('D',  'XX', 'line');   // marca doblez superior
+      // Cabeza de manga (arco en dos mitades)
+      ln('A', 'P', 'curve');
+      ln('P', 'B', 'curve');
+
+      // Costuras laterales
+      ln('A', 'D', 'line');
+      ln('B', 'C', 'line');
+
+      // Ruedo / puño
+      if (tipo === 'corta') {
+        ln('D', 'C', 'fold');
+      } else {
+        if (abertura) {
+          ln('D',  'AB', 'line');
+          ln('AB', 'C',  'line');
+        } else {
+          ln('D', 'C', 'fold');
+        }
+      }
+
+      // Referencias
+      ln('A', 'B', 'line');    // línea de sisa
 
       return { points, lines };
     }
@@ -873,39 +909,89 @@ PAT.Sistemas.NereydaHerrera = (function () {
   // ══════════════════════════════════════════════════════════════
   const BOLSILLO_CAMISA = {
     nombre: 'Bolsillo para Camisa',
-    generar(m, s = 10, modelo = 'pico') {
-      const SF   = s;
-      const ancho = 110; // 11cm por defecto
-      const largo = ancho + 20; // +2cm
 
-      const A  = { x: SF + ancho, y: SF,         name: 'A' };
-      const B_ = { x: SF,         y: SF,         name: 'B' };
-      const C_ = { x: SF,         y: SF + largo,  name: 'C' };
-      const D  = { x: SF + ancho, y: SF + largo,  name: 'D' };
-      // A.1 = 3cm dobladillo
-      const p1 = { x: SF + ancho, y: SF + 30,    name: '1' };
-      const p1L= { x: SF,         y: SF + 30,    name: '1L' };
-      // Punto de base (modelo pico = mitad sube 2.5cm)
-      const pMid = { x: SF + ancho/2, y: SF + largo + (modelo==='pico' ? -25 : 0), name: 'M' };
+    /**
+     * NH — Bolsillo para Camisa. 3 modelos: pico, recto, semicurva.
+     *
+     * Rectángulo base:
+     *   B (top-left) — A (top-right)
+     *   C (bottom-left) — D (bottom-right)
+     *   1L y 1 = marca de dobladillo a 3cm del tope
+     *
+     * Para PICO: los 4 lados van hasta la altura del pico; centro (M)
+     *   queda 2.5cm más abajo que las esquinas inferiores CR/CL.
+     * Para RECTO: fondo recto C→D.
+     * Para SEMICURVA: fondo en curva C → M → D.
+     */
+    generar(m, s = 10, modelo = 'pico') {
+      const SF    = s;
+      const ancho = 110;          // 11cm
+      const largo = ancho + 20;   // 13cm
+
+      const OX = SF;
+      const OY = SF;
+
+      const B_ = { x: OX,        y: OY,           name: 'B'  };  // top-left
+      const A  = { x: OX+ancho,  y: OY,           name: 'A'  };  // top-right
+      // Marcas de dobladillo (3cm desde tope)
+      const p1L= { x: OX,        y: OY+30,        name: '1L' };
+      const p1 = { x: OX+ancho,  y: OY+30,        name: '1'  };
+
+      let allPts, linesFn;
+
+      if (modelo === 'pico') {
+        // Esquinas inferiores al nivel del pico (5mm antes del fondo)
+        const CL = { x: OX,          y: OY+largo-25, name: 'CL' };
+        const CR = { x: OX+ancho,    y: OY+largo-25, name: 'CR' };
+        // Pico central 2.5cm más abajo que las esquinas
+        const M  = { x: OX+ancho/2,  y: OY+largo,    name: 'M'  };
+
+        allPts = [B_, A, p1L, p1, CL, CR, M];
+        linesFn = (ln) => {
+          ln('B',  'A',  'line');  // tope (línea de dobladillo)
+          ln('B',  'CL', 'line');  // lado izq
+          ln('CL', 'M',  'line');  // base izq → pico
+          ln('M',  'CR', 'line');  // pico → base der
+          ln('CR', 'A',  'line');  // lado der
+          ln('p1L','p1', 'line');  // marca dobladillo (guía)
+        };
+      } else if (modelo === 'semicurva') {
+        const C_ = { x: OX,          y: OY+largo, name: 'C'  };
+        const D  = { x: OX+ancho,    y: OY+largo, name: 'D'  };
+        const M  = { x: OX+ancho/2,  y: OY+largo, name: 'M'  };
+
+        allPts = [B_, A, p1L, p1, C_, D, M];
+        linesFn = (ln) => {
+          ln('B',  'A',  'line');
+          ln('B',  'C',  'line');  // lado izq
+          ln('C',  'M',  'curve'); // base izq (semicurva)
+          ln('M',  'D',  'curve'); // base der (semicurva)
+          ln('D',  'A',  'line');  // lado der
+          ln('1L', '1',  'line');  // marca dobladillo
+        };
+      } else {
+        // recto (default)
+        const C_ = { x: OX,       y: OY+largo, name: 'C' };
+        const D  = { x: OX+ancho, y: OY+largo, name: 'D' };
+
+        allPts = [B_, A, p1L, p1, C_, D];
+        linesFn = (ln) => {
+          ln('B',  'A',  'line');
+          ln('B',  'C',  'line');
+          ln('C',  'D',  'line');  // fondo recto
+          ln('D',  'A',  'line');
+          ln('1L', '1',  'line');  // marca dobladillo
+        };
+      }
 
       const points = {};
-      [A, B_, C_, D, p1, p1L, pMid]
-        .forEach((p,i) => { points['bo'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
+      allPts.forEach((p,i) => { points['bo'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
       const byName = {};
       Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
 
       const lines = [];
       function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
-
-      ln('A',  'B',  'line'); // tope (dobladillo)
-      ln('B',  '1L', 'line'); // lateral izq
-      ln('A',  '1',  'line'); // lateral der
-      ln('1L', 'M',  modelo==='semicurva'?'curve':'line'); // base izq
-      ln('M',  '1',  modelo==='semicurva'?'curve':'line'); // base der
-      if(modelo==='pico') {
-        ln('C', 'M', 'line'); // líneas al pico
-        ln('D', 'M', 'line');
-      }
+      linesFn(ln);
 
       return { points, lines };
     }
