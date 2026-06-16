@@ -135,6 +135,11 @@ PAT.SistemasUI = (function () {
       if (sis.camisaPosterior) { const p={id:'camisa-posterior',label:'Camisa Posterior',tipo:'caballero'}; piezas.push(p); dropdownHTML+=`<option value="${p.id}">${p.label}</option>`; }
     }
 
+    // Fallback si ninguna rama generó opciones
+    if (!dropdownHTML) {
+      dropdownHTML = '<option disabled value="">— Sin piezas disponibles —</option>';
+    }
+
     // Tallas
     const tallasD = (sis.tallasDisponibles?.dama      || []).map(t => `<option value="${t}">${t}</option>`).join('');
     const tallasC = (sis.tallasDisponibles?.caballero  || []).map(t => `<option value="${t}">${t}</option>`).join('');

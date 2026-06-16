@@ -53,6 +53,16 @@ PAT.EntrevistaSistema = (function () {
 
   // ── Abrir / cerrar ────────────────────────────────────────────────
   function open() {
+    // Verificar autenticación ANTES de iniciar — el sistema se guarda en la cuenta del usuario.
+    // Si no hay sesión, todo el trabajo de la entrevista se perdería al intentar guardar.
+    try {
+      const user = window.firebase?.auth?.()?.currentUser;
+      if (!user) {
+        alert('⚠ Debes iniciar sesión para usar el Asistente de Sistemas.\n\nTu trabajo se guardará en tu cuenta.');
+        return;
+      }
+    } catch (e) { /* firebase no disponible — continuar de todas formas */ }
+
     if (!_modal) _build();
     _resetEstado();
     _modal.classList.add('open');
@@ -647,17 +657,39 @@ También puedes abrirlo en <em>📐 Mis Sistemas</em> para editarlo o agregar m�
       else expr = expr.replace(from, to);
     });
 
-    // Limpiar caracteres no matemáticos
-    expr = expr.replace(/[^\d\s+\-*/().,TNKESPLCINACDGB]/gi,' ');
-    expr = expr.replace(/\s+/g,'').trim();
+    // ── Whitelist estricto ────────────────────────────────────────
+    // Las únicas variables permitidas en las fórmulas son las NH definidas.
+    // Primero extraemos tokens válidos, luego validamos el resultado.
+    const VARS_NH = ['NK','ESP','LC','CIN','CAD','ACA','T','s',
+                     'B4','B6','B8','B10','W4','H4','E2'];
 
-    // Validar que sea evaluable
+    // Eliminar todo lo que no sea: dígito, operador, paréntesis, punto, o una de las vars NH
+    // Construimos el patrón de vars como alternación de palabras completas
+    const varPattern = VARS_NH.join('|');
+    // Sustituir tokens permitidos temporalmente, eliminar el resto, restaurar
+    const tokens = [];
+    expr = expr.replace(new RegExp(`\\b(${varPattern})\\b`, 'g'), (m) => {
+      tokens.push(m);
+      return `__V${tokens.length - 1}__`;
+    });
+    // Ahora solo deben quedar dígitos, operadores y paréntesis
+    expr = expr.replace(/[^0-9+\-*/().\s]/g, '');
+    // Restaurar variables
+    tokens.forEach((v, i) => { expr = expr.replace(`__V${i}__`, v); });
+    expr = expr.replace(/\s+/g, '').trim();
+
+    if (!expr) return null;
+
+    // Validar evaluabilidad con valores de prueba (valores numéricos reales, sin código)
     try {
-      const T=880, NK=360, ESP=380, LC=650, CIN=680, CAD=940, ACA=180, s=10;
+      const T=880, NK=360, ESP=380, LC=650, CIN=680, CAD=940, ACA=180, s=10,
+            B4=220, B6=147, B8=110, B10=88, W4=170, H4=235, E2=190;
       // eslint-disable-next-line no-new-func
       const v = new Function('T','NK','ESP','LC','CIN','CAD','ACA','s',
-        `"use strict";return (${expr})`)(T,NK,ESP,LC,CIN,CAD,ACA,s);
-      if (isNaN(v)) return null;
+                             'B4','B6','B8','B10','W4','H4','E2',
+        `"use strict";return (${expr})`
+      )(T,NK,ESP,LC,CIN,CAD,ACA,s,B4,B6,B8,B10,W4,H4,E2);
+      if (typeof v !== 'number' || !isFinite(v)) return null;
     } catch(e) { return null; }
 
     return expr || null;

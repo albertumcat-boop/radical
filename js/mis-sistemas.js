@@ -240,13 +240,41 @@ PAT.MisSistemas = (function () {
     };
   }
 
+  // Variables permitidas en fórmulas (orden descendente de longitud para reemplazo correcto)
+  const _VARS_PERMITIDAS = ['BUSTO','CINTURA','CADERA','HOMBROS','CUELLO',
+    'busto','cintura','cadera','hombros','cuello','pecho','talle','largo','manga','falda',
+    'T','NK','ESP','LC','CIN','CAD','ACA','B4','B6','B8','B10','W4','H4','E2','s'];
+
+  function _sanitizarExpr(raw) {
+    if (!raw) return '0';
+    // Reemplazar nombres de variable por sus valores numéricos antes de validar
+    // NO se usa aquí — solo se verifica que tras limpiar queden solo chars seguros
+    // Whitelist estricto: dígitos, operadores aritméticos básicos, punto decimal, paréntesis
+    const limpia = raw
+      .replace(/\s+/g, '')
+      // Eliminar cualquier char que no sea dígito, operador, punto o paréntesis
+      // Nota: las variables ya habrán sido sustituidas por números ANTES de llegar aquí
+      .replace(/[^0-9+\-*/.()]/g, '');
+    return limpia || '0';
+  }
+
   function _evalExpr(expr, vars) {
     if (!expr) return 0;
     try {
-      let e = expr;
-      Object.keys(vars).sort((a,b)=>b.length-a.length)
-        .forEach(k => { e = e.replace(new RegExp('\\b'+k+'\\b','g'), vars[k]); });
-      return Function('"use strict";return (' + e + ')')();
+      let e = String(expr);
+      // 1. Sustituir variables por sus valores numéricos (orden: más largo primero)
+      _VARS_PERMITIDAS
+        .slice()
+        .sort((a, b) => b.length - a.length)
+        .forEach(k => {
+          if (vars[k] !== undefined) {
+            e = e.replace(new RegExp('\\b' + k + '\\b', 'g'), String(vars[k]));
+          }
+        });
+      // 2. Aplicar whitelist: tras la sustitución solo deben quedar números y operadores
+      const segura = _sanitizarExpr(e);
+      // 3. Evaluar con Function() solo si la expresión es segura
+      return Function('"use strict";return (' + segura + ')')();
     } catch { return null; }
   }
 
