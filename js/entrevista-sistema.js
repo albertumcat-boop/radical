@@ -521,7 +521,7 @@ También puedes abrirlo en <em>📐 Mis Sistemas</em> para editarlo o agregar m�
   Abrir en editor →
 </button>`);
     } catch(e) {
-      _system(`⚠ Error guardando: ${e.message}<br>Puedes intentarlo de nuevo o abrirlo en el editor.`);
+      _system(`⚠ Error guardando: ${_esc(e.message)}<br>Puedes intentarlo de nuevo o abrirlo en el editor.`);
     }
     _updateSidePanel();
   }

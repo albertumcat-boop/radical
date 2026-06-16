@@ -1,5 +1,12 @@
 /**
  * drafter-ui.js v6.0 — Editor Visual de Patronaje
+ * _esc(): escapa HTML para evitar XSS al insertar datos de Firestore en innerHTML.
+ */
+function _escDU(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
  * FIXES: línea temporal fuera del canvas (coords SVG directas),
  * undo/redo, distancia en tiempo real, curvas ajustables arrastrando,
  * snap a grilla, gradación de tallas
@@ -1057,7 +1064,7 @@ PAT.DrafterUI = (function () {
     ptKeys.forEach(id=>{
       const p=_points[id];
       const div=document.createElement('div');div.className='dv6-pti'+(id===_selected?' on':'');
-      div.innerHTML=`<div class="dv6-pdot"></div><span class="dv6-pnm">${p.name}</span><span class="dv6-pco">${Math.round(p.x)},${Math.round(p.y)}mm</span>${p.formula?`<span style="font-size:9px;color:#a78bfa;font-family:monospace">${p.formula}</span>`:''}<button class="dv6-pdel">✕</button>`;
+      div.innerHTML=`<div class="dv6-pdot"></div><span class="dv6-pnm">${_escDU(p.name)}</span><span class="dv6-pco">${Math.round(p.x)},${Math.round(p.y)}mm</span>${p.formula?`<span style="font-size:9px;color:#a78bfa;font-family:monospace">${_escDU(p.formula)}</span>`:''}<button class="dv6-pdel">✕</button>`;
       div.addEventListener('click',e=>{if(e.target.classList.contains('dv6-pdel'))return;_selectPt(id);});
       div.querySelector('.dv6-pdel').addEventListener('click',()=>{_snapshot();_lines=_lines.filter(l=>l.from!==id&&l.to!==id);delete _points[id];if(_selected===id)_selected=null;_renderAll();});
       ptlist.appendChild(div);

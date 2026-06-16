@@ -548,7 +548,13 @@ if (overrides && overrides[overrideKey]) {
     const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
     const t = document.createElement('div');
     t.className = `toast ${type}`;
-    t.innerHTML = `<span>${icons[type] || 'ℹ️'}</span>${msg}`;
+    // Usar textContent para el mensaje (evita XSS si msg contiene HTML de Firestore)
+    const icon = document.createElement('span');
+    icon.textContent = icons[type] || 'ℹ️';
+    const txt = document.createElement('span');
+    txt.textContent = msg;
+    t.appendChild(icon);
+    t.appendChild(txt);
     c.appendChild(t);
     setTimeout(() => { if (t.parentNode) t.remove(); }, 3200);
   }

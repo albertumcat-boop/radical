@@ -253,7 +253,12 @@ PAT.BloquesUI = (function () {
       _lista = await PAT.Bloques.listar();
       _renderLista(_lista);
     } catch(err) {
-      listEl.innerHTML = `<div class="bq-empty">⚠ ${err.message}<br><small>Inicia sesión para ver tus bloques</small></div>`;
+      const bqErr = document.createElement('div');
+      bqErr.className = 'bq-empty';
+      bqErr.innerHTML = '⚠ <span></span><br><small>Inicia sesión para ver tus bloques</small>';
+      bqErr.querySelector('span').textContent = err.message;
+      listEl.innerHTML = '';
+      listEl.appendChild(bqErr);
     }
   }
 

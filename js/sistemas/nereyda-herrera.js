@@ -373,9 +373,9 @@ PAT.Sistemas.NereydaHerrera = (function () {
       Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
 
       const lines = [];
-      function ln(a, b, type='line') {
+      function ln(a, b, type='line', lbl='', ctrl=20) {
         if (byName[a] && byName[b])
-          lines.push({ from:byName[a], to:byName[b], type, ctrl:20, cpx:null, cpy:null });
+          lines.push({ from:byName[a], to:byName[b], type, ctrl, cpx:null, cpy:null });
       }
 
       // ── Contorno principal ─────────────────────────────────────
@@ -388,12 +388,13 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('F',  'a',  'line');
       // Cuello y escote
       ln('a',  '1',  'line');
-      ln('1',  '4',  'curve');
-      ln('4',  '3',  'curve');
+      ln('1',  '4',  'curve');   // escote posterior — ctrl=20 curva hacia arriba (correcto)
+      ln('4',  '3',  'curve');   // cuello→hombro — ctrl=20 curva hacia el centro (correcto)
       // Hombro y sisa
       ln('3',  '5',  'line');
       ln('5',  '6',  'line');
-      ln('6',  '7',  'curve');
+      // 6→7 es solo 1cm horizontal; ctrl pequeño para no deformar el arco
+      ln('6',  '7',  'curve', '', 5);
       // Canesú / armhole base
       ln('7',  '2D', 'line');
       ln('2D', 'B',  'line');
