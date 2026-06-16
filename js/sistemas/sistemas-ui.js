@@ -110,15 +110,29 @@ PAT.SistemasUI = (function () {
     card.className = 'sis-card';
     card.id = 'sis-card-' + sis.nombre.replace(/\s+/g,'_');
 
-    // Piezas disponibles — combinadas de piezasDama + piezasCaballero si existen,
-    // o fallback al método anterior por compatibilidad
-    const piezas = [];
-    if (sis.piezasDama || sis.piezasCaballero) {
-      (sis.piezasDama      || []).forEach(p => piezas.push(p));
-      (sis.piezasCaballero || []).forEach(p => piezas.push(p));
+    // ── Piezas disponibles ────────────────────────────────────────
+    // Preferir piezasGrupos (agrupado, sin duplicados).
+    // Fallback a piezasDama + piezasCaballero para compatibilidad.
+    const piezas = [];   // lista plana (para búsqueda por id al cargar)
+    let dropdownHTML = '';
+
+    if (sis.piezasGrupos && sis.piezasGrupos.length) {
+      // Construir dropdown con <optgroup> por categoría
+      sis.piezasGrupos.forEach(grupo => {
+        dropdownHTML += `<optgroup label="${grupo.titulo}">`;
+        grupo.piezas.forEach(p => {
+          piezas.push(p);
+          dropdownHTML += `<option value="${p.id}" data-tipo="${p.tipo||'dama'}">${p.label}</option>`;
+        });
+        dropdownHTML += `</optgroup>`;
+      });
+    } else if (sis.piezasDama || sis.piezasCaballero) {
+      // Fallback plano (sin grupos)
+      (sis.piezasDama      || []).forEach(p => { piezas.push(p); dropdownHTML += `<option value="${p.id}" data-tipo="${p.tipo||'dama'}">${p.label}</option>`; });
+      (sis.piezasCaballero || []).forEach(p => { piezas.push(p); dropdownHTML += `<option value="${p.id}" data-tipo="${p.tipo||'caballero'}">${p.label}</option>`; });
     } else {
-      if (sis.blusaTrasera)    piezas.push({ id:'blusa-trasera',    label:'Blusa Trasera',    tipo:'dama' });
-      if (sis.camisaPosterior) piezas.push({ id:'camisa-posterior', label:'Camisa Posterior', tipo:'caballero' });
+      if (sis.blusaTrasera)    { const p={id:'blusa-trasera',label:'Blusa Trasera',tipo:'dama'}; piezas.push(p); dropdownHTML+=`<option value="${p.id}">${p.label}</option>`; }
+      if (sis.camisaPosterior) { const p={id:'camisa-posterior',label:'Camisa Posterior',tipo:'caballero'}; piezas.push(p); dropdownHTML+=`<option value="${p.id}">${p.label}</option>`; }
     }
 
     // Tallas
@@ -139,7 +153,7 @@ PAT.SistemasUI = (function () {
         <div class="sis-row">
           <span class="sis-lbl">Pieza</span>
           <select class="sis-sel" id="sis-pieza-${sis.nombre.replace(/\s+/g,'_')}">
-            ${piezas.map(p=>`<option value="${p.id}" data-tipo="${p.tipo||'dama'}">${p.label}</option>`).join('')}
+            ${dropdownHTML}
           </select>
         </div>
 

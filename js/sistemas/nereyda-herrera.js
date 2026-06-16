@@ -518,9 +518,11 @@ PAT.Sistemas.NereydaHerrera = (function () {
       Object.entries(points).forEach(([id, p]) => { byName[p.name] = id; });
 
       const lines = [];
-      function ln(a, b, t = 'line', lbl = '') {
+      // ctrl positivo = la curva se dobla hacia la IZQUIERDA del vector a→b
+      // ctrl negativo = se dobla hacia la DERECHA del vector a→b
+      function ln(a, b, t = 'line', lbl = '', ctrl = 20) {
         if (byName[a] && byName[b])
-          lines.push({ from: byName[a], to: byName[b], type: t, ctrl: 20, cpx: null, cpy: null, label: lbl });
+          lines.push({ from: byName[a], to: byName[b], type: t, ctrl, cpx: null, cpy: null, label: lbl });
       }
 
       // ── Líneas de construcción NH (punteadas grises) ─────────────
@@ -538,27 +540,30 @@ PAT.Sistemas.NereydaHerrera = (function () {
 
       // ── Contorno final de la prenda ───────────────────────────────
       // Vista (placket de botones a la izquierda del CF)
-      ln('14',  '14D', 'fold');    // borde de la vista (doblez)
-      ln('A',   '14',  'line');    // tope de la vista
-      ln('14D', 'D',   'line');    // base de la vista
+      ln('14',  '14D', 'fold');
+      ln('A',   '14',  'line');
+      ln('14D', 'D',   'line');
 
-      // CF (doblez / botones): desde abajo hasta el arranque del escote
-      ln('D',  'A',   'fold');     // CF completo
+      // CF (doblez / botones)
+      ln('D',  'A',   'fold');
 
       // Dobladillo
       ln('D',  'C',   'line');
 
-      // Costado inferior: de dobladillo a nivel de sisa
+      // Costado inferior
       ln('C',  '2b',  'line');
 
-      // Sisa: curva corrida de axila a hombro (sin waypoints intermedios)
-      ln('2b', '13',  'curve');
+      // Sisa: curva corrida de axila (2b) a hombro (13).
+      // El vector 2b→13 sube y va a la izquierda (dx<0, dy<0).
+      // Con ctrl negativo el CP queda a la DERECHA del vector = hacia el interior del cuerpo.
+      ln('2b', '13',  'curve', '', -22);
 
-      // Hombro: del arranque de sisa al punto de cuello-hombro
+      // Hombro
       ln('13', '12',  'line');
 
-      // Escote: curva de cuello-hombro a profundidad del cuello en CF
-      ln('12', '1',   'curve');
+      // Escote: vector 12→1 va a la izquierda y levemente abajo (dx<0, dy>0).
+      // ctrl=20 lleva el CP hacia arriba-izquierda = hacia el cuello = correcto.
+      ln('12', '1',   'curve', '', 20);
 
       return { points, lines };
     },
@@ -1286,24 +1291,55 @@ PAT.Sistemas.NereydaHerrera = (function () {
     // Tabla Atelier Escuela
     tablasAtelierCab: TALLAS_ATELIER_CAB,
     // Lista de piezas para UI
+    // ── Lista plana para compatibilidad con código legado ──────────
     piezasDama: [
-      { id: 'blusa-trasera',      label: 'Blusa Trasera',          tipo: 'dama' },
-      { id: 'camisa-delantera',   label: 'Camisa Delantera',        tipo: 'dama' },
-      { id: 'manga-corta-vestido',label: 'Manga Corta (Vestido)',   tipo: 'dama' },
-      { id: 'manga-larga-vestido',label: 'Manga Larga (Vestido)',   tipo: 'dama' },
-      { id: 'cuello-sport',       label: 'Cuello Sport',            tipo: 'dama' },
-      { id: 'cuello-con-pie',     label: 'Cuello con Pie',          tipo: 'dama' },
-      { id: 'bolsillo-pico',      label: 'Bolsillo en Pico',        tipo: 'dama' },
-      { id: 'bolsillo-recto',     label: 'Bolsillo Recto',          tipo: 'dama' },
-      { id: 'bolsillo-semicurva', label: 'Bolsillo Semicurva',      tipo: 'dama' },
+      { id: 'blusa-trasera',       label: 'Blusa Trasera',          tipo: 'dama'      },
+      { id: 'camisa-delantera',    label: 'Camisa Delantera',       tipo: 'dama'      },
+      { id: 'manga-corta-vestido', label: 'Manga Corta (Vestido)',  tipo: 'dama'      },
+      { id: 'manga-larga-vestido', label: 'Manga Larga (Vestido)',  tipo: 'dama'      },
+      { id: 'cuello-sport',        label: 'Cuello Sport',           tipo: 'dama'      },
+      { id: 'cuello-con-pie',      label: 'Cuello con Pie',         tipo: 'dama'      },
+      { id: 'bolsillo-pico',       label: 'Bolsillo en Pico',       tipo: 'dama'      },
+      { id: 'bolsillo-recto',      label: 'Bolsillo Recto',         tipo: 'dama'      },
+      { id: 'bolsillo-semicurva',  label: 'Bolsillo Semicurva',     tipo: 'dama'      },
     ],
     piezasCaballero: [
-      { id: 'camisa-posterior',   label: 'Camisa Posterior',        tipo: 'caballero' },
-      { id: 'manga-corta-camisa', label: 'Manga Corta (Camisa)',    tipo: 'caballero' },
-      { id: 'manga-larga-camisa', label: 'Manga Larga (Camisa)',    tipo: 'caballero' },
-      { id: 'cuello-sport',       label: 'Cuello Sport',            tipo: 'caballero' },
-      { id: 'cuello-con-pie',     label: 'Cuello con Pie',          tipo: 'caballero' },
-      { id: 'bolsillo-pico',      label: 'Bolsillo en Pico',        tipo: 'caballero' },
+      { id: 'camisa-posterior',    label: 'Camisa Posterior',       tipo: 'caballero' },
+      { id: 'manga-corta-camisa',  label: 'Manga Corta (Camisa)',   tipo: 'caballero' },
+      { id: 'manga-larga-camisa',  label: 'Manga Larga (Camisa)',   tipo: 'caballero' },
+      { id: 'cuello-sport',        label: 'Cuello Sport',           tipo: 'caballero' },
+      { id: 'cuello-con-pie',      label: 'Cuello con Pie',         tipo: 'caballero' },
+      { id: 'bolsillo-pico',       label: 'Bolsillo en Pico',       tipo: 'caballero' },
+    ],
+    // ── Agrupado por categoría (para dropdown ordenado sin duplicados) ──
+    piezasGrupos: [
+      {
+        titulo: '👗 Blusa / Vestido',
+        piezas: [
+          { id: 'blusa-trasera',       label: 'Blusa Trasera',         tipo: 'dama' },
+          { id: 'manga-corta-vestido', label: 'Manga Corta (Vestido)', tipo: 'dama' },
+          { id: 'manga-larga-vestido', label: 'Manga Larga (Vestido)', tipo: 'dama' },
+        ],
+      },
+      {
+        titulo: '👔 Camisa',
+        piezas: [
+          { id: 'camisa-delantera',    label: 'Camisa Delantera',      tipo: 'dama'      },
+          { id: 'camisa-posterior',    label: 'Camisa Posterior',      tipo: 'caballero' },
+          { id: 'manga-corta-camisa',  label: 'Manga Corta (Camisa)',  tipo: 'caballero' },
+          { id: 'manga-larga-camisa',  label: 'Manga Larga (Camisa)',  tipo: 'caballero' },
+        ],
+      },
+      {
+        titulo: '🔧 Accesorios',
+        piezas: [
+          { id: 'cuello-sport',        label: 'Cuello Sport',          tipo: 'ambos' },
+          { id: 'cuello-con-pie',      label: 'Cuello con Pie',        tipo: 'ambos' },
+          { id: 'bolsillo-pico',       label: 'Bolsillo en Pico',      tipo: 'ambos' },
+          { id: 'bolsillo-recto',      label: 'Bolsillo Recto',        tipo: 'dama'  },
+          { id: 'bolsillo-semicurva',  label: 'Bolsillo Semicurva',    tipo: 'dama'  },
+        ],
+      },
     ],
   };
 
