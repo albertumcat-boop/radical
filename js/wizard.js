@@ -109,14 +109,50 @@ PAT.Wizard = (function () {
     },
   ];
 
-  let _pieza = null; // pieza seleccionada
+  let _pieza        = null; // pieza seleccionada
+  let _CATS_CUSTOM  = [];   // categorías cargadas dinámicamente de sistemas propios
+
+  /* ── Cargar sistemas custom en el wizard ─────────────────────── */
+  async function _cargarCustom() {
+    _CATS_CUSTOM = [];
+    try {
+      const lista = await PAT.MisSistemas.listar();
+      lista.forEach(sis => {
+        if (!(sis.piezas||[]).length) return;
+        const sistemaKey = 'user_' + sis.id;
+        // Asegurar que esté registrado en memoria
+        PAT.MisSistemas.registrarEnMemoria(sis);
+        _CATS_CUSTOM.push({
+          titulo: sis.nombre,
+          icon:   '🧵',
+          items:  (sis.piezas||[]).map(p => ({
+            id:          `custom:${sistemaKey}:${p.id}`,
+            nombre:      p.nombre || p.id,
+            icon:        '📐',
+            desc:        `${sis.nombre} · ${p.categoria||'pieza'}`,
+            // campos: todos los estándar (el sistema evalúa con defaults si falta alguno)
+            campos: ['bust','neck','shoulder','totalLength','waist','hip','hipDepth'],
+            _sistemaKey: sistemaKey,
+            _piezaId:    p.id,
+          })),
+        });
+      });
+    } catch(e) { /* sin auth o sin datos */ }
+  }
+
+  // Permite a MisSistemasUI recargar el wizard cuando se guarda un sistema
+  window.PAT = window.PAT || {};
+  PAT.WizardCustom = { recargar: () => _cargarCustom().then(() => {
+    if (document.getElementById('wiz-step1')?.style.display !== 'none') _renderStep1();
+  })};
 
   /* ── API pública ───────────────────────────────────────────── */
   function open() {
     const modal = document.getElementById('wizard-modal');
     if (!modal) return;
     modal.style.display = 'flex';
-    _showStep1();
+    // Cargar sistemas custom antes de mostrar step1
+    _cargarCustom().then(() => _showStep1());
   }
 
   function close() {
@@ -133,9 +169,13 @@ PAT.Wizard = (function () {
 
   function _renderStep1() {
     const el = document.getElementById('wiz-categories');
-    el.innerHTML = CATEGORIAS.map(cat => `
+    const todasCats = [
+      ...CATEGORIAS,
+      ..._CATS_CUSTOM,
+    ];
+    el.innerHTML = todasCats.map(cat => `
       <div class="wiz-cat">
-        <div class="wiz-cat-title">${cat.titulo}</div>
+        <div class="wiz-cat-title">${cat.icon ? cat.icon + ' ' : ''}${cat.titulo}</div>
         <div class="wiz-items">
           ${cat.items.map(item => `
             <button class="wiz-item" data-id="${item.id}">
@@ -155,7 +195,8 @@ PAT.Wizard = (function () {
 
   /* ── Step 2 — medidas ──────────────────────────────────────── */
   function _selectPrenda(id) {
-    _pieza = CATEGORIAS.flatMap(c => c.items).find(p => p.id === id);
+    const todasPiezas = [...CATEGORIAS, ..._CATS_CUSTOM].flatMap(c => c.items);
+    _pieza = todasPiezas.find(p => p.id === id);
     if (!_pieza) return;
 
     document.getElementById('wiz-step1').style.display = 'none';

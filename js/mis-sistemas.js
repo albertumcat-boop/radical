@@ -217,21 +217,26 @@ PAT.MisSistemas = (function () {
   // ── Helpers internos ──────────────────────────────────────────
 
   function _buildVarsDesde(m) {
-    const b  = (m.bust       || 0) * 10;
-    const w  = (m.waist      || 0) * 10;
-    const h  = (m.hip        || 0) * 10;
-    const sh = (m.shoulder   || 0) * 10;
-    const nk = (m.neck       || 0) * 10;
+    const T   = (m.bust        || 96) * 10;
+    const NK  = (m.neck        || 37) * 10;
+    const ESP = (m.shoulder    || 42) * 10;
+    const LC  = (m.totalLength || m.backLength || 65) * 10;
+    const CIN = (m.waist       || 74) * 10;
+    const CAD = (m.hip         || 96) * 10;
+    const ACA = (m.hipDepth    || 18) * 10;
+    const s   = 10;
     return {
-      BUSTO:b, CINTURA:w, CADERA:h, HOMBROS:sh, CUELLO:nk,
-      B4:b/4, B6:b/6, B8:b/8, B10:b/10,
-      W4:w/4, H4:h/4, E2:sh/2,
-      busto:b, cintura:w, cadera:h, hombros:sh, cuello:nk,
-      pecho:b,
-      talle:  (m.backLength  || 0) * 10,
-      largo:  (m.totalLength || 0) * 10,
-      manga:  (m.sleeveLength|| 0) * 10,
-      falda:  (m.skirtLength || 0) * 10,
+      // NH-style (mm) — nombres cortos recomendados
+      T, NK, ESP, LC, CIN, CAD, ACA, s,
+      // Aliases en español (compatibilidad hacia atrás)
+      BUSTO:T, CINTURA:CIN, CADERA:CAD, HOMBROS:ESP, CUELLO:NK,
+      busto:T, cintura:CIN, cadera:CAD, hombros:ESP, cuello:NK, pecho:T,
+      // Derivados comunes
+      B4:T/4, B6:T/6, B8:T/8, B10:T/10,
+      W4:CIN/4, H4:CAD/4, E2:ESP/2,
+      talle: LC, largo: LC,
+      manga:  (m.sleeveLength || 0) * 10,
+      falda:  (m.skirtLength  || 0) * 10,
     };
   }
 
@@ -247,6 +252,8 @@ PAT.MisSistemas = (function () {
 
   // ── API pública ───────────────────────────────────────────────
   return { guardar, listar, cargar, eliminar, importarJSON, exportarJSON,
-           registrarEnMemoria, cargarTodos };
+           registrarEnMemoria, cargarTodos,
+           // internals exposed for UI preview and entrevista
+           _buildVarsDesde, _evalExpr };
 
 })();

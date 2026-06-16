@@ -2960,16 +2960,30 @@ PAT.DrafterUI = (function () {
   // TRAZAR PIEZA NH PARAMÉTRICA (usado por Wizard)
   // ════════════════════════════════════════════════════════════
   function _runPieza(bloqueId, medidas) {
-    const nh = PAT.Sistemas?.NereydaHerrera;
-    if (!nh) { _instr('⚠ Sistema NH no disponible'); return; }
-
     if (Object.keys(_points).length > 0) {
       if (!confirm('⚠️ Esto borrará el trazado actual.\n¿Continuar?')) return;
     }
 
     let bloque;
-    try { bloque = nh.generarBloque(bloqueId, medidas); }
-    catch (e) { _instr('⚠ Error al generar pieza: ' + e.message); return; }
+
+    // ── Sistema custom (ateliers propios) ──────────────────────────
+    if (bloqueId.startsWith('custom:')) {
+      // formato: "custom:{sistemaKey}:{piezaId}"
+      const partes     = bloqueId.split(':');
+      const sistemaKey = partes[1];            // ej: "user_abc123"
+      const piezaId    = partes.slice(2).join(':'); // ej: "delantera"
+      const sis = PAT.Sistemas?.[sistemaKey];
+      if (!sis) { _instr('⚠ Sistema no cargado: ' + sistemaKey); return; }
+      try { bloque = sis.generarBloque(piezaId, medidas); }
+      catch(e) { _instr('⚠ Error generando pieza custom: ' + e.message); return; }
+    }
+    // ── Sistema NH (Nereyda Herrera) ───────────────────────────────
+    else {
+      const nh = PAT.Sistemas?.NereydaHerrera;
+      if (!nh) { _instr('⚠ Sistema NH no disponible'); return; }
+      try { bloque = nh.generarBloque(bloqueId, medidas); }
+      catch (e) { _instr('⚠ Error al generar pieza: ' + e.message); return; }
+    }
 
     // Limpiar canvas
     _points = {}; _lines = []; _ptCtr = 0;
@@ -3265,6 +3279,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/bloques-ui.js"></script>
 <script src="js/mis-sistemas.js"></script>
 <script src="js/mis-sistemas-ui.js"></script>
+<script src="js/entrevista-sistema.js"></script>
 <script src="js/materiales.js"></script>
 <script src="js/materiales-ui.js"></script>
 <script src="js/wizard.js"></script>

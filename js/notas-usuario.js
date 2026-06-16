@@ -113,8 +113,13 @@ PAT.NotasUsuario = (function () {
 
   // Cargar automáticamente al iniciar sesión
   document.addEventListener('pat:authChanged', (e) => {
-    if (e.detail) loadAll();
-    else { _cache = _lsLoad(); _loaded = true; }
+    if (e.detail) {
+      loadAll();
+      // Cargar también los sistemas propios del atelier
+      if (PAT.MisSistemas) PAT.MisSistemas.cargarTodos();
+    } else {
+      _cache = _lsLoad(); _loaded = true;
+    }
   });
 
   // Cargar desde localStorage si ya hay datos antes del login
