@@ -1045,6 +1045,7 @@ PAT.DrafterUI = (function () {
   let _isPan       = false;
   let _zoom        = 1;
   let _selected    = null;
+  let _demoRunning = false;
   let _pieceName   = 'Mi Pieza';
   let _curSave     = null;
   let _snapEnabled  = false;
@@ -2000,8 +2001,8 @@ PAT.DrafterUI = (function () {
     _refreshHistory();
     const newIdx=_lines.length-1;
     _renderAll();
-    // Después de trazar una curva: auto-seleccionar y mostrar controles
-    if(type==='curve'){
+    // Después de trazar una curva: auto-seleccionar y mostrar controles (no durante demo)
+    if(type==='curve'&&!_demoRunning){
       setTimeout(()=>{
         _setTool('select');
         _selectLine(newIdx);
@@ -2537,7 +2538,7 @@ PAT.DrafterUI = (function () {
   function _getMeasures(){
     const def={bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,skirtLength:60,hipDepth:20};
     const m={};
-    document.querySelectorAll('[data-measure]').forEach(el=>{m[el.dataset.measure]=parseFloat(el.value)||0;});
+    document.querySelectorAll('[data-measure]').forEach(el=>{const v=parseFloat(el.value);if(!isNaN(v)&&v>0)m[el.dataset.measure]=v;});
     return Object.assign(def,m);
   }
 
@@ -2782,6 +2783,7 @@ PAT.DrafterUI = (function () {
 
     function next(fn) { setTimeout(fn, delay * step++); }
 
+    _demoRunning = true;
     _instr('▶ Demo: trazando espalda básica Aldrich…');
 
     // ── PUNTOS ───────────────────────────────────────────────
@@ -2826,6 +2828,7 @@ PAT.DrafterUI = (function () {
 
     // ── Finalizar ─────────────────────────────────────────────
     next(()=>{
+      _demoRunning = false;
       _pieceName = 'Espalda Demo';
       document.getElementById('dv6-nm').value = _pieceName;
       _setTool('select');
