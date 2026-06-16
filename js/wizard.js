@@ -27,92 +27,84 @@ PAT.Wizard = (function () {
     ankle:       { label: 'Tobillo',               placeholder: 'ej. 23' },
   };
 
-  /* ── Catálogo de prendas ────────────────────────────────────── */
+  /* ── Catálogo de prendas (agrupado por prenda completa) ─────── */
   const CATEGORIAS = [
     {
-      titulo: 'Superiores',
+      titulo: 'Camisa',
+      icon: '👔',
       items: [
         {
-          id: 'blusa-trasera',
-          nombre: 'Blusa / Espalda',
-          icon: '🔙',
-          desc: 'Parte trasera · Sistema NH',
-          campos: ['bust', 'shoulder', 'neck', 'backLength', 'waist', 'hip', 'hipDepth'],
-        },
-        {
           id: 'camisa-posterior',
-          nombre: 'Camisa Posterior',
-          icon: '👔',
-          desc: 'Espalda camisa · Sistema NH',
+          nombre: 'Espalda',
+          icon: '🔙',
+          desc: 'Parte posterior · NH',
           campos: ['bust', 'shoulder', 'neck', 'backLength', 'waist', 'hip', 'hipDepth'],
         },
         {
           id: 'camisa-delantera',
-          nombre: 'Camisa Delantera',
+          nombre: 'Delantera',
           icon: '👕',
-          desc: 'Frente camisa · Sistema NH',
+          desc: 'Parte delantera · NH',
           campos: ['bust', 'neck', 'shoulder', 'totalLength'],
         },
-      ],
-    },
-    {
-      titulo: 'Mangas',
-      items: [
         {
           id: 'manga-corta-camisa',
-          nombre: 'Manga Corta (Camisa)',
+          nombre: 'Manga Corta',
           icon: '🤏',
-          desc: 'Sistema NH',
+          desc: 'Manga corta · NH',
           campos: ['bust', 'shoulder', 'sleeveShort', 'armCirc', 'wrist'],
         },
         {
           id: 'manga-larga-camisa',
-          nombre: 'Manga Larga (Camisa)',
+          nombre: 'Manga Larga',
           icon: '💪',
-          desc: 'Sistema NH',
+          desc: 'Manga larga · NH',
           campos: ['bust', 'shoulder', 'sleeveLength', 'armCirc', 'wrist'],
         },
-        {
-          id: 'manga-corta-vestido',
-          nombre: 'Manga Corta (Vestido)',
-          icon: '🤏',
-          desc: 'Sistema NH',
-          campos: ['bust', 'shoulder', 'sleeveShort', 'armCirc', 'wrist'],
-        },
-        {
-          id: 'manga-larga-vestido',
-          nombre: 'Manga Larga (Vestido)',
-          icon: '💪',
-          desc: 'Sistema NH',
-          campos: ['bust', 'shoulder', 'sleeveLength', 'armCirc', 'wrist'],
-        },
-      ],
-    },
-    {
-      titulo: 'Cuellos',
-      items: [
         {
           id: 'cuello-sport',
           nombre: 'Cuello Sport',
           icon: '🏅',
-          desc: 'Sistema NH',
+          desc: 'Cuello camisero · NH',
           campos: ['neck'],
         },
         {
           id: 'cuello-con-pie',
           nombre: 'Cuello con Pie',
           icon: '🪢',
-          desc: 'Sistema NH',
+          desc: 'Cuello con pie · NH',
           campos: ['neck'],
         },
+        { id: 'bolsillo-pico',      nombre: 'Bolsillo Pico',      icon: '🔷', desc: 'NH', campos: [] },
+        { id: 'bolsillo-recto',     nombre: 'Bolsillo Recto',     icon: '⬜', desc: 'NH', campos: [] },
+        { id: 'bolsillo-semicurva', nombre: 'Bolsillo Semicurva', icon: '🔵', desc: 'NH', campos: [] },
       ],
     },
     {
-      titulo: 'Bolsillos',
+      titulo: 'Blusa / Vestido',
+      icon: '👗',
       items: [
-        { id: 'bolsillo-pico',      nombre: 'Bolsillo en Pico',   icon: '🔷', desc: 'Sistema NH', campos: [] },
-        { id: 'bolsillo-recto',     nombre: 'Bolsillo Recto',     icon: '⬜', desc: 'Sistema NH', campos: [] },
-        { id: 'bolsillo-semicurva', nombre: 'Bolsillo Semicurva', icon: '🔵', desc: 'Sistema NH', campos: [] },
+        {
+          id: 'blusa-trasera',
+          nombre: 'Espalda',
+          icon: '🔙',
+          desc: 'Parte trasera · NH',
+          campos: ['bust', 'shoulder', 'neck', 'backLength', 'waist', 'hip', 'hipDepth'],
+        },
+        {
+          id: 'manga-corta-vestido',
+          nombre: 'Manga Corta',
+          icon: '🤏',
+          desc: 'Manga corta · NH',
+          campos: ['bust', 'shoulder', 'sleeveShort', 'armCirc', 'wrist'],
+        },
+        {
+          id: 'manga-larga-vestido',
+          nombre: 'Manga Larga',
+          icon: '💪',
+          desc: 'Manga larga · NH',
+          campos: ['bust', 'shoulder', 'sleeveLength', 'armCirc', 'wrist'],
+        },
       ],
     },
   ];
