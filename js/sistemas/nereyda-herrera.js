@@ -505,13 +505,18 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // Punto de sisa lado costado (mismo y que p2, en la columna derecha)
       const p2b = { x: OX + RW,       y: OY + T/4 + 10,      name: '2b' };
 
+      // 2b.2c  1cm hacia ADENTRO desde 2b (entrada de sisa) — crea el óvalo
+      // de la axila: la sisa no es un solo arco recto de 2b a 13, sino que
+      // pasa primero por este punto interior antes de subir al hombro.
+      const p2c = { x: OX + RW - 10,  y: OY + T/4 + 10,      name: '2c' };
+
       // A.14  9cm a la izquierda de A  (vista para ojal y botón)
       const p14  = { x: OX - 90,      y: OY,                  name: '14' };
       const p14b = { x: OX - 90,      y: OY + RH,             name: '14D' };
 
       // ── Puntos ────────────────────────────────────────────────────
       const points = {};
-      [A, B_, C_, D, p1, p2, p8, p9, p10, p11, p12, p13, p2b, p14, p14b]
+      [A, B_, C_, D, p1, p2, p8, p9, p10, p11, p12, p13, p2b, p2c, p14, p14b]
         .forEach((p, i) => {
           points['cd' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' };
         });
@@ -554,17 +559,21 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // Costado inferior
       ln('C',  '2b',  'line');
 
-      // Sisa: curva corrida de axila (2b) a hombro (13).
-      // El vector 2b→13 sube y va a la izquierda (dx<0, dy<0).
-      // Con ctrl negativo el CP queda a la DERECHA del vector = hacia el interior del cuerpo.
-      ln('2b', '13',  'curve', '', -22);
+      // Sisa: dos arcos en lugar de uno, para lograr la axila ovalada del manual NH.
+      // 1) 2b→2c: pequeño arco de 1cm que redondea la esquina del costado (el "óvalo").
+      ln('2b', '2c',  'curve', '', -6);
+      // 2) 2c→13: arco principal de la sisa, desde la entrada (1cm adentro) hasta el hombro.
+      //    El vector 2c→13 sube y va a la izquierda (dx<0, dy<0).
+      //    Con ctrl negativo el CP queda a la DERECHA del vector = hacia el interior del cuerpo.
+      ln('2c', '13',  'curve', '', -20);
 
       // Hombro
       ln('13', '12',  'line');
 
-      // Escote: vector 12→1 va a la izquierda y levemente abajo (dx<0, dy>0).
-      // ctrl=20 lleva el CP hacia arriba-izquierda = hacia el cuello = correcto.
-      ln('12', '1',   'curve', '', 20);
+      // Escote: vector 12→1 va a la izquierda y levemente hacia abajo (dx<0, dy>0).
+      // ctrl negativo lleva el CP hacia abajo-derecha = hacia el INTERIOR del rectángulo,
+      // creando el hueco del escote (con ctrl positivo se salía por encima de la línea A-B).
+      ln('12', '1',   'curve', '', -18);
 
       return { points, lines };
     },
@@ -1100,6 +1109,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
       '1':   'Profundidad del escote (A.1): cuello/6 − 1cm hacia abajo desde A en el CF. Marca dónde termina el cuello y empieza el escote delantero.',
       '2':   'Nivel de sisa CF (A.2): pecho/4 + 1cm hacia abajo desde A. La línea horizontal 2→2b es la línea de verificación de la sisa — mide que la profundidad sea correcta.',
       '2b':  'Nivel de sisa en el costado: igual altura que punto 2 pero en el borde derecho. La línea 2→2b es la referencia horizontal de la sisa para verificar medidas.',
+      '2c':  'Entrada de sisa (1cm hacia adentro desde 2b): la sisa no sube directo desde la esquina del costado, sino que primero entra 1cm hacia el cuerpo. Este punto crea el óvalo de la axila — sin él la sisa queda angulosa.',
       '8':   'Ancho del escote (A.8): cuello/6 hacia la derecha desde A. Define cuánto se abre el escote hacia el hombro. Punto de arranque de la curva del escote.',
       '9':   'Referencia tipo sport (A.9 ≈ A.8): igual distancia que A.8 pero con un leve ajuste para vistas tipo sport. Solo difiere en detalle de confección.',
       '10':  'Tip de hombro en nivel 1 (1.10): espalda/2 desde el punto 1 hacia la derecha. Ubica el extremo del hombro a la altura del cuello — antes de la caída.',
