@@ -2189,9 +2189,54 @@ PAT.DrafterUI = (function () {
     while(_linesG.firstChild)_linesG.removeChild(_linesG.firstChild);
     const sw=0.5; // mm — el canvas transform escala esto
 
-    // Relleno
+    // ── Líneas de construcción (van primero, detrás de todo) ─────────────────
+    _lines.forEach(ln=>{
+      if(ln.type!=='construction')return;
+      const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
+      const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+      const px=-dy/len*2.5,py=dx/len*2.5; // perpendicular para ticks
+
+      // Línea punteada gris
+      const el=document.createElementNS(NS,'line');
+      el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);
+      el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);
+      el.setAttribute('stroke','#4a4870');
+      el.setAttribute('stroke-width','0.35');
+      el.setAttribute('stroke-dasharray','5,3');
+      el.setAttribute('fill','none');
+      _linesG.appendChild(el);
+
+      // Tick en inicio
+      const t1=document.createElementNS(NS,'line');
+      t1.setAttribute('x1',a.x+px);t1.setAttribute('y1',a.y+py);
+      t1.setAttribute('x2',a.x-px);t1.setAttribute('y2',a.y-py);
+      t1.setAttribute('stroke','#4a4870');t1.setAttribute('stroke-width','0.4');
+      _linesG.appendChild(t1);
+
+      // Tick en fin
+      const t2=document.createElementNS(NS,'line');
+      t2.setAttribute('x1',b.x+px);t2.setAttribute('y1',b.y+py);
+      t2.setAttribute('x2',b.x-px);t2.setAttribute('y2',b.y-py);
+      t2.setAttribute('stroke','#4a4870');t2.setAttribute('stroke-width','0.4');
+      _linesG.appendChild(t2);
+
+      // Distancia (etiqueta pequeña, desplazada perpendicularmente)
+      const dist=Math.round(len);
+      const lbl=document.createElementNS(NS,'text');
+      lbl.setAttribute('x',(a.x+b.x)/2+px*2.2);
+      lbl.setAttribute('y',(a.y+b.y)/2+py*2.2);
+      lbl.setAttribute('font-size','3.8');
+      lbl.setAttribute('fill','#5a558a');
+      lbl.setAttribute('font-family','Arial');
+      lbl.setAttribute('text-anchor','middle');
+      lbl.textContent=(ln.label?ln.label+' ':'')+dist+'mm';
+      _linesG.appendChild(lbl);
+    });
+
+    // ── Relleno (solo líneas de contorno, excluye construction) ──────────────
     let d='';
     _lines.forEach(ln=>{
+      if(ln.type==='construction')return; // excluir del relleno
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       if(!d)d=`M ${a.x} ${a.y}`;
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
@@ -2199,7 +2244,9 @@ PAT.DrafterUI = (function () {
     });
     if(d){const f=document.createElementNS(NS,'path');f.setAttribute('d',d);f.setAttribute('fill','rgba(139,92,246,.06)');f.setAttribute('stroke','none');f.setAttribute('pointer-events','none');_linesG.appendChild(f);}
 
+    // ── Contorno y tipos especiales ───────────────────────────────────────────
     _lines.forEach((ln,i)=>{
+      if(ln.type==='construction')return; // ya renderizado arriba
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       let el;
       if(ln.type==='curve'){

@@ -446,111 +446,119 @@ PAT.Sistemas.NereydaHerrera = (function () {
     nombre: 'Camisa Parte Delantera',
 
     /**
-     * Construcción NH — Camisa Delantera (frente).
-     * CF (Centro Delantero) = DERECHA (doblez).
-     * Costado/sisa = IZQUIERDA.
-     * Misma lógica que BLUSA_TRASERA pero en espejo horizontal.
+     * NH — Trazado de Camisa Parte Delantera.
+     * Sigue el procedimiento numerado del manual NH (imagen):
+     *   A = CF arriba-izq, B = costado arriba-der,
+     *   C = costado abajo-der, D = CF abajo-izq.
+     *   Puntos 1,2,8,10,11,12,13,14 son puntos de construcción
+     *   visibles en el canvas para verificar medidas.
      *
-     * @param {object} m  medidas en cm { bust, shoulder, neck, totalLength, waist, hip, hipDepth }
-     * @param {number} s  margen en mm (default 10)
+     * @param {object} m  { bust, shoulder, neck, totalLength }
+     * @param {number} s  margen en mm
      */
     generar(m, s = 10) {
-      const T   = m.bust        * 10;
-      const NK  = m.neck        * 10;
-      const ESP = m.shoulder    * 10;
-      const LC  = (m.totalLength || m.backLength || 65) * 10;
-      const CIN = (m.waist      || 68) * 10;
-      const CAD = (m.hip        || 94) * 10;
-      const ACA = (m.hipDepth   || 18) * 10;
+      const T   = m.bust * 10;
+      const NK  = m.neck * 10;
+      const ESP = m.shoulder * 10;
+      const LC  = (m.totalLength || m.frontLength || 65) * 10;
 
-      const OX = s;        // margen izquierdo = lado costado/sisa
-      const OY = s + 30;   // margen superior ampliado (el escote puede subir 2cm sobre OY)
+      // Margen extra a la izquierda para que la vista (9cm) quepa
+      const OX = s + 100;
+      const OY = s;
 
-      // ── Rectángulo base ─────────────────────────────────────────
-      // Ancho = tórax/4 + 2cm holgura   Alto = largo total
-      const RW = T / 4 + 20;
-      const RH = LC;
+      // ── Rectángulo base ──────────────────────────────────────────
+      const RW = T / 4 + 20;   // A.B  pecho/4 + 2cm (ancho)
+      const RH = LC;             // B.C  largo de camisa
 
-      // CF = borde DERECHO (x = OX + RW)
-      // Costado = borde IZQUIERDO (x = OX)
-      const B_  = { x: OX,       y: OY,       name: 'B'  };  // top-left  (costado ref.)
-      const A   = { x: OX + RW,  y: OY,       name: 'A'  };  // top-right  (CF top)
-      const D   = { x: OX + RW,  y: OY + RH,  name: 'D'  };  // bot-right  (CF bottom)
-      const C_  = { x: OX,       y: OY + RH,  name: 'C'  };  // bot-left   (costado bottom)
+      const A  = { x: OX,       y: OY,       name: 'A'  };  // CF top-izq
+      const B_ = { x: OX + RW,  y: OY,       name: 'B'  };  // costado top-der
+      const C_ = { x: OX + RW,  y: OY + RH,  name: 'C'  };  // costado bot-der
+      const D  = { x: OX,       y: OY + RH,  name: 'D'  };  // CF bot-izq
 
-      // ── ESCOTE DELANTERO ─────────────────────────────────────────
-      // Ancho escote: cuello/6 desde CF hacia costado (igual que espalda)
-      const neckW = NK / 6;
-      // Profundidad escote delantero: cuello/6 + 1cm (ligeramente mayor que espalda)
-      const neckD = NK / 6 + 10;
+      // ── Puntos de construcción NH (manual, sec. Delantera) ───────
 
-      // NW = punto cuello-hombro sobre la línea de tope (a neckW del CF)
-      const NW  = { x: OX + RW - neckW,  y: OY,        name: 'NW'  };
-      // NWa = NW subido 2cm (curva del escote sube en el hombro, mismo criterio que espalda)
-      const NWa = { x: OX + RW - neckW,  y: OY - 20,   name: 'NWa' };
-      // ND = profundidad del escote sobre el CF
-      const ND  = { x: OX + RW,          y: OY + neckD, name: 'ND'  };
+      // A.1  sexta parte del cuello - 1cm  (profundidad escote en CF, hacia abajo)
+      const p1  = { x: OX,            y: OY + NK/6 - 10,     name: '1'  };
 
-      // ── HOMBRO ───────────────────────────────────────────────────
-      // Desde NWa hacia el costado: espalda/2 de ancho total de hombro
-      // 4cm de caída de hombro (mismo que espalda)
-      const shDrop = 40;
-      const SH  = { x: OX + RW - ESP / 2, y: OY + shDrop, name: 'SH' };
+      // A.2  pecho/4 + 1cm  (nivel de sisa — línea horizontal de verificación)
+      const p2  = { x: OX,            y: OY + T/4 + 10,      name: '2'  };
 
-      // ── SISA ─────────────────────────────────────────────────────
-      // Profundidad de sisa = espalda/2 - 1cm (igual que espalda)
-      const sisaD = ESP / 2 - 10;
-      const SI  = { x: OX + RW - ESP / 2,      y: OY + shDrop + sisaD,       name: 'SI' };
-      const SM  = { x: OX + RW - ESP / 2 + 10, y: OY + shDrop + sisaD / 2,   name: 'SM' };
-      // punto de control empuja hacia CF (derecha) para curvatura correcta
+      // A.8  sexta parte del contorno del cuello  (ancho del escote hacia costado)
+      const p8  = { x: OX + NK/6,     y: OY,                  name: '8'  };
 
-      // ── UNDERARM y COSTADO ────────────────────────────────────────
-      // F = extremo izquierdo del underarm (nivel sisa, borde costado)
-      const F   = { x: OX,              y: SI.y,         name: 'F'  };
+      // A.9  igual a A.8 → referencia para vista tipo sport
+      const p9  = { x: OX + NK/6,     y: OY + 5,              name: '9'  };
 
-      // Cintura y cadera (medidas desde CF hacia costado, igual que espalda desde CB)
-      const p6  = { x: OX + RW - (CIN / 4 + 30), y: OY + RH - ACA, name: '6'  };
-      const D2  = { x: OX + RW - CAD / 4,         y: OY + RH + ACA, name: 'D2' };
-      // Nodo de cadera para esquina inferior del costado (a nivel de cadera)
-      const FH  = { x: OX,                         y: OY + RH + ACA, name: 'FH' };
+      // 1.10  mitad del ancho de espalda desde p1  (posición del tip de hombro)
+      const p10 = { x: OX + ESP/2,    y: OY + NK/6 - 10,     name: '10' };
 
-      // ── Ensamblar puntos ──────────────────────────────────────────
+      // 10.11  1cm hacia abajo  (caída del hombro)
+      const p11 = { x: OX + ESP/2,    y: OY + NK/6,           name: '11' };
+
+      // 8.12  1cm hacia abajo desde p8  (curva de arranque cuello-hombro)
+      const p12 = { x: OX + NK/6,     y: OY + 10,             name: '12' };
+
+      // 11.13  1cm hacia abajo desde p11  (inicio de la sisa)
+      const p13 = { x: OX + ESP/2,    y: OY + NK/6 + 10,     name: '13' };
+
+      // Punto de sisa lado costado (mismo y que p2, en la columna derecha)
+      const p2b = { x: OX + RW,       y: OY + T/4 + 10,      name: '2b' };
+
+      // A.14  9cm a la izquierda de A  (vista para ojal y botón)
+      const p14  = { x: OX - 90,      y: OY,                  name: '14' };
+      const p14b = { x: OX - 90,      y: OY + RH,             name: '14D' };
+
+      // ── Puntos ────────────────────────────────────────────────────
       const points = {};
-      [B_, A, D, C_, NW, NWa, ND, SH, SI, SM, F, p6, D2, FH]
+      [A, B_, C_, D, p1, p2, p8, p9, p10, p11, p12, p13, p2b, p14, p14b]
         .forEach((p, i) => {
-          points['del' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' };
+          points['cd' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' };
         });
-
       const byName = {};
       Object.entries(points).forEach(([id, p]) => { byName[p.name] = id; });
 
       const lines = [];
-      function ln(a, b, t = 'line') {
+      function ln(a, b, t = 'line', lbl = '') {
         if (byName[a] && byName[b])
-          lines.push({ from: byName[a], to: byName[b], type: t, ctrl: 20, cpx: null, cpy: null });
+          lines.push({ from: byName[a], to: byName[b], type: t, ctrl: 20, cpx: null, cpy: null, label: lbl });
       }
 
-      // ── Contorno principal (forma de la prenda) ───────────────────
-      // CF (doblez) — borde derecho completo
-      ln('A',   'D',   'fold');
-      // Dobladillo inferior
-      ln('D',   'C',   'line');
-      // Costado (borde izquierdo) sube desde dobladillo hasta nivel sisa
-      ln('C',   'F',   'line');
-      // Underarm horizontal hasta el fondo de la sisa
-      ln('F',   'SI',  'line');
-      // Sisa — curva corrida de un solo arco (SM es referencia NH, no waypoint)
-      ln('SI',  'SH',  'curve');
-      // Hombro desde tip hasta nodo cuello-hombro
-      ln('SH',  'NWa', 'line');
-      // Curva del escote delantero
-      ln('NWa', 'ND',  'curve');
-      // Apertura CF (del escote hasta la esquina superior)
-      ln('ND',  'A',   'line');
+      // ── Líneas de construcción NH (punteadas grises) ─────────────
+      ln('A',  'B',   'construction', 'A.B  pecho/4+2cm');
+      ln('B',  'C',   'construction', 'B.C  largo camisa');
+      ln('C',  'D',   'construction', 'base rectángulo');
+      ln('A',  '1',   'construction', 'A.1  cuello/6-1cm');
+      ln('A',  '2',   'construction', 'A.2  pecho/4+1cm');
+      ln('2',  '2b',  'construction', 'nivel sisa ←verificar→');
+      ln('A',  '8',   'construction', 'A.8  cuello/6');
+      ln('1',  '10',  'construction', '1.10  espalda/2');
+      ln('10', '11',  'construction', '10.11  1cm caída');
+      ln('8',  '12',  'construction', '8.12  1cm');
+      ln('11', '13',  'construction', '11.13  1cm');
 
-      // ── Líneas de construcción (referencia) ───────────────────────
-      ln('B',  'A',  'line');   // tope superior horizontal
-      ln('B',  'C',  'fold');   // costado vertical de referencia
+      // ── Contorno final de la prenda ───────────────────────────────
+      // Vista (placket de botones a la izquierda del CF)
+      ln('14',  '14D', 'fold');    // borde de la vista (doblez)
+      ln('A',   '14',  'line');    // tope de la vista
+      ln('14D', 'D',   'line');    // base de la vista
+
+      // CF (doblez / botones): desde abajo hasta el arranque del escote
+      ln('D',  'A',   'fold');     // CF completo
+
+      // Dobladillo
+      ln('D',  'C',   'line');
+
+      // Costado inferior: de dobladillo a nivel de sisa
+      ln('C',  '2b',  'line');
+
+      // Sisa: curva corrida de axila a hombro (sin waypoints intermedios)
+      ln('2b', '13',  'curve');
+
+      // Hombro: del arranque de sisa al punto de cuello-hombro
+      ln('13', '12',  'line');
+
+      // Escote: curva de cuello-hombro a profundidad del cuello en CF
+      ln('12', '1',   'curve');
 
       return { points, lines };
     },
@@ -1076,17 +1084,21 @@ PAT.Sistemas.NereydaHerrera = (function () {
       'C':  'Esquina inferior del costado: punto donde el costado se une al dobladillo.',
     },
     'camisa-delantera': {
-      'B':  'Centro Frente arriba (doblez): punto de origen del delantero. Aquí va el doblez o la abertura delantera.',
-      'A':  'Esquina superior derecha (costado/sisa): define el ancho del delantero — igual que el trasero (pecho/4 + holgura).',
-      'D':  'Centro Frente abajo: cierra el CF verticalmente. La línea A→D es el costado.',
-      'C':  'Esquina inferior izquierda: base del dobladillo en el costado.',
-      'NW': 'Ancho del escote: cuello/4 desde el CF. Define cuánto se separa el escote del centro frente hacia el hombro.',
-      'NWa':'Punto elevado del escote: NW subido 2cm. Los escotes delanteros arrancan un poco más arriba que el punto de referencia plano.',
-      'ND': 'Profundidad del escote delantero: cuello/6 + 1cm hacia abajo desde el CF. El escote delantero es más profundo que el posterior.',
-      'SH': 'Tip de hombro: espalda/2 desde NWa. Punto donde termina el hombro y comienza la sisa.',
-      'SI': 'Base de la sisa: pecho/8 + 2cm hacia abajo desde SH. Define la profundidad total de la sisa.',
-      'SM': 'Punto de referencia de sisa NH: 1cm hacia adentro en el medio de la línea SH→SI. Define la curvatura de la sisa — no es parte del contorno.',
-      'F':  'Punto de axila (underarm): nivel horizontal de la sisa, define el ancho del cuerpo bajo el brazo.',
+      'A':   'CF arriba-izquierda (origen): centro frente superior. Todo el rectángulo parte de aquí. A.B = pecho/4 + 2cm de ancho; B.C = largo de camisa.',
+      'B':   'Costado arriba-derecha: esquina superior del lado del costado. Punto de referencia del rectángulo — no es contorno.',
+      'C':   'Costado abajo-derecha: esquina inferior del costado. Junto con D cierra el dobladillo.',
+      'D':   'CF abajo-izquierda: esquina inferior del centro frente. El dobladillo va de D→C.',
+      '1':   'Profundidad del escote (A.1): cuello/6 − 1cm hacia abajo desde A en el CF. Marca dónde termina el cuello y empieza el escote delantero.',
+      '2':   'Nivel de sisa CF (A.2): pecho/4 + 1cm hacia abajo desde A. La línea horizontal 2→2b es la línea de verificación de la sisa — mide que la profundidad sea correcta.',
+      '2b':  'Nivel de sisa en el costado: igual altura que punto 2 pero en el borde derecho. La línea 2→2b es la referencia horizontal de la sisa para verificar medidas.',
+      '8':   'Ancho del escote (A.8): cuello/6 hacia la derecha desde A. Define cuánto se abre el escote hacia el hombro. Punto de arranque de la curva del escote.',
+      '9':   'Referencia tipo sport (A.9 ≈ A.8): igual distancia que A.8 pero con un leve ajuste para vistas tipo sport. Solo difiere en detalle de confección.',
+      '10':  'Tip de hombro en nivel 1 (1.10): espalda/2 desde el punto 1 hacia la derecha. Ubica el extremo del hombro a la altura del cuello — antes de la caída.',
+      '11':  'Hombro con caída (10.11): 1cm hacia abajo desde el punto 10. El hombro tiene una caída natural; este punto lo refleja.',
+      '12':  'Arranque de curva cuello-hombro (8.12): 1cm hacia abajo desde el punto 8. La curva del escote arranca suavemente desde aquí, no desde el borde de la tela.',
+      '13':  'Inicio de sisa (11.13): 1cm hacia abajo desde el punto 11. Es donde la línea del hombro termina y la curva de la sisa comienza — punto crítico de la manga.',
+      '14':  'Vista (ojal y botón) — A.14: 9cm a la izquierda del CF. Este ancho es estándar para una vista de camisa de caballero con 3 botones.',
+      '14D': 'Esquina inferior de la vista: igual posición que punto 14 pero a la altura del dobladillo. La línea 14→14D es el doblez de la vista.',
     },
     'camisa-posterior': {
       'B':  'Centro Espalda arriba (doblez): origen del patrón trasero de camisa.',
