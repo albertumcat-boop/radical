@@ -235,9 +235,13 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('4a', '2a',  'line');   // línea de hombro
 
       // Sisa (armhole) — curva corrida desde caída de hombro hasta nivel sisa
-      // Vector 2→3 apunta hacia abajo (dy>0); ctrl negativo curva hacia ADENTRO del cuerpo (izq).
+      // Verificado con la fórmula real del renderer: cpx = mx-(dy/len)*ctrl.
+      // Vector 2→3 es vertical puro (dx=0, dy>0) → cpx = mx - ctrl.
+      // SM (punto guía) está 1cm hacia -x (hacia el centro espalda) respecto
+      // a la línea 2-3, así que para que la curva pase por ese lado ctrl debe
+      // ser POSITIVO (ctrl negativo movería la curva hacia +x, hacia afuera).
       ln('2a', '2',   'line');   // caída de hombro (2cm vertical)
-      ln('2',  '3',   'curve', '', -20);  // sisa completa — ctrl negativo = curva hacia adentro
+      ln('2',  '3',   'curve', '', 20);  // sisa completa — ctrl positivo = curva hacia adentro (centro espalda)
 
       // Nivel sisa → costado
       ln('3',  'F',   'line');   // sisa horizontal hasta costado
