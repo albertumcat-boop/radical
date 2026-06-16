@@ -215,21 +215,18 @@ PAT.App = (function () {
       if (btn) btn.textContent = sb?.classList.contains('collapsed') ? '›' : '‹';
     });
 
-    // Trazado manual
+    // Trazado — abre wizard primero; si ya hay canvas abierto lo trae al frente
     $('btn-drafter')?.addEventListener('click', function() {
-      if (PAT.DrafterUI) PAT.DrafterUI.open();
-      else console.error('[PatrónAI] DrafterUI no cargado');
+      const modal = document.getElementById('dv6-modal');
+      if (modal && modal.classList.contains('open')) return; // ya abierto
+      if (PAT.Wizard) PAT.Wizard.open();
+      else if (PAT.DrafterUI) PAT.DrafterUI.open();
     });
 
     // Biblioteca de Bloques Base
     $('btn-bloques')?.addEventListener('click', function() {
       if (PAT.BloquesUI) PAT.BloquesUI.open();
       else console.error('[PatrónAI] BloquesUI no cargado');
-    });
-
-    // Nueva Prenda (Wizard)
-    $('btn-nueva-prenda')?.addEventListener('click', function() {
-      if (PAT.Wizard) PAT.Wizard.open();
     });
 
     // Mis Sistemas de Patronaje

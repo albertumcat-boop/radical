@@ -266,16 +266,26 @@ PAT.Wizard = (function () {
       }
     }
 
-    const id     = _pieza.id;
+    const id      = _pieza.id;
     const medidas = _getMedidas();
     close();
 
-    // Llamar a _runPieza expuesto por DrafterUI
-    if (typeof window._runPieza === 'function') {
-      window._runPieza(id, medidas);
-    } else {
-      console.warn('[Wizard] _runPieza no disponible');
-    }
+    // Abrir el Trazador si no está abierto
+    if (PAT.DrafterUI) PAT.DrafterUI.open();
+
+    // Pequeño delay para que DrafterUI inicialice el canvas antes de trazar
+    setTimeout(() => {
+      if (typeof window._runPieza === 'function') {
+        window._runPieza(id, medidas);
+      } else {
+        console.warn('[Wizard] _runPieza no disponible');
+      }
+    }, 120);
+  }
+
+  function _trazarEnBlanco() {
+    close();
+    if (PAT.DrafterUI) PAT.DrafterUI.open();
   }
 
   /* ── Estilos ─────────────────────────────────────────────────── */
@@ -379,6 +389,9 @@ PAT.Wizard = (function () {
       .wiz-campo-row input:focus { outline:none;border-color:rgba(139,92,246,.6);box-shadow:0 0 0 2px rgba(139,92,246,.15); }
       .wiz-unit { font-size:.78rem;color:#475569; }
       .wiz-no-campos { color:#64748b;font-style:italic;font-size:.85rem;padding:8px 0; }
+      .wiz-blank-row { margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);text-align:center; }
+      #wiz-en-blanco { background:none;border:none;color:#475569;font-size:.82rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px; }
+      #wiz-en-blanco:hover { color:#94a3b8; }
 
       .wiz-footer { border-top:1px solid rgba(255,255,255,.06);padding-top:18px;margin-top:4px; }
       #wiz-trazar {
@@ -417,6 +430,9 @@ PAT.Wizard = (function () {
           <div id="wiz-step1">
             <p class="wiz-hint">Selecciona la pieza que deseas trazar:</p>
             <div id="wiz-categories"></div>
+            <div class="wiz-blank-row">
+              <button id="wiz-en-blanco">✏ Abrir canvas en blanco</button>
+            </div>
           </div>
 
           <!-- Paso 2: medidas y trazar -->
@@ -453,6 +469,7 @@ PAT.Wizard = (function () {
     document.getElementById('wizard-close').addEventListener('click', close);
     div.addEventListener('click', e => { if (e.target === div) close(); });
     document.getElementById('wiz-back').addEventListener('click', _showStep1);
+    document.getElementById('wiz-en-blanco').addEventListener('click', _trazarEnBlanco);
     document.getElementById('wiz-talla-tipo').addEventListener('change', _onTallaChange);
     document.getElementById('wiz-cargar-talla').addEventListener('click', _onCargarTalla);
     document.getElementById('wiz-trazar').addEventListener('click', _trazar);
