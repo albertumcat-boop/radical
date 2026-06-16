@@ -227,6 +227,11 @@ PAT.App = (function () {
       else console.error('[PatrónAI] BloquesUI no cargado');
     });
 
+    // Nueva Prenda (Wizard)
+    $('btn-nueva-prenda')?.addEventListener('click', function() {
+      if (PAT.Wizard) PAT.Wizard.open();
+    });
+
     // Mis Sistemas de Patronaje
     $('btn-mis-sistemas')?.addEventListener('click', function() {
       if (PAT.MisSistemasUI) PAT.MisSistemasUI.open();

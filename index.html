@@ -593,6 +593,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
       <button class="sb-btn ghost" id="btn-drafter">✏ Trazar</button>
       <button class="sb-btn ghost" id="btn-export-pdf">📄 PDF</button>
     </div>
+    <button class="sb-btn" id="btn-nueva-prenda" style="background:linear-gradient(135deg,rgba(124,58,237,.35),rgba(91,33,182,.35));border-color:rgba(139,92,246,.6);color:#c4b5fd;font-weight:700">✂ Nueva Prenda</button>
     <button class="sb-btn ghost" id="btn-bloques" style="border-color:rgba(139,92,246,.4);color:#a78bfa">📚 Mis Bloques Base</button>
     <button class="sb-btn ghost" id="btn-mis-sistemas" style="border-color:rgba(139,92,246,.4);color:#a78bfa">📐 Mis Sistemas</button>
     <button class="sb-btn ghost" id="btn-materiales" style="border-color:rgba(52,211,153,.3);color:#34d399">🎓 Materiales</button>
@@ -2839,6 +2840,71 @@ PAT.DrafterUI = (function () {
   }
 
   // ════════════════════════════════════════════════════════════
+  // TRAZAR PIEZA NH PARAMÉTRICA (usado por Wizard)
+  // ════════════════════════════════════════════════════════════
+  function _runPieza(bloqueId, medidas) {
+    const nh = PAT.Sistemas?.NereydaHerrera;
+    if (!nh) { _instr('⚠ Sistema NH no disponible'); return; }
+
+    if (Object.keys(_points).length > 0) {
+      if (!confirm('⚠️ Esto borrará el trazado actual.\n¿Continuar?')) return;
+    }
+
+    let bloque;
+    try { bloque = nh.generarBloque(bloqueId, medidas); }
+    catch (e) { _instr('⚠ Error al generar pieza: ' + e.message); return; }
+
+    // Limpiar canvas
+    _points = {}; _lines = []; _ptCtr = 0;
+    _buildLog = []; _selected = null; _lnStart = null; _selectedLine = null;
+    _snapshot();
+
+    _demoRunning = true;
+    _instr('▶ Trazando ' + bloque.name + '…');
+
+    const delay = 180;
+    let step = 0;
+    function next(fn) { setTimeout(fn, delay * step++); }
+
+    const ptEntries = Object.entries(bloque.points);
+
+    // Agregar puntos uno a uno
+    ptEntries.forEach(([id, pt]) => {
+      next(() => {
+        _points[id] = { x: pt.x, y: pt.y, name: pt.name, fx: pt.fx || '', fy: pt.fy || '' };
+        _ptCtr++;
+        _renderAll();
+        _instr('• Punto ' + pt.name + ' (' + Math.round(pt.x) + ', ' + Math.round(pt.y) + ')');
+      });
+    });
+
+    // Agregar líneas una a una
+    bloque.lines.forEach(ln => {
+      next(() => {
+        _lines.push({ from: ln.from, to: ln.to, type: ln.type, ctrl: ln.ctrl || 20, cpx: null, cpy: null });
+        const pa = _points[ln.from], pb = _points[ln.to];
+        if (pa && pb) _instr('— ' + pa.name + ' → ' + pb.name + ' (' + ln.type + ')');
+        _renderAll();
+      });
+    });
+
+    // Finalizar
+    next(() => {
+      _demoRunning = false;
+      _pieceName = bloque.name;
+      const nmEl = document.getElementById('dv6-nm');
+      if (nmEl) nmEl.value = _pieceName;
+      _setTool('select');
+      _fitView();
+      _instr('✅ ' + bloque.name + ' trazada — ' + ptEntries.length + ' pts · ' + bloque.lines.length + ' líneas. Modifica los puntos o usa las fórmulas.');
+      if (PAT.App) PAT.App.toast('✅ ' + bloque.name, 'success');
+    });
+  }
+
+  // Exponer para que wizard.js pueda llamarlo
+  window._runPieza = _runPieza;
+
+  // ════════════════════════════════════════════════════════════
   // HISTORIAL DE CONSTRUCCIÓN (Feature 4)
   // ════════════════════════════════════════════════════════════
   function _refreshHistory(){
@@ -3073,6 +3139,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/mis-sistemas-ui.js"></script>
 <script src="js/materiales.js"></script>
 <script src="js/materiales-ui.js"></script>
+<script src="js/wizard.js"></script>
 <script src="js/sistemas/nereyda-herrera.js"></script>
 <script src="js/sistemas/sistemas-ui.js"></script>
 
