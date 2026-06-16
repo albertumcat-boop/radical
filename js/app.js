@@ -239,6 +239,11 @@ PAT.App = (function () {
       if (PAT.MaterialesUI) PAT.MaterialesUI.open();
     });
 
+    // Pizarra de Inspiración
+    $('btn-pizarra')?.addEventListener('click', function() {
+      if (PAT.PizarraUI) PAT.PizarraUI.open();
+    });
+
     // PDF
     $('btn-export-pdf')?.addEventListener('click', doPDFExport);
     // Logo clickeable cuando sidebar está colapsado
