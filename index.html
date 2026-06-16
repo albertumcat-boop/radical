@@ -1047,6 +1047,7 @@ PAT.DrafterUI = (function () {
   let _selected    = null;
   let _demoRunning = false;
   let _pieceName   = 'Mi Pieza';
+  let _pieceBloqueId = '';
   let _curSave     = null;
   let _snapEnabled  = false;
   let _snapSize     = 5; // mm
@@ -1113,6 +1114,8 @@ PAT.DrafterUI = (function () {
 #dv6-nota-panel .np-text{font-size:11.5px;color:#c4c0d8;line-height:1.55;}
 #dv6-nota-panel .np-close{background:none;border:none;color:#475569;cursor:pointer;font-size:14px;line-height:1;padding:0;flex-shrink:0;}
 #dv6-nota-panel .np-close:hover{color:#fff;}
+#dv6-nota-panel .np-edit-btn{background:none;border:1px solid rgba(139,92,246,.3);color:#7c6fad;cursor:pointer;font-size:11px;line-height:1;padding:2px 6px;border-radius:4px;flex-shrink:0;}
+#dv6-nota-panel .np-edit-btn:hover{background:rgba(139,92,246,.2);color:#a78bfa;border-color:rgba(139,92,246,.6);}
 #dv6-coord{position:absolute;top:10px;left:12px;font-size:11px;color:#3d3d58;font-family:monospace;
   background:rgba(6,6,12,.85);padding:4px 10px;border-radius:6px;pointer-events:none;line-height:1.5}
 #dv6-dist{position:absolute;top:10px;right:12px;font-size:12px;font-weight:700;color:#34d399;
@@ -1963,16 +1966,50 @@ PAT.DrafterUI = (function () {
   function _showNota(pt){
     const panel=document.getElementById('dv6-nota-panel');
     if(!panel)return;
-    if(pt&&pt.nota){
-      panel.innerHTML=
-        '<div class="np-name">📍 '+pt.name+
-        '<button class="np-close" onclick="document.getElementById(\'dv6-nota-panel\').style.display=\'none\'">✕</button></div>'+
-        '<div class="np-text">'+pt.nota+'</div>';
-      panel.style.display='block';
-    } else {
-      panel.style.display='none';
-    }
+    if(!pt){panel.style.display='none';return;}
+    const nota=pt.nota||'';
+    const ptName=pt.name;
+    panel.innerHTML=
+      '<div class="np-name">📍 '+ptName+
+      '<div style="display:flex;gap:6px;align-items:center">'+
+      '<button class="np-edit-btn" title="Editar nota" onclick="window._editNota(\''+ptName+'\')">✏</button>'+
+      '<button class="np-close" onclick="document.getElementById(\'dv6-nota-panel\').style.display=\'none\'">✕</button>'+
+      '</div></div>'+
+      '<div class="np-text" id="np-text-body">'+(nota||'<em style="color:#475569">Sin nota — haz clic en ✏ para agregar una explicación propia.</em>')+'</div>';
+    panel.style.display='block';
   }
+
+  window._editNota=function(ptName){
+    const panel=document.getElementById('dv6-nota-panel');
+    const body=document.getElementById('np-text-body');
+    if(!panel||!body)return;
+    // Encontrar el punto por nombre
+    const ptEntry=Object.entries(_points).find(([,p])=>p.name===ptName);
+    if(!ptEntry)return;
+    const [ptId,pt]=ptEntry;
+    const current=pt.nota||'';
+    body.innerHTML=
+      '<textarea id="np-textarea" style="width:100%;box-sizing:border-box;background:#0c0c18;border:1px solid rgba(139,92,246,.5);'+
+      'color:#e2e8f0;border-radius:7px;padding:8px;font-size:11.5px;line-height:1.5;resize:vertical;min-height:80px;font-family:inherit;">'+
+      current+'</textarea>'+
+      '<div style="display:flex;gap:6px;margin-top:8px;">'+
+      '<button onclick="window._saveNota(\''+ptId+'\',\''+ptName+'\')" style="flex:1;background:rgba(139,92,246,.25);border:1px solid rgba(139,92,246,.5);color:#a78bfa;border-radius:6px;padding:5px;font-size:11px;cursor:pointer;">💾 Guardar</button>'+
+      '<button onclick="window._showNota(_points[\''+ptId+'\'])" style="background:none;border:1px solid rgba(255,255,255,.1);color:#64748b;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;">Cancelar</button>'+
+      '</div>';
+    setTimeout(()=>document.getElementById('np-textarea')?.focus(),50);
+  };
+
+  window._saveNota=async function(ptId,ptName){
+    const ta=document.getElementById('np-textarea');
+    if(!ta)return;
+    const texto=ta.value.trim();
+    if(_points[ptId])_points[ptId].nota=texto;
+    if(PAT.NotasUsuario&&_pieceBloqueId){
+      await PAT.NotasUsuario.setNota(_pieceBloqueId,ptName,texto);
+    }
+    _showNota(_points[ptId]);
+    _instr('💾 Nota de «'+ptName+'» guardada');
+  };
   function _selectPt(id){
     _selected=id;
     _renderAll();
@@ -2923,9 +2960,20 @@ PAT.DrafterUI = (function () {
     // Finalizar
     next(() => {
       _demoRunning = false;
-      _pieceName = bloque.name;
+      _pieceName    = bloque.name;
+      _pieceBloqueId = bloqueId;
       const nmEl = document.getElementById('dv6-nm');
       if (nmEl) nmEl.value = _pieceName;
+
+      // Superponer notas del usuario/atelier sobre las notas por defecto
+      if (PAT.NotasUsuario) {
+        const notasUsuario = PAT.NotasUsuario.getNotas(bloqueId);
+        Object.values(_points).forEach(pt => {
+          const custom = notasUsuario[pt.name];
+          if (custom) pt.nota = custom;
+        });
+      }
+
       _setTool('select');
       _fitView();
       _instr('✅ ' + bloque.name + ' trazada — ' + ptEntries.length + ' pts · ' + bloque.lines.length + ' líneas. Modifica los puntos o usa las fórmulas.');
@@ -3173,6 +3221,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/materiales-ui.js"></script>
 <script src="js/wizard.js"></script>
 <script src="js/sistemas/nereyda-herrera.js"></script>
+<script src="js/notas-usuario.js"></script>
 <script src="js/sistemas/sistemas-ui.js"></script>
 
 <!-- ── Patrones nuevos ────────────────────────────────── -->
