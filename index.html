@@ -1105,6 +1105,14 @@ PAT.DrafterUI = (function () {
   background:rgba(9,9,18,.93);border:1px solid #2e2e45;border-radius:20px;
   padding:6px 18px;font-size:12px;color:#9490b0;pointer-events:none;white-space:nowrap;backdrop-filter:blur(6px);
   max-width:80%;text-overflow:ellipsis;overflow:hidden}
+#dv6-nota-panel{position:absolute;top:14px;right:14px;
+  background:rgba(13,11,28,.96);border:1px solid rgba(139,92,246,.45);border-radius:12px;
+  padding:14px 16px;max-width:280px;backdrop-filter:blur(8px);
+  box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:50;pointer-events:auto;}
+#dv6-nota-panel .np-name{font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+#dv6-nota-panel .np-text{font-size:11.5px;color:#c4c0d8;line-height:1.55;}
+#dv6-nota-panel .np-close{background:none;border:none;color:#475569;cursor:pointer;font-size:14px;line-height:1;padding:0;flex-shrink:0;}
+#dv6-nota-panel .np-close:hover{color:#fff;}
 #dv6-coord{position:absolute;top:10px;left:12px;font-size:11px;color:#3d3d58;font-family:monospace;
   background:rgba(6,6,12,.85);padding:4px 10px;border-radius:6px;pointer-events:none;line-height:1.5}
 #dv6-dist{position:absolute;top:10px;right:12px;font-size:12px;font-weight:700;color:#34d399;
@@ -1293,6 +1301,7 @@ PAT.DrafterUI = (function () {
       </svg>
 
       <div id="dv6-instr">＋ Modo Punto activo — haz clic en el canvas para colocar puntos · luego usa L=Línea o C=Curva para conectarlos · R=Rectángulo base rápido</div>
+      <div id="dv6-nota-panel" style="display:none"></div>
       <div id="dv6-coord">x: 0mm · y: 0mm</div>
       <div id="dv6-dist"></div>
     </div>
@@ -1951,8 +1960,32 @@ PAT.DrafterUI = (function () {
     return -1;
   }
 
-  function _selectPt(id){_selected=id;_renderAll();_updateForm();}
-  function _deselectPt(){_selected=null;_renderAll();_updateForm();}
+  function _showNota(pt){
+    const panel=document.getElementById('dv6-nota-panel');
+    if(!panel)return;
+    if(pt&&pt.nota){
+      panel.innerHTML=
+        '<div class="np-name">📍 '+pt.name+
+        '<button class="np-close" onclick="document.getElementById(\'dv6-nota-panel\').style.display=\'none\'">✕</button></div>'+
+        '<div class="np-text">'+pt.nota+'</div>';
+      panel.style.display='block';
+    } else {
+      panel.style.display='none';
+    }
+  }
+  function _selectPt(id){
+    _selected=id;
+    _renderAll();
+    _updateForm();
+    _showNota(_points[id]);
+    if(_points[id]&&!_points[id].nota) _instr('📍 Punto '+_points[id].name+' seleccionado');
+  }
+  function _deselectPt(){
+    _selected=null;
+    _renderAll();
+    _updateForm();
+    document.getElementById('dv6-nota-panel')?.style && (document.getElementById('dv6-nota-panel').style.display='none');
+  }
 
   function _delSelected(){
     if(!_selected)return;
@@ -2870,7 +2903,7 @@ PAT.DrafterUI = (function () {
     // Agregar puntos uno a uno
     ptEntries.forEach(([id, pt]) => {
       next(() => {
-        _points[id] = { x: pt.x, y: pt.y, name: pt.name, fx: pt.fx || '', fy: pt.fy || '' };
+        _points[id] = { x: pt.x, y: pt.y, name: pt.name, fx: pt.fx || '', fy: pt.fy || '', nota: pt.nota || '' };
         _ptCtr++;
         _renderAll();
         _instr('• Punto ' + pt.name + ' (' + Math.round(pt.x) + ', ' + Math.round(pt.y) + ')');

@@ -1054,6 +1054,101 @@ PAT.Sistemas.NereydaHerrera = (function () {
    *              bolsillo-recto, bolsillo-semicurva
    *   Caballero: camisa-posterior, manga-corta-camisa, manga-larga-camisa
    */
+  // ══════════════════════════════════════════════════════════════
+  // NOTAS DIDÁCTICAS — explicación de cada punto por pieza
+  // Al hacer clic en un punto en el canvas, se muestra esta nota.
+  // ══════════════════════════════════════════════════════════════
+  const NOTAS_NH = {
+    'blusa-trasera': {
+      'A':  'Centro Espalda (arriba) — punto de origen. Aquí empieza el doblez de la espalda.',
+      'B':  'Ancho del cuerpo: pecho/4 + 2cm de holgura. Define el ancho total de la mitad de la blusa.',
+      'D':  'Centro Espalda (abajo) — línea de doblez. El patrón se corta en doblez desde A hasta D.',
+      'D1': 'Referencia de largo: marca el dobladillo inferior en el CE.',
+      '5':  'Profundidad del escote posterior: 2cm hacia abajo desde A. El escote de espalda no es recto, baja ligeramente.',
+      '4':  'Ancho del escote: cuello/4 + 1cm desde el CE. Define cuánto se abre el cuello hacia el hombro.',
+      '4a': 'Punto elevado del escote: se sube 1cm desde el punto 4 para crear la curva natural del cuello posterior.',
+      '2a': 'Tip de hombro: espalda/2 desde el punto de cuello (4a). Marca el extremo del hombro.',
+      '2':  'Caída del hombro: se baja 1.5–2cm desde 2a. Los hombros no son horizontales, tienen una inclinación natural.',
+      '3':  'Nivel de sisa (base): pecho/8 + 2cm hacia abajo desde el hombro. Define dónde termina la sisa y empieza el costado.',
+      'SM': 'Punto de referencia de sisa NH: 1cm hacia adentro desde el punto medio de la línea recta 2→3. No es parte del contorno — define la profundidad de la curva de la sisa.',
+      'F':  'Punto de axila (underarm): en la línea de sisa, define el ancho del cuerpo a nivel axilar.',
+      '6':  'Punto de cintura: con un pequeño entalle (2–3cm hacia adentro desde el costado) para dar forma a la silueta.',
+      'C':  'Esquina inferior del costado: punto donde el costado se une al dobladillo.',
+    },
+    'camisa-delantera': {
+      'B':  'Centro Frente arriba (doblez): punto de origen del delantero. Aquí va el doblez o la abertura delantera.',
+      'A':  'Esquina superior derecha (costado/sisa): define el ancho del delantero — igual que el trasero (pecho/4 + holgura).',
+      'D':  'Centro Frente abajo: cierra el CF verticalmente. La línea A→D es el costado.',
+      'C':  'Esquina inferior izquierda: base del dobladillo en el costado.',
+      'NW': 'Ancho del escote: cuello/4 desde el CF. Define cuánto se separa el escote del centro frente hacia el hombro.',
+      'NWa':'Punto elevado del escote: NW subido 2cm. Los escotes delanteros arrancan un poco más arriba que el punto de referencia plano.',
+      'ND': 'Profundidad del escote delantero: cuello/6 + 1cm hacia abajo desde el CF. El escote delantero es más profundo que el posterior.',
+      'SH': 'Tip de hombro: espalda/2 desde NWa. Punto donde termina el hombro y comienza la sisa.',
+      'SI': 'Base de la sisa: pecho/8 + 2cm hacia abajo desde SH. Define la profundidad total de la sisa.',
+      'SM': 'Punto de referencia de sisa NH: 1cm hacia adentro en el medio de la línea SH→SI. Define la curvatura de la sisa — no es parte del contorno.',
+      'F':  'Punto de axila (underarm): nivel horizontal de la sisa, define el ancho del cuerpo bajo el brazo.',
+    },
+    'camisa-posterior': {
+      'B':  'Centro Espalda arriba (doblez): origen del patrón trasero de camisa.',
+      'A':  'Esquina superior derecha (costado): ancho del cuerpo — pecho/4 + 2cm.',
+      'D':  'Costado abajo: cierra el cuerpo verticalmente.',
+      'C':  'Centro Espalda abajo: cierra el dobladillo.',
+      'a':  'Punto de cuello elevado: el CE sube 1cm sobre A para que el cuello quede bien sentado al doblar.',
+      '1':  'Profundidad del escote posterior: cuello/6 − 1cm. Marca dónde baja el escote desde el CE.',
+      '2':  'Ancho del escote lateral: cuello/4 + 1cm desde el costado. Define cuánto se abre el escote hacia el hombro.',
+      '3':  'Ancho de cuello en el hombro: cuello/6 desde el costado. Punto donde la línea del cuello llega al hombro.',
+      '4':  'Punto de curva del escote: cuello/6 − 2cm debajo del punto 3. Controla la curva entre el cuello y el hombro.',
+      '5':  'Tip de hombro: espalda/2 desde el costado. Donde termina el hombro.',
+      '6':  'Caída de hombro: 1cm hacia abajo desde el tip. Inclinación natural del hombro.',
+      '7':  'Inicio de sisa: 1cm hacia el CE desde el punto 6. La sisa no empieza en el borde del hombro sino ligeramente adentro.',
+      'G':  'Línea de canesú: 6cm desde el CE hacia abajo. Marca la costura que separa el canesú de la espalda.',
+      'E':  'Nivel de cintura (referencia): mitad del largo total en el costado.',
+      'F':  'Punto de entalle: 1cm hacia adentro desde E. Da forma a la cintura de la camisa.',
+      '2D': 'Punto inferior del canesú en el costado: define el largo del canesú en el lado del costado.',
+    },
+    'manga-corta-camisa': {
+      'A':  'Sisa izquierda: punto base de la cabeza de manga en el lado izquierdo. Se une a la sisa de la blusa/camisa.',
+      'B':  'Sisa derecha: punto base de la cabeza de manga en el lado derecho.',
+      'P':  'Pico de la cabeza de manga: pecho/10 + 1cm por encima de la línea de sisa. Es el punto más alto de la manga — más alto = manga con mejor cabeza de manga.',
+      'C':  'Esquina inferior derecha (ruedo): donde termina el largo de manga en el costado derecho.',
+      'D':  'Esquina inferior izquierda (ruedo): donde termina el largo de manga en el costado izquierdo.',
+      '1':  'Referencia NH: pecho/10 + 1cm desde A. Define el punto de inflexión de la curva de sisa en el lado izquierdo.',
+      '2':  'Referencia NH: mitad de A→1. Divide la cabeza de manga en cuartos para controlar la curva.',
+      '3':  'Referencia NH: mitad de A→2. Cuarto interno de la cabeza de manga.',
+      '4':  'Centro de la manga (referencia): mitad exacta del ancho A→B. Marca el centro de la manga para alineación con la costura del hombro.',
+    },
+    'manga-corta-vestido': {
+      'A':  'Sisa izquierda: punto base de la cabeza de manga para vestido.',
+      'B':  'Sisa derecha: punto base de la cabeza de manga para vestido.',
+      'P':  'Pico de la cabeza de manga: busto/10 + 3cm por encima de la sisa. La cabeza de manga de vestido es más alta que la de camisa para dar más amplitud de movimiento.',
+      'C':  'Ruedo derecho: fin del largo de manga.',
+      'D':  'Ruedo izquierdo: fin del largo de manga.',
+      '4':  'Centro de la manga: mitad del ancho. Alinea con la costura del hombro al coser.',
+      '5':  'Referencia de puño: mitad del largo. En mangas largas indica donde puede ir el punto de entalle.',
+    },
+    'cuello-sport': {
+      'A':  'Extremo derecho del cuello: el largo A→B = escote/2 (mitad del contorno de escote de la blusa).',
+      'B':  'Extremo izquierdo del cuello (doblez): aquí se marca DOBLAR. El cuello se corta en doblez para obtener ambas mitades simétricas.',
+      'C':  'Esquina inferior izquierda: define el ancho del cuello (6cm).',
+      'D':  'Esquina inferior derecha (doblez): coincide con B al doblar la tela.',
+      '1':  'Punto de curva en el extremo: cuello/4 + 1cm desde A para dar la curva que va hacia el cuello de la blusa.',
+      '2':  'Punto de caída inferior: 1–2cm hacia abajo desde B. Define la línea curva del borde inferior del cuello.',
+      '3':  'Centro del cuello (ancho): mitad de A→B en el borde superior y en el inferior. Ayuda a trazar la línea central.',
+    },
+    'cuello-con-pie': {
+      'A':  'Extremo del cuello (cuerpo principal): el cuerpo del cuello mide escote/2 de largo.',
+      'B':  'Doblez del cuello (CE): aquí se coloca el Centro Espalda del cuello.',
+      '2':  'Curva superior del cuello: punto de inflexión que define la curva del borde visible del cuello.',
+      '3c': 'Punto de terminación de la curva superior.',
+      'A2': 'Extremo del pie de cuello: el pie tiene el mismo largo que el cuerpo (escote/2).',
+      'B2': 'Doblez del pie (CE): Centro Espalda del pie de cuello.',
+      '3p': 'Curva inferior del pie: punto de inflexión en el borde que va al escote.',
+    },
+    'bolsillo-pico':      { 'B': 'Esquina superior izquierda del bolsillo.', 'A': 'Esquina superior derecha del bolsillo.', '1L': 'Marca de dobladillo izquierda: 3cm desde la parte superior. El dobladillo se dobla hacia adentro para terminar el borde superior.', '1': 'Marca de dobladillo derecha: 3cm desde arriba.', 'CL': 'Esquina inferior izquierda: altura donde comienza el pico.', 'CR': 'Esquina inferior derecha: altura donde comienza el pico.', 'M': 'Pico central: punto más bajo del bolsillo, 2.5cm debajo de las esquinas. Le da el acabado decorativo en V.' },
+    'bolsillo-recto':     { 'B': 'Esquina superior izquierda.', 'A': 'Esquina superior derecha.', '1L': 'Marca de dobladillo izquierda (3cm desde arriba).', '1': 'Marca de dobladillo derecha (3cm desde arriba).', 'C': 'Esquina inferior izquierda: fondo recto del bolsillo.', 'D': 'Esquina inferior derecha: fondo recto del bolsillo.' },
+    'bolsillo-semicurva': { 'B': 'Esquina superior izquierda.', 'A': 'Esquina superior derecha.', '1L': 'Marca de dobladillo izquierda (3cm desde arriba).', '1': 'Marca de dobladillo derecha (3cm desde arriba).', 'C': 'Esquina inferior izquierda: inicio de la semicurva.', 'M': 'Punto central inferior: define la profundidad de la semicurva. La curva C→M→D da el redondeado del bolsillo.', 'D': 'Esquina inferior derecha: fin de la semicurva.' },
+  };
+
   function generarBloque(pieza, medidas, talla = 'S') {
     let resultado, nombre, categoria;
 
@@ -1133,6 +1228,12 @@ PAT.Sistemas.NereydaHerrera = (function () {
       default:
         throw new Error('Pieza no reconocida: ' + pieza);
     }
+
+    // Adjuntar notas didácticas a cada punto
+    const notasPieza = NOTAS_NH[pieza] || {};
+    Object.values(resultado.points).forEach(pt => {
+      pt.nota = notasPieza[pt.name] || '';
+    });
 
     return {
       name:        nombre,
