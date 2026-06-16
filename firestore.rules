@@ -19,13 +19,8 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid;
     }
 
-    // ── Bloques (library blocks) ─────────────────────────────────────────
-    match /bloques/{bloqueId} {
-      allow read, update, delete: if request.auth != null
-                                  && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid;
-    }
+    // Nota: bloques, mis-sistemas y notas viven dentro de users/{uid}/...
+    // y ya quedan cubiertos por la regla de arriba.
 
     // ── Todo lo demás: denegado ──────────────────────────────────────────
     match /{document=**} {
