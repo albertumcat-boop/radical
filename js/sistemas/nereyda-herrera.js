@@ -234,10 +234,10 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // Hombro
       ln('4a', '2a',  'line');   // línea de hombro
 
-      // Sisa (armhole) — semicurva desde hombro hasta nivel sisa
+      // Sisa (armhole) — curva corrida desde caída de hombro hasta nivel sisa
+      // SM es punto de referencia NH (1cm hacia adentro en el medio) — no es waypoint
       ln('2a', '2',   'line');   // caída de hombro (2cm vertical)
-      ln('2',  'SM',  'curve');  // sisa superior
-      ln('SM', '3',   'curve');  // sisa inferior
+      ln('2',  '3',   'curve');  // sisa completa en un solo arco
 
       // Nivel sisa → costado
       ln('3',  'F',   'line');   // sisa horizontal hasta costado
@@ -539,9 +539,8 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('C',   'F',   'line');
       // Underarm horizontal hasta el fondo de la sisa
       ln('F',   'SI',  'line');
-      // Sisa — semicurvas (inferior y superior)
-      ln('SI',  'SM',  'curve');
-      ln('SM',  'SH',  'curve');
+      // Sisa — curva corrida de un solo arco (SM es referencia NH, no waypoint)
+      ln('SI',  'SH',  'curve');
       // Hombro desde tip hasta nodo cuello-hombro
       ln('SH',  'NWa', 'line');
       // Curva del escote delantero
