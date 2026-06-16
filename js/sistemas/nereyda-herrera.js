@@ -443,71 +443,117 @@ PAT.Sistemas.NereydaHerrera = (function () {
   // ══════════════════════════════════════════════════════════════
   const CAMISA_DELANTERA = {
     nombre: 'Camisa Parte Delantera',
+
+    /**
+     * Construcción NH — Camisa Delantera (frente).
+     * CF (Centro Delantero) = DERECHA (doblez).
+     * Costado/sisa = IZQUIERDA.
+     * Misma lógica que BLUSA_TRASERA pero en espejo horizontal.
+     *
+     * @param {object} m  medidas en cm { bust, shoulder, neck, totalLength, waist, hip, hipDepth }
+     * @param {number} s  margen en mm (default 10)
+     */
     generar(m, s = 10) {
-      const T   = m.bust * 10;
-      const NK  = m.neck * 10;
-      const ESP = m.shoulder * 10;
-      const LC  = m.totalLength * 10;
-      const SF  = s;
-      const HOLGURA = 20;
+      const T   = m.bust        * 10;
+      const NK  = m.neck        * 10;
+      const ESP = m.shoulder    * 10;
+      const LC  = (m.totalLength || m.backLength || 65) * 10;
+      const CIN = (m.waist      || 68) * 10;
+      const CAD = (m.hip        || 94) * 10;
+      const ACA = (m.hipDepth   || 18) * 10;
 
-      const rectW = T / 4 + HOLGURA;
-      const rectH = LC;
+      const OX = s;        // margen izquierdo = lado costado/sisa
+      const OY = s + 30;   // margen superior ampliado (el escote puede subir 2cm sobre OY)
 
-      const A  = { x: SF + rectW, y: SF,        name: 'A'  };
-      const B_ = { x: SF,         y: SF,         name: 'B'  };
-      const C_ = { x: SF + rectW, y: SF + rectH, name: 'C'  };
-      const D  = { x: SF,         y: SF + rectH, name: 'D'  };
+      // ── Rectángulo base ─────────────────────────────────────────
+      // Ancho = tórax/4 + 2cm holgura   Alto = largo total
+      const RW = T / 4 + 20;
+      const RH = LC;
 
-      // A.1 = cuello/6 - 1cm (profundidad escote)
-      const p1  = { x: SF + rectW,          y: SF + NK/6 - 10,   name: '1'  };
-      // A.2 = pecho/4 + 1cm (ancho escote lateral — línea de apertura botones)
-      const p2  = { x: SF + rectW - (T/4 + 10), y: SF,           name: '2'  };
-      // A.8 = cuello/6 (ancho cuello en hombro)
-      const p8  = { x: SF + rectW - NK/6,    y: SF,               name: '8'  };
-      // A.9 = cuello/6 (referencia adicional)
-      const p9  = { x: SF + rectW - NK/6,    y: SF + NK/6,        name: '9'  };
-      // 1.10 = espalda/2 (mitad ancho espalda desde p1)
-      const p10 = { x: SF + rectW - ESP/2,   y: SF + NK/6 - 10,  name: '10' };
-      // 10.11 = 1cm (hacia abajo)
-      const p11 = { x: SF + rectW - ESP/2,   y: SF + NK/6 + 0,   name: '11' };
-      // 8.12 = 1cm (desde p8 hacia costado)
-      const p12 = { x: SF + rectW - NK/6 - 10, y: SF,            name: '12' };
-      // 11.13 = 1cm (desde p11)
-      const p13 = { x: SF + rectW - ESP/2 - 10, y: SF + NK/6,    name: '13' };
-      // A.14 = cuello/6 (vista sport) — a la izquierda de A
-      const p14 = { x: SF + rectW + NK/6,    y: SF,               name: '14' };
-      // Bolsillo: sobre línea 2, a 2.5cm, ancho 11cm
-      const bolsL= { x: SF + rectW - (T/4 + 10) - 55, y: SF + 200, name: 'BL' };
-      const bolsR= { x: SF + rectW - (T/4 + 10) + 55, y: SF + 200, name: 'BR' };
-      const bolsB= { x: SF + rectW - (T/4 + 10),      y: SF + 320, name: 'BB' };
+      // CF = borde DERECHO (x = OX + RW)
+      // Costado = borde IZQUIERDO (x = OX)
+      const B_  = { x: OX,       y: OY,       name: 'B'  };  // top-left  (costado ref.)
+      const A   = { x: OX + RW,  y: OY,       name: 'A'  };  // top-right  (CF top)
+      const D   = { x: OX + RW,  y: OY + RH,  name: 'D'  };  // bot-right  (CF bottom)
+      const C_  = { x: OX,       y: OY + RH,  name: 'C'  };  // bot-left   (costado bottom)
 
+      // ── ESCOTE DELANTERO ─────────────────────────────────────────
+      // Ancho escote: cuello/6 desde CF hacia costado (igual que espalda)
+      const neckW = NK / 6;
+      // Profundidad escote delantero: cuello/6 + 1cm (ligeramente mayor que espalda)
+      const neckD = NK / 6 + 10;
+
+      // NW = punto cuello-hombro sobre la línea de tope (a neckW del CF)
+      const NW  = { x: OX + RW - neckW,  y: OY,        name: 'NW'  };
+      // NWa = NW subido 2cm (curva del escote sube en el hombro, mismo criterio que espalda)
+      const NWa = { x: OX + RW - neckW,  y: OY - 20,   name: 'NWa' };
+      // ND = profundidad del escote sobre el CF
+      const ND  = { x: OX + RW,          y: OY + neckD, name: 'ND'  };
+
+      // ── HOMBRO ───────────────────────────────────────────────────
+      // Desde NWa hacia el costado: espalda/2 de ancho total de hombro
+      // 4cm de caída de hombro (mismo que espalda)
+      const shDrop = 40;
+      const SH  = { x: OX + RW - ESP / 2, y: OY + shDrop, name: 'SH' };
+
+      // ── SISA ─────────────────────────────────────────────────────
+      // Profundidad de sisa = espalda/2 - 1cm (igual que espalda)
+      const sisaD = ESP / 2 - 10;
+      const SI  = { x: OX + RW - ESP / 2,      y: OY + shDrop + sisaD,       name: 'SI' };
+      const SM  = { x: OX + RW - ESP / 2 + 10, y: OY + shDrop + sisaD / 2,   name: 'SM' };
+      // punto de control empuja hacia CF (derecha) para curvatura correcta
+
+      // ── UNDERARM y COSTADO ────────────────────────────────────────
+      // F = extremo izquierdo del underarm (nivel sisa, borde costado)
+      const F   = { x: OX,              y: SI.y,         name: 'F'  };
+
+      // Cintura y cadera (medidas desde CF hacia costado, igual que espalda desde CB)
+      const p6  = { x: OX + RW - (CIN / 4 + 30), y: OY + RH - ACA, name: '6'  };
+      const D2  = { x: OX + RW - CAD / 4,         y: OY + RH + ACA, name: 'D2' };
+      // Nodo de cadera para esquina inferior del costado (a nivel de cadera)
+      const FH  = { x: OX,                         y: OY + RH + ACA, name: 'FH' };
+
+      // ── Ensamblar puntos ──────────────────────────────────────────
       const points = {};
-      [A, B_, C_, D, p1, p2, p8, p9, p10, p11, p12, p13, p14, bolsL, bolsR, bolsB]
-        .forEach((p, i) => { points['cd' + i] = { x:p.x, y:p.y, name:p.name, fx:'', fy:'' }; });
+      [B_, A, D, C_, NW, NWa, ND, SH, SI, SM, F, p6, D2, FH]
+        .forEach((p, i) => {
+          points['del' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' };
+        });
+
       const byName = {};
-      Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
+      Object.entries(points).forEach(([id, p]) => { byName[p.name] = id; });
 
       const lines = [];
-      function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
+      function ln(a, b, t = 'line') {
+        if (byName[a] && byName[b])
+          lines.push({ from: byName[a], to: byName[b], type: t, ctrl: 20, cpx: null, cpy: null });
+      }
 
-      ln('A', 'B',  'line');  // tope superior
-      ln('B', 'D',  'fold');  // centro delantero (doblez)
-      ln('D', 'C',  'line');  // dobladillo
-      ln('C', 'A',  'line');  // costado
-      ln('A', '2',  'line');  // apertura (vista botones)
-      ln('1', '9',  'curve'); // curva escote
-      ln('9', '12', 'curve'); // curva cuello hombro
-      ln('12','13', 'line');  // hombro
-      ln('13','10', 'curve'); // sisa
-      ln('10','2',  'line');  // costado desde sisa
-      // Bolsillo
-      ln('BL','BR', 'line');
-      ln('BR','BB', 'curve');
-      ln('BB','BL', 'curve');
+      // ── Contorno principal (forma de la prenda) ───────────────────
+      // CF (doblez) — borde derecho completo
+      ln('A',   'D',   'fold');
+      // Dobladillo inferior
+      ln('D',   'C',   'line');
+      // Costado (borde izquierdo) sube desde dobladillo hasta nivel sisa
+      ln('C',   'F',   'line');
+      // Underarm horizontal hasta el fondo de la sisa
+      ln('F',   'SI',  'line');
+      // Sisa — semicurvas (inferior y superior)
+      ln('SI',  'SM',  'curve');
+      ln('SM',  'SH',  'curve');
+      // Hombro desde tip hasta nodo cuello-hombro
+      ln('SH',  'NWa', 'line');
+      // Curva del escote delantero
+      ln('NWa', 'ND',  'curve');
+      // Apertura CF (del escote hasta la esquina superior)
+      ln('ND',  'A',   'line');
+
+      // ── Líneas de construcción (referencia) ───────────────────────
+      ln('B',  'A',  'line');   // tope superior horizontal
+      ln('B',  'C',  'fold');   // costado vertical de referencia
 
       return { points, lines };
-    }
+    },
   };
 
   // ══════════════════════════════════════════════════════════════
