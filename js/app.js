@@ -227,6 +227,16 @@ PAT.App = (function () {
       else console.error('[PatrónAI] BloquesUI no cargado');
     });
 
+    // Mis Sistemas de Patronaje
+    $('btn-mis-sistemas')?.addEventListener('click', function() {
+      if (PAT.MisSistemasUI) PAT.MisSistemasUI.open();
+    });
+
+    // Biblioteca de Materiales
+    $('btn-materiales')?.addEventListener('click', function() {
+      if (PAT.MaterialesUI) PAT.MaterialesUI.open();
+    });
+
     // PDF
     $('btn-export-pdf')?.addEventListener('click', doPDFExport);
     // Logo clickeable cuando sidebar está colapsado

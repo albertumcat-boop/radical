@@ -47,6 +47,8 @@ window.PAT = window.PAT || {};
           await PAT.AuthTier.loadTierFromFirestore();
         }
         document.dispatchEvent(new CustomEvent('pat:authChanged', { detail: { uid: user.uid, email: user.email } }));
+        // Cargar sistemas propios del usuario en PAT.Sistemas
+        if (PAT.MisSistemas?.cargarTodos) PAT.MisSistemas.cargarTodos();
       } else {
         console.log('[PatrónAI] Sin sesión activa.');
         document.dispatchEvent(new CustomEvent('pat:authChanged', { detail: null }));
