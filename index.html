@@ -1332,15 +1332,28 @@ PAT.DrafterUI = (function () {
         </div>
       </div>
 
+      <!-- Contenedor con scroll propio: agrupa todo el contenido variable
+           del panel (medidas, puntos, líneas, historial, guardados, atajos).
+           Antes estas secciones eran hermanas directas del pie de botones
+           dentro de la misma columna flex; cuando una pieza tenía muchos
+           puntos/líneas (ej. Camisa Delantera: 16 pts, 21 líneas) el
+           contenido total superaba el alto del panel y, al no haber scroll
+           en este nivel, el pie con "Guardar pieza" / "Ver reporte /
+           auditoría" quedaba empujado fuera de la vista (parecía que el
+           botón "desaparecía"). Con flex:1 + overflow-y:auto aquí, este
+           bloque se vuelve scrolleable y el pie (.dv6-ft, flex-shrink:0)
+           queda SIEMPRE visible, sin importar cuánto contenido haya arriba. -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;min-height:0">
+
       <!-- Propiedades de línea seleccionada -->
       <div class="dv6-psec">
         <div class="dv6-ptl">Variables de medidas</div>
         <div class="dv6-vl" id="dv6-vl"></div>
       </div>
 
-      <div class="dv6-psec" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="dv6-psec" style="display:flex;flex-direction:column;overflow:hidden">
         <div class="dv6-ptl">Puntos <span id="dv6-ptcnt" style="color:#5a5678;font-weight:400">0</span></div>
-        <div class="dv6-ptlist" id="dv6-ptlist"></div>
+        <div class="dv6-ptlist" id="dv6-ptlist" style="max-height:140px"></div>
       </div>
 
       <div class="dv6-psec">
@@ -1374,6 +1387,8 @@ PAT.DrafterUI = (function () {
         <kbd>R</kbd> Rect. &nbsp;<kbd>M</kbd> Espejo &nbsp;<kbd>Esc</kbd> Cancel<br>
         <kbd>Ctrl+Z</kbd> Atrás &nbsp;<kbd>Ctrl+Y</kbd> Adelante<br>
         <kbd>Del</kbd> Borrar &nbsp;<kbd>Rueda</kbd> Zoom &nbsp;<kbd>Alt+drag</kbd> Pan
+      </div>
+
       </div>
 
       <div class="dv6-ft">
