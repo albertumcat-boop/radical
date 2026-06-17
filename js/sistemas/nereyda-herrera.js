@@ -410,6 +410,10 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // como bordes falsos dentro del contorno relleno.
       ln('B',  'A',  'construction');    // tope superior
       ln('E',  'F',  'construction');    // referencia entalle
+      // G = tiro/bajo del canesú (5-8cm bajo el hombro en CB). Antes quedaba
+      // como punto huérfano (definido pero sin ninguna línea que lo usara).
+      // Se agrega como referencia de construcción para marcar la línea del canesú.
+      ln('B',  'G',  'construction');    // referencia canesú
 
       return { points, lines };
     },
@@ -687,10 +691,11 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const p3 = { x: OX + d1/4,     y: OY,        name: '3'  };
       const p4 = { x: OX + anchoM/2, y: OY,        name: '4'  };  // centro sisa
 
-      // Abertura y puño (manga larga)
+      // Abertura y puño (manga larga) — manual: entra 7cm horizontal desde
+      // el extremo posterior (antes eran 10cm fijos).
       let abertura = null;
       if (tipo === 'larga') {
-        abertura = { x: OX + anchoM - 100, y: OY + ML, name: 'AB' };
+        abertura = { x: OX + anchoM - 70, y: OY + ML, name: 'AB' };
       }
 
       const points = {};
@@ -703,9 +708,14 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const lines = [];
       function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
 
-      // ── Cabeza de manga (arco en dos mitades) ─────────────────────
-      ln('A', 'P', 'curve');   // mitad izq del arco
-      ln('P', 'B', 'curve');   // mitad der del arco
+      // ── Cabeza de manga (arco en dos mitades, diferenciadas) ───────
+      // Manual NH: la copa NO es simétrica — el lado que va contra la
+      // ESPALDA es más plano ("línea azul") y el lado que va contra el
+      // DELANTERO es más cóncavo, con ~1cm más de entrada ("línea roja").
+      // A = lado posterior/espalda (más plano, ctrl menor) ·
+      // B = lado delantero (más cóncavo, ctrl mayor).
+      ln('A', 'P', 'curve', 'línea azul (espalda) — más plana', 14);
+      ln('P', 'B', 'curve', 'línea roja (delantero) — más cóncava', 26);
 
       // ── Costuras laterales ─────────────────────────────────────────
       ln('A', 'D', 'line');    // costura lateral izq
@@ -995,8 +1005,8 @@ PAT.Sistemas.NereydaHerrera = (function () {
      */
     generar(m, s = 10, modelo = 'pico') {
       const SF    = s;
-      const ancho = 110;          // 11cm
-      const largo = ancho + 20;   // 13cm
+      const ancho = 120;          // 12cm (manual NH: bolsillo de parche 12x14cm)
+      const largo = ancho + 20;   // 14cm
 
       const OX = SF;
       const OY = SF;
@@ -1062,6 +1072,67 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const lines = [];
       function ln(a,b,t='line'){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl:20,cpx:null,cpy:null}); }
       linesFn(ln);
+
+      return { points, lines };
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // 4.5 PUÑO CAMISERO (pieza independiente)
+  //    Fuente: Manual NH, Sección 5 Bloque B — Puño Camisero Clásico.
+  //    Antes el "puño" solo existía como el borde inferior de la manga
+  //    (sin pieza propia); el manual lo trata como patrón aparte:
+  //
+  //    A.B  = mitad del contorno de puño (muñeca) + 3cm  (ancho base)
+  //    B.C  = 6cm                                         (alto del puño)
+  //    Extensión de abotonadura: +1.5cm en el extremo de cierre
+  //    Esquinas: redondeadas levemente (curva suave en las 2 puntas)
+  // ══════════════════════════════════════════════════════════════
+  const PUNO_CAMISA = {
+    nombre: 'Puño Camisero',
+    autor:  'Nereyda Herrera',
+
+    /**
+     * NH — Puño camisero clásico (pieza independiente, se corta x2 en doblez).
+     * A = esquina superior izq (cierre/abotonadura) · B = esquina superior
+     * der (doblez/CE) · C = esquina inferior der (doblez) · D = esquina
+     * inferior izq (cierre) · E = extensión de abotonadura.
+     *
+     * @param {object} m  { wrist }
+     */
+    generar(m, s = 10) {
+      const PU = (m.wrist || 18) * 10;
+
+      const ancho = PU / 2 + 30;   // mitad contorno puño + 3cm
+      const alto  = 60;            // 6cm
+
+      const OX = s;
+      const OY = s;
+
+      const A  = { x: OX,          y: OY,          name: 'A' };  // sup-izq (cierre)
+      const B_ = { x: OX + ancho,  y: OY,          name: 'B' };  // sup-der (doblez)
+      const C_ = { x: OX + ancho,  y: OY + alto,   name: 'C' };  // inf-der (doblez)
+      const D  = { x: OX,          y: OY + alto,   name: 'D' };  // inf-izq (cierre)
+      // Extensión de abotonadura: 1.5cm hacia afuera del lado de cierre
+      const E  = { x: OX - 15,     y: OY + alto/2, name: 'E' };
+
+      const points = {};
+      [A, B_, C_, D, E].forEach((p, i) => { points['pn' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' }; });
+      const byName = {};
+      Object.entries(points).forEach(([id, p]) => { byName[p.name] = id; });
+
+      const lines = [];
+      function ln(a, b, t = 'line', ctrl = 20) {
+        if (byName[a] && byName[b]) lines.push({ from: byName[a], to: byName[b], type: t, ctrl, cpx: null, cpy: null });
+      }
+
+      ln('B', 'C', 'fold');          // doblez (Centro Espalda del puño)
+      ln('C', 'D', 'line');          // borde inferior (va al ruedo de la manga)
+      // Lado de cierre: pasa por la extensión de abotonadura (leve curva
+      // hacia afuera, no una esquina recta).
+      ln('D', 'E', 'curve', 12);
+      ln('E', 'A', 'curve', 12);
+      ln('A', 'B', 'line');          // borde superior (vista)
 
       return { points, lines };
     }
@@ -1223,6 +1294,13 @@ PAT.Sistemas.NereydaHerrera = (function () {
     'bolsillo-pico':      { 'B': 'Esquina superior izquierda del bolsillo.', 'A': 'Esquina superior derecha del bolsillo.', '1L': 'Marca de dobladillo izquierda: 3cm desde la parte superior. El dobladillo se dobla hacia adentro para terminar el borde superior.', '1': 'Marca de dobladillo derecha: 3cm desde arriba.', 'CL': 'Esquina inferior izquierda: altura donde comienza el pico.', 'CR': 'Esquina inferior derecha: altura donde comienza el pico.', 'M': 'Pico central: punto más bajo del bolsillo, 2.5cm debajo de las esquinas. Le da el acabado decorativo en V.' },
     'bolsillo-recto':     { 'B': 'Esquina superior izquierda.', 'A': 'Esquina superior derecha.', '1L': 'Marca de dobladillo izquierda (3cm desde arriba).', '1': 'Marca de dobladillo derecha (3cm desde arriba).', 'C': 'Esquina inferior izquierda: fondo recto del bolsillo.', 'D': 'Esquina inferior derecha: fondo recto del bolsillo.' },
     'bolsillo-semicurva': { 'B': 'Esquina superior izquierda.', 'A': 'Esquina superior derecha.', '1L': 'Marca de dobladillo izquierda (3cm desde arriba).', '1': 'Marca de dobladillo derecha (3cm desde arriba).', 'C': 'Esquina inferior izquierda: inicio de la semicurva.', 'M': 'Punto central inferior: define la profundidad de la semicurva. La curva C→M→D da el redondeado del bolsillo.', 'D': 'Esquina inferior derecha: fin de la semicurva.' },
+    'puno-camisa': {
+      'A': 'Esquina superior del lado de cierre/abotonadura.',
+      'B': 'Esquina superior del lado de doblez (Centro Espalda del puño) — aquí se dobla la tela al cortar.',
+      'C': 'Esquina inferior del doblez: coincide con B al doblar.',
+      'D': 'Esquina inferior del lado de cierre: se une al ruedo de la manga.',
+      'E': 'Extensión de abotonadura: 1.5cm hacia afuera del lado de cierre, con leve curva.',
+    },
   };
 
   function generarBloque(pieza, medidas, talla = 'S') {
@@ -1301,6 +1379,12 @@ PAT.Sistemas.NereydaHerrera = (function () {
         categoria = 'otro';
         break;
 
+      case 'puno-camisa':
+        resultado = PUNO_CAMISA.generar(medidas);
+        nombre    = `Puño Camisero NH — Talla ${talla}`;
+        categoria = 'otro';
+        break;
+
       default:
         throw new Error('Pieza no reconocida: ' + pieza);
     }
@@ -1347,6 +1431,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
     cuelloSport:     CUELLO_SPORT,
     cuelloConPie:    CUELLO_CON_PIE,
     bolsilloCamisa:  BOLSILLO_CAMISA,
+    punoCamisa:      PUNO_CAMISA,
     // Tabla Atelier Escuela
     tablasAtelierCab: TALLAS_ATELIER_CAB,
     // Lista de piezas para UI
@@ -1369,6 +1454,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
       { id: 'cuello-sport',        label: 'Cuello Sport',           tipo: 'caballero' },
       { id: 'cuello-con-pie',      label: 'Cuello con Pie',         tipo: 'caballero' },
       { id: 'bolsillo-pico',       label: 'Bolsillo en Pico',       tipo: 'caballero' },
+      { id: 'puno-camisa',         label: 'Puño Camisero',          tipo: 'caballero' },
     ],
     // ── Agrupado por categoría (para dropdown ordenado sin duplicados) ──
     piezasGrupos: [
@@ -1397,6 +1483,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
           { id: 'bolsillo-pico',       label: 'Bolsillo en Pico',      tipo: 'ambos' },
           { id: 'bolsillo-recto',      label: 'Bolsillo Recto',        tipo: 'dama'  },
           { id: 'bolsillo-semicurva',  label: 'Bolsillo Semicurva',    tipo: 'dama'  },
+          { id: 'puno-camisa',         label: 'Puño Camisero',         tipo: 'caballero' },
         ],
       },
     ],
