@@ -491,8 +491,11 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // A.8  sexta parte del contorno del cuello  (ancho del escote hacia costado)
       const p8  = { x: OX + NK/6,     y: OY,                  name: '8'  };
 
-      // A.9  igual a A.8 → referencia para vista tipo sport
-      const p9  = { x: OX + NK/6,     y: OY + 5,              name: '9'  };
+      // A.9  sexta parte del cuello (completa, sin restar 1cm) hacia ABAJO
+      // en la línea AD (CF). Queda más abajo que el punto 1 (que es cuello/6-1cm).
+      // El escote real pasa por este punto, no por el 1 — el punto 1 es solo
+      // una referencia de construcción intermedia.
+      const p9  = { x: OX,            y: OY + NK/6,           name: '9'  };
 
       // 1.10  mitad del ancho de espalda desde p1  (posición del tip de hombro)
       const p10 = { x: OX + ESP/2,    y: OY + NK/6 - 10,     name: '10' };
@@ -540,6 +543,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('B',  'C',   'construction', 'B.C  largo camisa');
       ln('C',  'D',   'construction', 'base rectángulo');
       ln('A',  '1',   'construction', 'A.1  cuello/6-1cm');
+      ln('A',  '9',   'construction', 'A.9  cuello/6 (escote real)');
       ln('A',  '2',   'construction', 'A.2  pecho/4+1cm');
       ln('2',  '2b',  'construction', 'nivel sisa ←verificar→');
       ln('A',  '8',   'construction', 'A.8  cuello/6');
@@ -574,10 +578,12 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // Hombro
       ln('13', '12',  'line');
 
-      // Escote: vector 12→1 va a la izquierda y levemente hacia abajo (dx<0, dy>0).
-      // ctrl negativo lleva el CP hacia abajo-derecha = hacia el INTERIOR del rectángulo,
-      // creando el hueco del escote (con ctrl positivo se salía por encima de la línea A-B).
-      ln('12', '1',   'curve', '', -18);
+      // Escote: el contorno real pasa por el punto 9 (cuello/6 completo desde A
+      // en la línea CF), NO por el punto 1 (que es solo una referencia de
+      // construcción intermedia, cuello/6-1cm). Confirmado por el manual NH.
+      // Vector 12→9 va a la izquierda y hacia abajo (dx<0, dy>0), misma
+      // dirección que el caso 12→1 ya verificado — mismo signo de ctrl.
+      ln('12', '9',   'curve', '', -18);
 
       return { points, lines };
     },
@@ -1110,12 +1116,12 @@ PAT.Sistemas.NereydaHerrera = (function () {
       'B':   'Costado arriba-derecha: esquina superior del lado del costado. Punto de referencia del rectángulo — no es contorno.',
       'C':   'Costado abajo-derecha: esquina inferior del costado. Junto con D cierra el dobladillo.',
       'D':   'CF abajo-izquierda: esquina inferior del centro frente. El dobladillo va de D→C.',
-      '1':   'Profundidad del escote (A.1): cuello/6 − 1cm hacia abajo desde A en el CF. Marca dónde termina el cuello y empieza el escote delantero.',
+      '1':   'Punto de construcción intermedio (A.1): cuello/6 − 1cm hacia abajo desde A en el CF. NO es el final real del escote — solo ayuda a ubicar el punto 10 (tip de hombro). El escote real termina en el punto 9, más abajo.',
       '2':   'Nivel de sisa CF (A.2): pecho/4 + 1cm hacia abajo desde A. La línea horizontal 2→2b es la línea de verificación de la sisa — mide que la profundidad sea correcta.',
       '2b':  'Nivel de sisa en el costado: igual altura que punto 2 pero en el borde derecho. La línea 2→2b es la referencia horizontal de la sisa para verificar medidas.',
       '2c':  'Entrada de sisa (1cm hacia adentro desde 2b): la sisa no sube directo desde la esquina del costado, sino que primero entra 1cm hacia el cuerpo. Este punto crea el óvalo de la axila — sin él la sisa queda angulosa.',
       '8':   'Ancho del escote (A.8): cuello/6 hacia la derecha desde A. Define cuánto se abre el escote hacia el hombro. Punto de arranque de la curva del escote.',
-      '9':   'Referencia tipo sport (A.9 ≈ A.8): igual distancia que A.8 pero con un leve ajuste para vistas tipo sport. Solo difiere en detalle de confección.',
+      '9':   'Profundidad real del escote (A.9): cuello/6 completo (sin restar 1cm) hacia abajo desde A, en la línea CF. Queda más abajo que el punto 1. La curva del escote (12→9) termina aquí — confirmado contra el manual NH.',
       '10':  'Tip de hombro en nivel 1 (1.10): espalda/2 desde el punto 1 hacia la derecha. Ubica el extremo del hombro a la altura del cuello — antes de la caída.',
       '11':  'Hombro con caída (10.11): 1cm hacia abajo desde el punto 10. El hombro tiene una caída natural; este punto lo refleja.',
       '12':  'Arranque de curva cuello-hombro (8.12): 1cm hacia abajo desde el punto 8. La curva del escote arranca suavemente desde aquí, no desde el borde de la tela.',
