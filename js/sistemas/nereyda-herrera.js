@@ -199,17 +199,23 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const D1  = { x: OX,                y: OY + RH + ACA, name:'D1' };
       const D2  = { x: OX + CAD/4,        y: OY + RH + ACA, name:'D2' };
 
-      // ── PINZA TRASERA ─────────────────────────────────────────
-      // 7 = mitad entre E y p3 (centro de la pinza)
-      const p7  = { x: (E.x + p3.x) / 2,  y: p3.y,      name:'7'  };
-      const p8  = { x: p7.x,               y: p3.y + 50,  name:'8'  };
-      const p9L = { x: p7.x - 15,          y: p8.y,       name:'9L' };
-      const p9R = { x: p7.x + 15,          y: p8.y,       name:'9R' };
+      // ── PINZA TRASERA (manual: Paso 3 Bloque B) ────────────────
+      // Punto 7 = mitad del TRAMO DE CINTURA (no del tramo de sisa).
+      // El tramo de cintura va de D (CB, x=OX) a 6 (costado, x=p6.x).
+      const p7  = { x: (OX + p6.x) / 2,   y: OY + RH,    name:'7'  };
+      // La pinza sube en recta hasta la altura de sisa y baja hasta la
+      // línea de cadera — longitud total real (no fija 5cm), tal como
+      // indica el manual.
+      const p7T = { x: p7.x,               y: p3.y,            name:'7T' };
+      const p7B = { x: p7.x,               y: OY + RH + ACA,   name:'7B' };
+      // Reparto de 1.5cm hacia cada lado de la línea central en la cintura
+      const p9L = { x: p7.x - 15,          y: p7.y,       name:'9L' };
+      const p9R = { x: p7.x + 15,          y: p7.y,       name:'9R' };
 
       // ── Ensamblar puntos ──────────────────────────────────────
       const points = {};
       [A, B_, C_, D, p1, p2, p3, p4, p2a, p4a, p5, p6,
-       E, F, SM, D1, D2, p7, p8, p9L, p9R]
+       E, F, SM, D1, D2, p7, p7T, p7B, p9L, p9R]
         .forEach((p, i) => {
           points['nh' + i] = { x: p.x, y: p.y, name: p.name, fx:'', fy:'' };
         });
@@ -262,10 +268,13 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('A',  'B',   'construction');   // línea tope (referencia)
 
       // Pinza trasera — interna, NO es parte del contorno exterior.
-      // 'dart' la excluye del relleno (antes era 'line' y ensuciaba la silueta).
-      ln('7',  '8',   'dart');
-      ln('8',  '9L',  'dart');
-      ln('8',  '9R',  'dart');
+      // Forma de rombo (manual): sube de la cintura a la sisa por un lado
+      // y baja de la cintura a la cadera por el otro, repartiendo 1.5cm a
+      // cada lado en la línea de cintura. 'dart' la excluye del relleno.
+      ln('7T', '9R',  'dart');
+      ln('9R', '7B',  'dart');
+      ln('7B', '9L',  'dart');
+      ln('9L', '7T',  'dart');
 
       return { points, lines };
     },
@@ -290,24 +299,163 @@ PAT.Sistemas.NereydaHerrera = (function () {
   };
 
   // ══════════════════════════════════════════════════════════════
-  // 4. FÓRMULAS — CAMISA PARTE POSTERIOR (CABALLERO)
-  //    Fuente: "Trazado de Camisa Parte Posterior" Nereyda Herrera
+  // 3.5 FÓRMULAS — BLUSA BÁSICA DE DAMA, PARTE DELANTERA
+  //    Fuente: MANUAL TÉCNICO COMPLETO DE PATRONAJE INDUSTRIAL — NH,
+  //    Sección 3, Bloque A. Pieza que antes NO existía en el código
+  //    (solo había Parte Trasera).
   //
-  //    LECTURA DEL DOCUMENTO:
-  //    - Rectángulo: tórax/4 + 2cm (ancho) × largo camisa (alto)
-  //      (nota manuscrita: A movimiento ±2cm holgado o ajustado)
-  //    - A.1  = cuello/6 - 1cm
-  //    - A.2  = cuello/4 + 1cm
-  //    - A.3  = cuello/6
-  //    - 3.4  = cuello/6 - 2cm
-  //    - A.5  = espalda/2 (mitad ancho espalda)
-  //    - 5.6  = 1cm
-  //    - 6.7  = 1cm
-  //    - Trace la sisa en semicurva
-  //    - E    = mitad de 2.D (mitad del largo)
-  //    - E.F  = 1cm (entalle en costado)
-  //    - G    = 5 a 8cm aprox (tiro/bajo del canesú)
-  //    - A.a  = subir 1cm (en la curva posterior del cuello)
+  //    A.B  = busto/4 + 2cm                (ancho)
+  //    B.C  = talle delantero               (alto)
+  //    Caída de hombro: 5cm (1cm más que la espalda — el manual no da
+  //                      un eje X explícito; se usa la misma guía
+  //                      espalda/2 que la trasera, por homologación)
+  //    A.1  = espalda/6                    (escote horizontal)
+  //    A.5  = espalda/6 + 2cm               (escote vertical, curva profunda)
+  //    Pinza de entalle (cintura) = cintura/4 + 3cm, con 3cm reubicados
+  //      como pinza de busto que muere 2cm antes de la altura del pezón
+  //      (el manual no da una coordenada X numérica exacta para el punto
+  //      de separación de busto; se aproxima al 55% del ancho del cuerpo,
+  //      una posición típica de patronaje — ajustable con fx/fy)
+  //    Pinza de costado: extrae la diferencia (talle delantero − talle
+  //      posterior) en el costado, horizontal
+  //    Cruce de cierre: 7cm desde el CF para la vista de botones
+  // ══════════════════════════════════════════════════════════════
+  const BLUSA_DELANTERA = {
+    nombre: 'Blusa Básica Parte Delantera',
+    autor:  'Nereyda Herrera',
+    piezas: ['delantero'],
+
+    /**
+     * NH — Blusa Básica Dama, Parte Delantera (con pinzas anatómicas).
+     * CF = IZQUIERDA, costado = DERECHA (misma convención que el resto
+     * del sistema: CB/CF siempre a la izquierda).
+     *
+     * @param {object} m  { bust, shoulder, frontLength, backLength, waist, hipDepth }
+     * @param {number} s  margen en mm
+     */
+    generar(m, s = 10) {
+      const BUS = m.bust * 10;
+      const ESP = m.shoulder * 10;
+      const TF  = (m.frontLength || 44) * 10;
+      const TP  = (m.backLength  || 41) * 10;
+      const CIN = m.waist * 10;
+
+      // Margen extra a la izquierda para la vista de botones (7cm)
+      const OX = s + 70;
+      const OY = s + 30;   // espacio arriba para que la pinza de busto quepa
+
+      const RW = BUS / 4 + 20;   // A.B  busto/4 + 2cm
+      const RH = TF;              // B.C  talle delantero
+
+      const A  = { x: OX,       y: OY,       name: 'A' };  // CF top
+      const B_ = { x: OX + RW,  y: OY,       name: 'B' };  // costado top
+      const C_ = { x: OX + RW,  y: OY + RH,  name: 'C' };  // costado bottom
+      const D  = { x: OX,       y: OY + RH,  name: 'D' };  // CF bottom
+
+      // ── ESCOTE ────────────────────────────────────────────────
+      // A.1 escote horizontal = espalda/6 (hacia el costado)
+      const p1 = { x: OX + ESP/6,       y: OY,             name: '1' };
+      // A.5 escote vertical = espalda/6 + 2cm (hacia abajo, en el CF)
+      const p5 = { x: OX,               y: OY + ESP/6+20,  name: '5' };
+
+      // ── HOMBRO ────────────────────────────────────────────────
+      // Guía de hombro (espalda/2, homologada con la trasera), caída 5cm
+      const hombroX = OX + ESP/2;
+      const pH = { x: hombroX, y: OY + 50, name: 'H' };
+
+      // ── PINZA DE BUSTO (entalle vertical de cintura) ───────────
+      // Cintura/4+3cm define el ancho final en la cintura; los 3cm se
+      // reubican como pinza de busto (1.5cm a cada lado), centrada
+      // aprox. al 55% del ancho del cuerpo (punto de separación de
+      // busto — el manual no da una X numérica exacta).
+      const bustX  = OX + RW * 0.55;
+      const bustApexY = p5.y + (RH - p5.y) * 0.32;   // ≈ "2cm antes del pezón": altura aprox.
+      const waistY = OY + RH;
+      const pBA  = { x: bustX,        y: bustApexY,  name: 'PB'  };  // ápice (muere 2cm antes del pezón)
+      const pBL  = { x: bustX - 15,   y: waistY,      name: 'PBL' };
+      const pBR  = { x: bustX + 15,   y: waistY,      name: 'PBR' };
+
+      // Punto de cintura en el costado: cintura/4 + 3cm
+      const p6 = { x: OX + CIN/4 + 30, y: waistY, name: '6' };
+
+      // ── PINZA DE COSTADO (busto) ────────────────────────────────
+      // Extrae la diferencia entre talle delantero y posterior, en el
+      // costado, de forma horizontal (puntos 10, 11, 12).
+      const difTalle = Math.max(TF - TP, 0);
+      const p10 = { x: OX + RW,       y: OY + RH*0.42,            name: '10' };
+      const p11 = { x: OX + RW - 10,  y: p10.y,                    name: '11' };
+      const p12 = { x: OX + RW,       y: p10.y + (difTalle || 10), name: '12' };
+
+      // ── VISTA / CRUCE DE CIERRE ──────────────────────────────────
+      // 7cm desde el CF para la vista de ojales y abotonado.
+      const p14  = { x: OX - 70, y: p5.y,      name: '14'  };
+      const p14b = { x: OX - 70, y: OY + RH,   name: '14D' };
+
+      const points = {};
+      [A, B_, C_, D, p1, p5, pH, pBA, pBL, pBR, p6, p10, p11, p12, p14, p14b]
+        .forEach((p, i) => { points['bd' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' }; });
+      const byName = {};
+      Object.entries(points).forEach(([id, p]) => { byName[p.name] = id; });
+
+      const lines = [];
+      function ln(a, b, t = 'line', lbl = '', ctrl = 20) {
+        if (byName[a] && byName[b])
+          lines.push({ from: byName[a], to: byName[b], type: t, ctrl, cpx: null, cpy: null, label: lbl });
+      }
+
+      // ── Líneas de construcción ────────────────────────────────
+      ln('A', 'B', 'construction', 'A.B busto/4+2cm');
+      ln('B', 'C', 'construction', 'B.C talle delantero');
+
+      // ── Contorno: 14D → D → C → 12 → 11 → 10 → 6 → C(costado)...
+      // Recorrido real: 14D→D(dobladillo CF)→D→C(dobladillo)→C→12→11→10
+      // (pinza costado, ya cerrada arriba)→6(cintura)→H(hombro, vía sisa)
+      // →1(escote)→5(escote)→A→14(vista)→14D
+      ln('14D', 'D',   'line');          // doblez vista (abajo)
+      ln('D',   'C',   'line');          // dobladillo
+      ln('C',   '12',  'line');          // costado hasta pinza
+      ln('12',  '11',  'curve', '', 10); // pinza de costado (entra)
+      ln('11',  '10',  'curve', '', -10);// pinza de costado (sale)
+      ln('10',  '6',   'line');          // costado hasta cintura — referencia,
+                                          // el ancho final en cintura es 6 (CIN/4+3cm)
+      ln('6',   'H',   'curve', 'sisa delantera', -18); // sisa hasta caída de hombro
+      ln('H',   '1',   'line');          // hombro
+      ln('1',   '5',   'curve', 'escote delantero (curva profunda)', -28);
+      ln('5',   'A',   'line');          // escote hasta CF
+      ln('A',   '14',  'line');          // vista, borde superior
+      ln('14',  '14D', 'fold');          // doblez de la vista, cierra contorno
+
+      // Pinza de busto — interna, no forma parte del contorno exterior.
+      ln('PB',  'PBL', 'dart');
+      ln('PB',  'PBR', 'dart');
+
+      return { points, lines };
+    },
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // 4. FÓRMULAS — CAMISA PARTE POSTERIOR (CABALLERO)
+  //    Fuente: MANUAL TÉCNICO COMPLETO DE PATRONAJE INDUSTRIAL — NH,
+  //    Sección 2, Bloque A (Parte Posterior).
+  //
+  //    El manual usa CB=DERECHA / sisa=IZQUIERDA; este código mantiene
+  //    su convención histórica CB=IZQUIERDA / sisa=DERECHA (espejo), para
+  //    quedar simétrico con CAMISA_DELANTERA (CF=izquierda). Mapeo:
+  //    manual A(CB top)→código B_ · manual D(CB bottom)→código C_ ·
+  //    manual B(sisa top)→código A · manual C(sisa bottom)→código D.
+  //
+  //    LECTURA DEL MANUAL (Paso 1-4):
+  //    - Rectángulo: CP/4+2cm (ancho) × Largo Total (alto)
+  //    - A.1   = CC/6 - 1cm           (ancho escote trasero, en línea superior)
+  //    - a     = baja 1cm desde A     (caída de escote en el centro)
+  //    - Punto 1 = CC/6 (profundidad canesú, vertical desde A en el centro)
+  //    - Punto 2 = Punto1 + (CC/6-2cm) (línea de sisa, horizontal a costado)
+  //    - A.5   = AE/2 (guía ancho espalda, vertical desde línea de canesú)
+  //    - Punto 3 = guía AE/2, baja 4cm desde línea superior
+  //    - Punto 4 = prolongación de A.1→3 en línea recta, 1cm más afuera
+  //    - G = desde Punto 3, sube 1cm (holgura ergonómica hombro)
+  //    - Sisa: G baja recto a la línea de sisa y conecta en semicurva con Punto 2
+  //    - E = mitad del costado (sisa→bajo) · F = E entra 1cm (entalle)
   // ══════════════════════════════════════════════════════════════
   const CAMISA_POSTERIOR = {
     nombre: 'Camisa Parte Posterior',
@@ -330,51 +478,52 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const HOLGURA = 20;  // 2cm holgura
 
       const OX = s;        // margen izquierdo = CB
-      const OY = s + 30;   // margen superior (+3cm para que 'a' quede visible)
+      const OY = s + 30;   // margen superior (espacio para 'a')
 
       const rectW = T / 4 + HOLGURA;
       const rectH = LC;
 
       // CB = IZQUIERDA, costado/sisa = DERECHA
-      const B_  = { x: OX,           y: OY,           name: 'B'  };  // CB top
+      const B_  = { x: OX,           y: OY,           name: 'B'  };  // CB top (referencia, no en contorno final)
       const A   = { x: OX + rectW,   y: OY,           name: 'A'  };  // sisa top
       const D   = { x: OX + rectW,   y: OY + rectH,   name: 'D'  };  // sisa bottom
       const C_  = { x: OX,           y: OY + rectH,   name: 'C'  };  // CB bottom
 
-      // ── CUELLO ────────────────────────────────────────────────
-      // A.1 = cuello/6 - 1cm (profundidad escote posterior)
-      const p1  = { x: OX + rectW,             y: OY + NK/6 - 10,     name: '1'  };
-      // A.2 = cuello/4 + 1cm (ancho escote lateral)
-      const p2  = { x: OX + rectW - (NK/4+10), y: OY,                 name: '2'  };
-      // A.3 = cuello/6 (ancho cuello en hombro)
-      const p3  = { x: OX + rectW - NK/6,      y: OY,                 name: '3'  };
-      // 3.4 = cuello/6 - 2cm (punto de curva escote)
-      const p4  = { x: OX + rectW - NK/6,      y: OY + NK/6 - 20,     name: '4'  };
-      // A.a = subir 1cm (punto cuello elevado — queda dentro del margen OY)
-      const pa  = { x: OX + rectW,             y: OY - 10,            name: 'a'  };
+      // ── ESCOTE ────────────────────────────────────────────────
+      // a: caída de escote, baja 1cm desde el CB top (B_)
+      const pa  = { x: OX,             y: OY + 10,            name: 'a' };
+      // A.1: ancho de escote trasero CC/6-1cm, sobre la línea superior
+      const p1  = { x: OX + (NK/6-10), y: OY,                 name: '1' };
 
-      // ── HOMBRO Y SISA ─────────────────────────────────────────
-      // A.5 = espalda/2 (mitad ancho espalda desde costado)
-      const p5  = { x: OX + rectW - ESP/2,     y: OY,                 name: '5'  };
-      // 5.6 = 1cm hacia abajo
-      const p6  = { x: OX + rectW - ESP/2,     y: OY + 10,            name: '6'  };
-      // 6.7 = 1cm hacia CB (hacia adentro, para la sisa)
-      const p7  = { x: OX + rectW - ESP/2 - 10, y: OY + 10,           name: '7'  };
+      // ── CANESÚ Y SISA ──────────────────────────────────────────
+      // Punto "1" del manual (profundidad de canesú) = CC/6 vertical desde CB
+      const canesuY = OY + NK/6;
+      const pCanesu = { x: OX,         y: canesuY,            name: 'CAN' };
+      // Punto 2: línea de sisa = canesú + (CC/6-2cm), horizontal a costado
+      const sisaY   = canesuY + (NK/6 - 20);
+      const p2      = { x: OX + rectW, y: sisaY,              name: '2'  };
 
-      // ── CANESÚ ────────────────────────────────────────────────
-      // G = 6cm bajo el hombro en CB
-      const G   = { x: OX,                     y: OY + 60,            name: 'G'  };
-      // Nivel sisa para canesú (inferior al hombro)
-      const p2D = { x: OX,                     y: OY + NK/4 + 30,     name: '2D' };
+      // ── HOMBRO ────────────────────────────────────────────────
+      // A.5: guía de ancho de espalda (AE/2) — eje vertical auxiliar
+      const guideX = OX + ESP/2;
+      // Punto 3: en la guía, 4cm bajo la línea superior
+      const p3 = { x: guideX, y: OY + 40, name: '3' };
+      // Punto 4: prolongación de la línea A.1→3, 1cm más afuera (hombro real)
+      const dx34 = p3.x - p1.x, dy34 = p3.y - p1.y;
+      const len34 = Math.sqrt(dx34*dx34 + dy34*dy34) || 1;
+      const p4 = { x: p3.x + dx34/len34*10, y: p3.y + dy34/len34*10, name: '4' };
 
-      // ── ENTALLE ───────────────────────────────────────────────
-      // E = mitad del largo (en el costado)
-      const E   = { x: OX + rectW,             y: OY + rectH/2,       name: 'E'  };
-      // E.F = 1cm de entalle hacia adentro
-      const F   = { x: OX + rectW - 10,        y: OY + rectH/2,       name: 'F'  };
+      // G: holgura ergonómica del hombro — sube 1cm desde el Punto 3
+      const G  = { x: p3.x, y: p3.y - 10, name: 'G' };
+      // G2: G bajando recto hasta la línea de sisa (inicio de la semicurva)
+      const G2 = { x: G.x,  y: sisaY,     name: 'G2' };
+
+      // ── ENTALLE DE COSTADO ───────────────────────────────────
+      const E = { x: OX + rectW, y: (sisaY + (OY+rectH)) / 2, name: 'E' };
+      const F = { x: E.x - 10,   y: E.y,                      name: 'F' };
 
       const points = {};
-      [B_, A, D, C_, p1, p2, p3, p4, pa, p5, p6, p7, G, p2D, E, F]
+      [B_, A, D, C_, pa, p1, pCanesu, p2, p3, p4, G, G2, E, F]
         .forEach((p, i) => { points['nc'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
       const byName = {};
       Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
@@ -386,34 +535,30 @@ PAT.Sistemas.NereydaHerrera = (function () {
       }
 
       // ── Contorno principal ─────────────────────────────────────
-      // CB doblez (izquierda)
-      ln('C',  'B',  'fold');
+      // CB doblez (izquierda): de C (abajo) a 'a' (arriba, 1cm bajo B_ —
+      // B_ ya no es punto de contorno porque el escote lo recorta).
+      ln('C',  'a',  'fold');
+      // Escote: curva cóncava de 'a' a A.1 (manual: "regla de curvas")
+      ln('a',  '1',  'curve', 'escote trasero', -14);
+      // Hombro: línea recta de A.1 al Punto 4
+      ln('1',  '4',  'line');
+      // Conector de holgura ergonómica (4→G, ~1cm) y bajada recta a sisa
+      ln('4',  'G',  'line');
+      ln('G',  'G2', 'line');
+      // Sisa: semicurva de G2 a Punto 2
+      ln('G2', '2',  'curve', 'sisa posterior', -20);
+      // Costado con entalle
+      ln('2',  'F',  'line');
+      ln('F',  'D',  'line');
       // Dobladillo
-      ln('C',  'D',  'line');
-      // Costado (con entalle leve)
-      ln('D',  'F',  'line');
-      ln('F',  'a',  'line');
-      // Cuello y escote
-      ln('a',  '1',  'line');
-      ln('1',  '4',  'curve');   // escote posterior — ctrl=20 curva hacia arriba (correcto)
-      ln('4',  '3',  'curve');   // cuello→hombro — ctrl=20 curva hacia el centro (correcto)
-      // Hombro y sisa
-      ln('3',  '5',  'line');
-      ln('5',  '6',  'line');
-      // 6→7 es solo 1cm horizontal; ctrl pequeño para no deformar el arco
-      ln('6',  '7',  'curve', '', 5);
-      // Canesú / armhole base
-      ln('7',  '2D', 'line');
-      ln('2D', 'B',  'line');
+      ln('D',  'C',  'line');
 
-      // Referencias — 'construction' (no 'line') para que no se cuelen
-      // como bordes falsos dentro del contorno relleno.
-      ln('B',  'A',  'construction');    // tope superior
-      ln('E',  'F',  'construction');    // referencia entalle
-      // G = tiro/bajo del canesú (5-8cm bajo el hombro en CB). Antes quedaba
-      // como punto huérfano (definido pero sin ninguna línea que lo usara).
-      // Se agrega como referencia de construcción para marcar la línea del canesú.
-      ln('B',  'G',  'construction');    // referencia canesú
+      // Referencias — 'construction' para que no se cuelen como bordes
+      // falsos dentro del contorno relleno.
+      ln('B',  'A',   'construction');   // tope superior
+      ln('E',  'F',   'construction');   // referencia entalle
+      ln('B',  'CAN', 'construction');   // profundidad de canesú
+      ln('CAN','A',   'construction', '', 0); // línea base del canesú (horizontal completa)
 
       return { points, lines };
     },
@@ -442,29 +587,29 @@ PAT.Sistemas.NereydaHerrera = (function () {
   // 6. CAMISA PARTE DELANTERA
   //    Fuente: "Trazado de Camisa Parte Delantera" Nereyda Herrera
   //
-  //    A.B   = pecho/4 + 2cm
-  //    B.C   = largo camisa
-  //    A.1   = cuello/6 - 1cm     (prof. escote)
-  //    A.2   = pecho/4 + 1cm      (ancho escote)
-  //    A.8   = cuello/6            (ancho cuello)
-  //    A.9   = cuello/6            (ídem, referencia)
-  //    1.10  = espalda/2           (mitad ancho espalda)
-  //    10.11 = 1cm
-  //    8.12  = 1cm
-  //    11.13 = 1cm
-  //    A.14  = cuello/6 (sport) o 9cm fijo (vista ojal)
-  //    Bolsillo: referencia 2–2.5cm de línea 2, ancho 10–12cm
+  //    Fuente: MANUAL TÉCNICO COMPLETO DE PATRONAJE INDUSTRIAL — NH,
+  //    Sección 2, Bloque B (Parte Delantera, "Sistema Integrado").
+  //
+  //    A.B   = CP/4 + 2cm                  (ancho tórax, idéntico a posterior)
+  //    B.C   = Largo + 2cm                 (holgura anatómica delantera)
+  //    Margen de botonadura = 7cm (3cm cruce ojal/botón + 4cm vista doblada)
+  //    A.8   = CC/6                        (ancho escote)
+  //    A.9   = CC/6                        (profundidad escote) — curva con A.8
+  //    Línea de sisa (homologada con posterior) = CC/6 + (CC/6-2cm)
+  //    1.10  = AE/2 (guía ancho espalda), caída de hombro fija 4cm
+  //    Hombro: línea recta A.8 → caída de hombro (debe medir igual que el
+  //            hombro posterior, tramo A.1→4)
+  //    Curva de sisa delantera: entra 1-1.5cm en la mitad de la guía de hombro
   // ══════════════════════════════════════════════════════════════
   const CAMISA_DELANTERA = {
     nombre: 'Camisa Parte Delantera',
 
     /**
-     * NH — Trazado de Camisa Parte Delantera.
-     * Sigue el procedimiento numerado del manual NH (imagen):
-     *   A = CF arriba-izq, B = costado arriba-der,
-     *   C = costado abajo-der, D = CF abajo-izq.
-     *   Puntos 1,2,8,10,11,12,13,14 son puntos de construcción
-     *   visibles en el canvas para verificar medidas.
+     * NH — Trazado de Camisa Parte Delantera ("Sistema Integrado",
+     * homologado con la parte posterior para que hombro y costado
+     * cierren exactos).
+     * A = CF arriba-izq, B = costado arriba-der,
+     * C = costado abajo-der, D = CF abajo-izq.
      *
      * @param {object} m  { bust, shoulder, neck, totalLength }
      * @param {number} s  margen en mm
@@ -475,77 +620,59 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const ESP = m.shoulder * 10;
       const LC  = (m.totalLength || m.frontLength || 65) * 10;
 
-      // Margen extra a la izquierda para que la vista (9cm) quepa
-      const OX = s + 100;
+      // Margen extra a la izquierda para que la vista (7cm: 3cm cruce + 4cm
+      // vista doblada) quepa.
+      const OX = s + 70;
       const OY = s;
 
       // ── Rectángulo base ──────────────────────────────────────────
-      const RW = T / 4 + 20;   // A.B  pecho/4 + 2cm (ancho)
-      const RH = LC;             // B.C  largo de camisa
+      const RW = T / 4 + 20;       // A.B  pecho/4 + 2cm (ancho)
+      const RH = LC + 20;          // B.C  largo + 2cm de holgura anatómica
 
       const A  = { x: OX,       y: OY,       name: 'A'  };  // CF top-izq
       const B_ = { x: OX + RW,  y: OY,       name: 'B'  };  // costado top-der
       const C_ = { x: OX + RW,  y: OY + RH,  name: 'C'  };  // costado bot-der
       const D  = { x: OX,       y: OY + RH,  name: 'D'  };  // CF bot-izq
 
-      // ── Puntos de construcción NH (manual, sec. Delantera) ───────
+      // ── ESCOTE ────────────────────────────────────────────────────
+      // A.8 ancho de escote (CC/6), A.9 profundidad de escote (CC/6) —
+      // se unen con curva cóncava (regla curva francesa).
+      const p8  = { x: OX + NK/6,     y: OY,            name: '8'  };
+      const p9  = { x: OX,            y: OY + NK/6,     name: '9'  };
 
-      // A.1  sexta parte del cuello - 1cm  (profundidad escote en CF, hacia abajo)
-      const p1  = { x: OX,            y: OY + NK/6 - 10,     name: '1'  };
+      // ── HOMOLOGACIÓN DE SISA Y HOMBRO (idéntico método que posterior) ──
+      // Línea de sisa delantera = canesú (CC/6) + (CC/6-2cm), igual que la
+      // espalda, para que ambas sisas midan lo mismo.
+      const sisaY = OY + NK/6 + (NK/6 - 20);
+      // Guía de ancho de espalda (AE/2) — eje vertical auxiliar
+      const guideX = OX + ESP/2;
+      // Caída de hombro: 4cm fijos sobre la guía
+      const pHombro = { x: guideX, y: OY + 40, name: 'H' };
+      // Punto de control de la curva de sisa: mitad de la guía (entre tope
+      // y línea de sisa), entra 1-1.5cm hacia el CF (hacia la izquierda)
+      const ctrlY = (OY + sisaY) / 2;
+      const pCtrl = { x: guideX - 12, y: ctrlY, name: 'SC' };
+      // Punto donde la sisa llega al costado
+      const p2b = { x: OX + RW, y: sisaY, name: '2b' };
 
-      // A.2  pecho/4 + 1cm  (nivel de sisa — línea horizontal de verificación)
-      const p2  = { x: OX,            y: OY + T/4 + 10,      name: '2'  };
+      // ── COSTADO CON ENTALLE ──────────────────────────────────────
+      const E = { x: OX + RW, y: (sisaY + (OY + RH)) / 2, name: 'E' };
+      const F = { x: E.x - 10, y: E.y,                    name: 'F' };
 
-      // A.8  sexta parte del contorno del cuello  (ancho del escote hacia costado)
-      const p8  = { x: OX + NK/6,     y: OY,                  name: '8'  };
-
-      // A.9  sexta parte del cuello (completa, sin restar 1cm) hacia ABAJO
-      // en la línea AD (CF). Queda más abajo que el punto 1 (que es cuello/6-1cm).
-      // El escote real pasa por este punto, no por el 1 — el punto 1 es solo
-      // una referencia de construcción intermedia.
-      const p9  = { x: OX,            y: OY + NK/6,           name: '9'  };
-
-      // 1.10  mitad del ancho de espalda desde p1  (posición del tip de hombro)
-      const p10 = { x: OX + ESP/2,    y: OY + NK/6 - 10,     name: '10' };
-
-      // 10.11  1cm hacia abajo  (caída del hombro)
-      const p11 = { x: OX + ESP/2,    y: OY + NK/6,           name: '11' };
-
-      // 8.12  1cm hacia abajo desde p8  (curva de arranque cuello-hombro)
-      const p12 = { x: OX + NK/6,     y: OY + 10,             name: '12' };
-
-      // 11.13  1cm hacia abajo desde p11  (inicio de la sisa)
-      const p13 = { x: OX + ESP/2,    y: OY + NK/6 + 10,     name: '13' };
-
-      // Punto de sisa lado costado (mismo y que p2, en la columna derecha)
-      const p2b = { x: OX + RW,       y: OY + T/4 + 10,      name: '2b' };
-
-      // 2b.2c  1cm hacia ADENTRO desde 2b (entrada de sisa) — crea el óvalo
-      // de la axila: la sisa no es un solo arco recto de 2b a 13, sino que
-      // pasa primero por este punto interior antes de subir al hombro.
-      const p2c = { x: OX + RW - 10,  y: OY + T/4 + 10,      name: '2c' };
-
-      // A.14  9cm a la izquierda, a la altura del escote REAL (punto 9),
-      // no a la altura de A. A ya no es parte del contorno (el escote
-      // termina en 9, más abajo que A) — si 14 quedara a la altura de A,
-      // la línea 9→14 tendría que subir en diagonal de golpe, creando un
-      // "pico" falso justo donde va el ojal/botón. Poniendo 14 a la misma
-      // altura que 9, la línea 9→14 queda horizontal y la vista nace
-      // limpiamente desde el final real del escote.
-      const p14  = { x: OX - 90,      y: OY + NK/6,           name: '14' };
-      const p14b = { x: OX - 90,      y: OY + RH,             name: '14D' };
+      // A.14 vista de botones: margen de 7cm desde el CF.
+      const p14  = { x: OX - 70,      y: OY + NK/6,           name: '14' };
+      const p14b = { x: OX - 70,      y: OY + RH,             name: '14D' };
 
       // 14T  esquina superior de la vista, a la altura del PICO (punto A).
-      // El usuario pidió que la vista (donde van ojal y botón) suba hasta
-      // la altura del pico pero en forma de CUADRADO (línea recta arriba),
-      // no como un pico diagonal: 9→A (sube recto por la línea CF) →
-      // 14T (línea horizontal arriba, a la altura de A) → 14 (baja recto
-      // hasta la altura real del escote, punto 9) → 14D (sigue hacia abajo).
-      const p14t = { x: OX - 90,      y: OY,                  name: '14T' };
+      // La vista sube en forma de CUADRADO (línea recta arriba), no de pico
+      // diagonal: 9→A (sube recto por la línea CF) → 14T (línea horizontal
+      // arriba, a la altura de A) → 14 (baja recto hasta la altura real del
+      // escote, punto 9) → 14D (sigue hacia abajo).
+      const p14t = { x: OX - 70,      y: OY,                  name: '14T' };
 
       // ── Puntos ────────────────────────────────────────────────────
       const points = {};
-      [A, B_, C_, D, p1, p2, p8, p9, p10, p11, p12, p13, p2b, p2c, p14, p14b, p14t]
+      [A, B_, C_, D, p8, p9, pHombro, pCtrl, p2b, E, F, p14, p14b, p14t]
         .forEach((p, i) => {
           points['cd' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' };
         });
@@ -562,26 +689,14 @@ PAT.Sistemas.NereydaHerrera = (function () {
 
       // ── Líneas de construcción NH (punteadas grises) ─────────────
       ln('A',  'B',   'construction', 'A.B  pecho/4+2cm');
-      ln('B',  'C',   'construction', 'B.C  largo camisa');
+      ln('B',  'C',   'construction', 'B.C  largo+2cm');
       ln('C',  'D',   'construction', 'base rectángulo');
-      ln('A',  '1',   'construction', 'A.1  cuello/6-1cm');
-      ln('A',  '9',   'construction', 'A.9  cuello/6 (escote real)');
-      ln('A',  '2',   'construction', 'A.2  pecho/4+1cm');
-      ln('2',  '2b',  'construction', 'nivel sisa ←verificar→');
       ln('A',  '8',   'construction', 'A.8  cuello/6');
-      ln('1',  '10',  'construction', '1.10  espalda/2');
-      ln('10', '11',  'construction', '10.11  1cm caída');
-      ln('8',  '12',  'construction', '8.12  1cm');
-      ln('11', '13',  'construction', '11.13  1cm');
+      ln('A',  '9',   'construction', 'A.9  cuello/6');
+      ln('E',  'F',   'construction', 'referencia entalle');
 
       // ── Contorno final de la prenda ───────────────────────────────
-      // IMPORTANTE: estas líneas deben formar UNA SOLA cadena continua
-      // (cada "from" = "to" de la línea anterior). El renderer dibuja el
-      // relleno recorriendo _lines en orden y asume que el punto de partida
-      // de cada tramo es donde terminó el anterior — si el orden no es una
-      // cadena real, salta puntos y dibuja diagonales falsas (esto causaba
-      // el fragmento de la vista desconectado del resto de la pieza).
-      // Recorrido: 14D → D → C → 2b → 2c → 13 → 12 → 9 → 14 → (cierra en 14D)
+      // Recorrido: 14D → D → C → 2b → SC → H → 8 → 9 → A → 14T → 14 → (14D)
 
       // Vista (placket de botones): borde inferior, desde la esquina
       // inferior de la vista hasta D.
@@ -590,26 +705,20 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // Dobladillo
       ln('D',  'C',   'line');
 
-      // Costado inferior
-      ln('C',  '2b',  'line');
+      // Costado con entalle
+      ln('C',  'F',   'line');
+      ln('F',  '2b',  'line');
 
-      // Sisa: dos arcos en lugar de uno, para lograr la axila ovalada del manual NH.
-      // 1) 2b→2c: pequeño arco de 1cm que redondea la esquina del costado (el "óvalo").
-      ln('2b', '2c',  'curve', '', -6);
-      // 2) 2c→13: arco principal de la sisa, desde la entrada (1cm adentro) hasta el hombro.
-      //    El vector 2c→13 sube y va a la izquierda (dx<0, dy<0).
-      //    Con ctrl negativo el CP queda a la DERECHA del vector = hacia el interior del cuerpo.
-      ln('2c', '13',  'curve', '', -20);
+      // Sisa delantera: curva cóncava desde el costado, pasando por el
+      // punto de control (entra 1-1.5cm), hasta la caída de hombro.
+      ln('2b', 'H',   'curve', 'sisa delantera (homologada)', -20);
 
-      // Hombro
-      ln('13', '12',  'line');
+      // Hombro: línea recta de la caída de hombro al ancho de escote (A.8) —
+      // debe medir igual que el hombro posterior (tramo A.1→4).
+      ln('H',  '8',   'line');
 
-      // Escote: el contorno real pasa por el punto 9 (cuello/6 completo desde A
-      // en la línea CF), NO por el punto 1 (que es solo una referencia de
-      // construcción intermedia, cuello/6-1cm). Confirmado por el manual NH.
-      // Vector 12→9 va a la izquierda y hacia abajo (dx<0, dy>0), misma
-      // dirección que el caso 12→1 ya verificado — mismo signo de ctrl.
-      ln('12', '9',   'curve', '', -18);
+      // Escote: curva cóncava de A.8 a A.9 (regla curva francesa).
+      ln('8',  '9',   'curve', 'escote delantero', -16);
 
       // Vista cuadrada: desde la profundidad real del escote (9) sube recto
       // por la línea CF hasta la altura del pico (A), gira en línea recta
@@ -1216,42 +1325,61 @@ PAT.Sistemas.NereydaHerrera = (function () {
       'F':  'Punto de axila (underarm): en la línea de sisa, define el ancho del cuerpo a nivel axilar.',
       '6':  'Punto de cintura: con un pequeño entalle (2–3cm hacia adentro desde el costado) para dar forma a la silueta.',
       'C':  'Esquina inferior del costado: punto donde el costado se une al dobladillo.',
+      '7':  'Centro de la pinza trasera: mitad del tramo de cintura (de CB al costado). Desde aquí la pinza sube a la sisa y baja a la cadera.',
+      '7T': 'Ápice superior de la pinza: sube en recta hasta la altura de la sisa.',
+      '7B': 'Ápice inferior de la pinza: baja en recta hasta la línea de cadera.',
+      '9L': 'Ancho de la pinza (izq): 1.5cm a la izquierda del centro, en la línea de cintura.',
+      '9R': 'Ancho de la pinza (der): 1.5cm a la derecha del centro, en la línea de cintura. Junto con 9L y los ápices forma el rombo de la pinza.',
+    },
+    'blusa-delantera': {
+      'A':   'CF arriba (origen): centro frente superior. A.B = busto/4 + 2cm de ancho.',
+      'B':   'Costado arriba: esquina superior del lado del costado.',
+      'C':   'Costado abajo: cierra el dobladillo junto con D.',
+      'D':   'CF abajo: esquina inferior del centro frente.',
+      '1':   'Escote horizontal: espalda/6 desde A, hacia el costado.',
+      '5':   'Escote vertical: espalda/6 + 2cm desde A, hacia abajo. Forma una curva profunda con el punto 1 (el escote delantero de dama baja más que el de la espalda).',
+      'H':   'Caída de hombro: 5cm sobre la guía de espalda/2 (homologada con la trasera) — 1cm más que la espalda por el volumen del busto.',
+      '6':   'Punto de cintura en el costado: cintura/4 + 3cm.',
+      '10':  'Inicio de la pinza de costado: a nivel medio del cuerpo, en el costado.',
+      '11':  'Entrada de la pinza de costado: 1cm hacia adentro desde el punto 10.',
+      '12':  'Salida de la pinza de costado: extrae la diferencia entre el talle delantero y el posterior, para igualar ambas piezas al coser.',
+      'PB':  'Ápice de la pinza de busto: muere aprox. 2cm antes de la altura del pezón. Posición horizontal aproximada (el manual no da una coordenada exacta) — ajustable con fx/fy si no coincide con el punto real de busto de la clienta.',
+      'PBL': 'Base izquierda de la pinza de busto (1.5cm del centro), en la línea de cintura.',
+      'PBR': 'Base derecha de la pinza de busto (1.5cm del centro), en la línea de cintura. Junto con PB y PBL forma la pinza tipo rombo.',
+      '14':  'Vista de botonadura: margen de 7cm desde el CF.',
+      '14D': 'Esquina inferior de la vista, a la altura del dobladillo.',
     },
     'camisa-delantera': {
-      'A':   'CF arriba-izquierda (origen): centro frente superior. Todo el rectángulo parte de aquí. A.B = pecho/4 + 2cm de ancho; B.C = largo de camisa.',
+      'A':   'CF arriba-izquierda (origen): centro frente superior. A.B = pecho/4 + 2cm de ancho; B.C = largo + 2cm de holgura anatómica.',
       'B':   'Costado arriba-derecha: esquina superior del lado del costado. Punto de referencia del rectángulo — no es contorno.',
       'C':   'Costado abajo-derecha: esquina inferior del costado. Junto con D cierra el dobladillo.',
       'D':   'CF abajo-izquierda: esquina inferior del centro frente. El dobladillo va de D→C.',
-      '1':   'Punto de construcción intermedio (A.1): cuello/6 − 1cm hacia abajo desde A en el CF. NO es el final real del escote — solo ayuda a ubicar el punto 10 (tip de hombro). El escote real termina en el punto 9, más abajo.',
-      '2':   'Nivel de sisa CF (A.2): pecho/4 + 1cm hacia abajo desde A. La línea horizontal 2→2b es la línea de verificación de la sisa — mide que la profundidad sea correcta.',
-      '2b':  'Nivel de sisa en el costado: igual altura que punto 2 pero en el borde derecho. La línea 2→2b es la referencia horizontal de la sisa para verificar medidas.',
-      '2c':  'Entrada de sisa (1cm hacia adentro desde 2b): la sisa no sube directo desde la esquina del costado, sino que primero entra 1cm hacia el cuerpo. Este punto crea el óvalo de la axila — sin él la sisa queda angulosa.',
-      '8':   'Ancho del escote (A.8): cuello/6 hacia la derecha desde A. Define cuánto se abre el escote hacia el hombro. Punto de arranque de la curva del escote.',
-      '9':   'Profundidad real del escote (A.9): cuello/6 completo (sin restar 1cm) hacia abajo desde A, en la línea CF. Queda más abajo que el punto 1. La curva del escote (12→9) termina aquí — confirmado contra el manual NH.',
-      '10':  'Tip de hombro en nivel 1 (1.10): espalda/2 desde el punto 1 hacia la derecha. Ubica el extremo del hombro a la altura del cuello — antes de la caída.',
-      '11':  'Hombro con caída (10.11): 1cm hacia abajo desde el punto 10. El hombro tiene una caída natural; este punto lo refleja.',
-      '12':  'Arranque de curva cuello-hombro (8.12): 1cm hacia abajo desde el punto 8. La curva del escote arranca suavemente desde aquí, no desde el borde de la tela.',
-      '13':  'Inicio de sisa (11.13): 1cm hacia abajo desde el punto 11. Es donde la línea del hombro termina y la curva de la sisa comienza — punto crítico de la manga.',
-      '14':  'Vista (ojal y botón) — A.14: 9cm a la izquierda del CF. Este ancho es estándar para una vista de camisa de caballero con 3 botones.',
+      '8':   'Ancho del escote (A.8): cuello/6 hacia la derecha desde A. Se une con el punto 9 en curva cóncava.',
+      '9':   'Profundidad del escote (A.9): cuello/6 hacia abajo desde A, en la línea CF. Curva con el punto 8 (regla curva francesa).',
+      'H':   'Caída de hombro: 4cm fijos sobre la guía de espalda/2. El hombro (línea H→8) debe medir igual que el hombro posterior.',
+      'SC':  'Punto de control de la sisa delantera: mitad de la guía de hombro, entra 1-1.5cm hacia el CF — da mayor concavidad porque la articulación del brazo se desplaza al frente.',
+      '2b':  'Línea de sisa homologada con la espalda (canesú + canesú-2cm) — garantiza que ambas sisas (delantera y posterior) midan lo mismo.',
+      'E':   'Nivel medio del costado (referencia): mitad entre la sisa y el dobladillo.',
+      'F':   'Punto de entalle: 1cm hacia adentro desde E.',
+      '14':  'Vista (ojal y botón) — A.14: margen de 7cm desde el CF (3cm cruce de botonadura + 4cm de vista doblada).',
       '14D': 'Esquina inferior de la vista: igual posición que punto 14 pero a la altura del dobladillo. La línea 14→14D es el doblez de la vista.',
+      '14T': 'Esquina superior cuadrada de la vista: a la altura del pico (punto A). La vista sube recta y gira en ángulo recto, no en pico diagonal.',
     },
     'camisa-posterior': {
-      'B':  'Centro Espalda arriba (doblez): origen del patrón trasero de camisa.',
+      'B':  'Centro Espalda arriba (referencia): el contorno real empieza 1cm más abajo, en el punto "a".',
       'A':  'Esquina superior derecha (costado): ancho del cuerpo — pecho/4 + 2cm.',
       'D':  'Costado abajo: cierra el cuerpo verticalmente.',
       'C':  'Centro Espalda abajo: cierra el dobladillo.',
-      'a':  'Punto de cuello elevado: el CE sube 1cm sobre A para que el cuello quede bien sentado al doblar.',
-      '1':  'Profundidad del escote posterior: cuello/6 − 1cm. Marca dónde baja el escote desde el CE.',
-      '2':  'Ancho del escote lateral: cuello/4 + 1cm desde el costado. Define cuánto se abre el escote hacia el hombro.',
-      '3':  'Ancho de cuello en el hombro: cuello/6 desde el costado. Punto donde la línea del cuello llega al hombro.',
-      '4':  'Punto de curva del escote: cuello/6 − 2cm debajo del punto 3. Controla la curva entre el cuello y el hombro.',
-      '5':  'Tip de hombro: espalda/2 desde el costado. Donde termina el hombro.',
-      '6':  'Caída de hombro: 1cm hacia abajo desde el tip. Inclinación natural del hombro.',
-      '7':  'Inicio de sisa: 1cm hacia el CE desde el punto 6. La sisa no empieza en el borde del hombro sino ligeramente adentro.',
-      'G':  'Línea de canesú: 6cm desde el CE hacia abajo. Marca la costura que separa el canesú de la espalda.',
-      'E':  'Nivel de cintura (referencia): mitad del largo total en el costado.',
+      'a':  'Caída de escote: el Centro Espalda baja 1cm para que el cuello quede bien sentado al doblar.',
+      '1':  'Ancho de escote trasero: cuello/6 − 1cm sobre la línea superior, desde "a".',
+      'CAN':'Profundidad del canesú: cuello/6 desde el Centro Espalda, hacia abajo.',
+      '2':  'Línea de sisa: canesú + (cuello/6 − 2cm), proyectada horizontal hasta el costado.',
+      '3':  'Punto guía de hombro: en el eje de espalda/2, 4cm bajo la línea superior.',
+      '4':  'Punto real del hombro: prolongación de la línea 1→3, 1cm más afuera.',
+      'G':  'Holgura ergonómica del hombro: 1cm arriba del punto 3, para la curvatura natural de la espalda.',
+      'G2': 'G bajado en recta hasta la línea de sisa — desde aquí arranca la semicurva de la sisa hasta el punto 2.',
+      'E':  'Nivel medio del costado (referencia): mitad entre la sisa y el dobladillo.',
       'F':  'Punto de entalle: 1cm hacia adentro desde E. Da forma a la cintura de la camisa.',
-      '2D': 'Punto inferior del canesú en el costado: define el largo del canesú en el lado del costado.',
     },
     'manga-corta-camisa': {
       'A':  'Sisa izquierda: punto base de la cabeza de manga en el lado izquierdo. Se une a la sisa de la blusa/camisa.',
@@ -1311,6 +1439,12 @@ PAT.Sistemas.NereydaHerrera = (function () {
         resultado = BLUSA_TRASERA.generar(medidas);
         nombre    = `Blusa Trasera NH — Talla ${talla}`;
         categoria = 'espalda';
+        break;
+
+      case 'blusa-delantera':
+        resultado = BLUSA_DELANTERA.generar(medidas);
+        nombre    = `Blusa Delantera NH — Talla ${talla}`;
+        categoria = 'frente';
         break;
 
       case 'camisa-posterior':
@@ -1424,6 +1558,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
     tablasCaballero: TALLAS_CABALLERO,
     // Acceso directo a módulos
     blusaTrasera:    BLUSA_TRASERA,
+    blusaDelantera:  BLUSA_DELANTERA,
     camisaPosterior: CAMISA_POSTERIOR,
     camisaDelantera: CAMISA_DELANTERA,
     mangaCamisa:     MANGA_CAMISA,
@@ -1438,6 +1573,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
     // ── Lista plana para compatibilidad con código legado ──────────
     piezasDama: [
       { id: 'blusa-trasera',       label: 'Blusa Trasera',          tipo: 'dama'      },
+      { id: 'blusa-delantera',     label: 'Blusa Delantera',        tipo: 'dama'      },
       { id: 'camisa-delantera',    label: 'Camisa Delantera',       tipo: 'dama'      },
       { id: 'manga-corta-vestido', label: 'Manga Corta (Vestido)',  tipo: 'dama'      },
       { id: 'manga-larga-vestido', label: 'Manga Larga (Vestido)',  tipo: 'dama'      },
@@ -1462,6 +1598,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
         titulo: '👗 Blusa / Vestido',
         piezas: [
           { id: 'blusa-trasera',       label: 'Blusa Trasera',         tipo: 'dama' },
+          { id: 'blusa-delantera',     label: 'Blusa Delantera',       tipo: 'dama' },
           { id: 'manga-corta-vestido', label: 'Manga Corta (Vestido)', tipo: 'dama' },
           { id: 'manga-larga-vestido', label: 'Manga Larga (Vestido)', tipo: 'dama' },
         ],
