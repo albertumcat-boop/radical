@@ -1664,8 +1664,11 @@ PAT.DrafterUI = (function () {
     const threshMm = 8 / (_zoom * SC);
     const near = _nearest(mm, threshMm);
 
-    // ¿Clic en punto de control de curva?
-    const nearCtrl = _nearestCtrl(mm, threshMm * 1.5);
+    // ¿Clic en punto de control de curva? Solo si NO hay un punto normal
+    // más cerca — antes el control de curva (diamante) "robaba" el clic
+    // incluso cuando el usuario apuntaba a un punto cercano (p. ej. H/SC
+    // en la sisa delantera, que quedan casi superpuestos).
+    const nearCtrl = (near === null) ? _nearestCtrl(mm, threshMm * 1.5) : -1;
     if (_tool === 'select' && nearCtrl !== -1) {
       _draggingCtrl = nearCtrl;
       _selectLine(nearCtrl);
@@ -2214,12 +2217,13 @@ PAT.DrafterUI = (function () {
       const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
       const px=-dy/len*2.5,py=dx/len*2.5; // perpendicular para ticks
 
-      // Línea punteada gris
+      // Línea punteada — más visible (antes #4a4870 era casi invisible
+      // sobre el fondo oscuro del canvas).
       const el=document.createElementNS(NS,'line');
       el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);
       el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);
-      el.setAttribute('stroke','#4a4870');
-      el.setAttribute('stroke-width','0.35');
+      el.setAttribute('stroke','#7c7aa8');
+      el.setAttribute('stroke-width','0.45');
       el.setAttribute('stroke-dasharray','5,3');
       el.setAttribute('fill','none');
       _linesG.appendChild(el);
@@ -2228,14 +2232,14 @@ PAT.DrafterUI = (function () {
       const t1=document.createElementNS(NS,'line');
       t1.setAttribute('x1',a.x+px);t1.setAttribute('y1',a.y+py);
       t1.setAttribute('x2',a.x-px);t1.setAttribute('y2',a.y-py);
-      t1.setAttribute('stroke','#4a4870');t1.setAttribute('stroke-width','0.4');
+      t1.setAttribute('stroke','#7c7aa8');t1.setAttribute('stroke-width','0.5');
       _linesG.appendChild(t1);
 
       // Tick en fin
       const t2=document.createElementNS(NS,'line');
       t2.setAttribute('x1',b.x+px);t2.setAttribute('y1',b.y+py);
       t2.setAttribute('x2',b.x-px);t2.setAttribute('y2',b.y-py);
-      t2.setAttribute('stroke','#4a4870');t2.setAttribute('stroke-width','0.4');
+      t2.setAttribute('stroke','#7c7aa8');t2.setAttribute('stroke-width','0.5');
       _linesG.appendChild(t2);
 
       // Distancia (etiqueta pequeña, desplazada perpendicularmente)
@@ -2244,7 +2248,7 @@ PAT.DrafterUI = (function () {
       lbl.setAttribute('x',(a.x+b.x)/2+px*2.2);
       lbl.setAttribute('y',(a.y+b.y)/2+py*2.2);
       lbl.setAttribute('font-size','3.8');
-      lbl.setAttribute('fill','#5a558a');
+      lbl.setAttribute('fill','#9491c4');
       lbl.setAttribute('font-family','Arial');
       lbl.setAttribute('text-anchor','middle');
       lbl.textContent=(ln.label?ln.label+' ':'')+dist+'mm';

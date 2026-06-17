@@ -469,7 +469,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
      *
      * @param {object} m  { bust, neck, shoulder, totalLength }
      */
-    generar(m, s = 10) {
+    generar(m, s = 30) {   // margen de seguridad 3cm (manual NH, Sección 2 Paso 1)
       const T   = m.bust * 10;
       const NK  = m.neck * 10;
       const ESP = m.shoulder * 10;
@@ -614,7 +614,7 @@ PAT.Sistemas.NereydaHerrera = (function () {
      * @param {object} m  { bust, shoulder, neck, totalLength }
      * @param {number} s  margen en mm
      */
-    generar(m, s = 10) {
+    generar(m, s = 30) {   // margen de seguridad 3cm (manual NH, Sección 2 Paso 1)
       const T   = m.bust * 10;
       const NK  = m.neck * 10;
       const ESP = m.shoulder * 10;
