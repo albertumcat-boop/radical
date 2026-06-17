@@ -1299,17 +1299,17 @@ PAT.DrafterUI = (function () {
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
       else d+=` L ${b.x} ${b.y}`;
     });
-    if(d){const f=document.createElementNS(svgNS,'path');f.setAttribute('d',d);f.setAttribute('fill','rgba(139,92,246,.05)');f.setAttribute('stroke','none');gt.appendChild(f);}
+    if(d){const f=document.createElementNS(svgNS,'path');f.setAttribute('d',d);f.setAttribute('fill','rgba(139,92,246,.08)');f.setAttribute('stroke','none');gt.appendChild(f);}
     _lines.forEach(ln=>{
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
-      if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);const el=document.createElementNS(svgNS,'path');el.setAttribute('d',`M ${a.x} ${a.y} Q ${cpx} ${cpy} ${b.x} ${b.y}`);el.setAttribute('stroke','#60a5fa');el.setAttribute('stroke-width','0.5');el.setAttribute('fill','none');gt.appendChild(el);}
-      else{const el=document.createElementNS(svgNS,'line');el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);el.setAttribute('stroke',ln.type==='fold'?'#f87171':'#e2e8f0');el.setAttribute('stroke-width','0.5');if(ln.type==='fold')el.setAttribute('stroke-dasharray','4,2');gt.appendChild(el);}
+      if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);const el=document.createElementNS(svgNS,'path');el.setAttribute('d',`M ${a.x} ${a.y} Q ${cpx} ${cpy} ${b.x} ${b.y}`);el.setAttribute('stroke','#1f2937');el.setAttribute('stroke-width','1');el.setAttribute('fill','none');gt.appendChild(el);}
+      else{const el=document.createElementNS(svgNS,'line');el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);el.setAttribute('stroke',ln.type==='fold'?'#dc2626':'#1f2937');el.setAttribute('stroke-width','1');if(ln.type==='fold')el.setAttribute('stroke-dasharray','4,2');gt.appendChild(el);}
     });
     Object.entries(_points).forEach(([,p])=>{
-      const c=document.createElementNS(svgNS,'circle');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r','1.5');c.setAttribute('fill','#8b5cf6');gt.appendChild(c);
-      const t=document.createElementNS(svgNS,'text');t.setAttribute('x',p.x+2.5);t.setAttribute('y',p.y-1.5);t.setAttribute('font-size','4');t.setAttribute('fill','#a78bfa');t.setAttribute('font-family','Arial');t.setAttribute('font-weight','bold');t.textContent=p.name;gt.appendChild(t);
+      const c=document.createElementNS(svgNS,'circle');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r','1.5');c.setAttribute('fill','#6d28d9');gt.appendChild(c);
+      const t=document.createElementNS(svgNS,'text');t.setAttribute('x',p.x+2.5);t.setAttribute('y',p.y-1.5);t.setAttribute('font-size','4');t.setAttribute('fill','#4c1d95');t.setAttribute('font-family','Arial');t.setAttribute('font-weight','bold');t.textContent=p.name;gt.appendChild(t);
     });
-    const nt=document.createElementNS(svgNS,'text');nt.setAttribute('x',W/2);nt.setAttribute('y',H/2);nt.setAttribute('font-size','5');nt.setAttribute('fill','#ede9fe');nt.setAttribute('font-family','Arial');nt.setAttribute('font-weight','bold');nt.setAttribute('text-anchor','middle');nt.textContent=_pieceName;gt.appendChild(nt);
+    const nt=document.createElementNS(svgNS,'text');nt.setAttribute('x',W/2);nt.setAttribute('y',H/2);nt.setAttribute('font-size','5');nt.setAttribute('fill','#4c1d95');nt.setAttribute('font-family','Arial');nt.setAttribute('font-weight','bold');nt.setAttribute('text-anchor','middle');nt.textContent=_pieceName;gt.appendChild(nt);
     g.appendChild(gt);
     const content=document.getElementById('pattern-content');if(!content){if(PAT.App)PAT.App.toast('SVG no encontrado','error');return;}
     let ox=30,oy=30;try{const eb=content.getBBox();if(eb.width>0)ox=eb.x+eb.width+35;}catch(e){}
