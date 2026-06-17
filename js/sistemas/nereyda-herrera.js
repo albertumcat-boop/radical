@@ -531,9 +531,17 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const p14  = { x: OX - 90,      y: OY + NK/6,           name: '14' };
       const p14b = { x: OX - 90,      y: OY + RH,             name: '14D' };
 
+      // 14T  esquina superior de la vista, a la altura del PICO (punto A).
+      // El usuario pidió que la vista (donde van ojal y botón) suba hasta
+      // la altura del pico pero en forma de CUADRADO (línea recta arriba),
+      // no como un pico diagonal: 9→A (sube recto por la línea CF) →
+      // 14T (línea horizontal arriba, a la altura de A) → 14 (baja recto
+      // hasta la altura real del escote, punto 9) → 14D (sigue hacia abajo).
+      const p14t = { x: OX - 90,      y: OY,                  name: '14T' };
+
       // ── Puntos ────────────────────────────────────────────────────
       const points = {};
-      [A, B_, C_, D, p1, p2, p8, p9, p10, p11, p12, p13, p2b, p2c, p14, p14b]
+      [A, B_, C_, D, p1, p2, p8, p9, p10, p11, p12, p13, p2b, p2c, p14, p14b, p14t]
         .forEach((p, i) => {
           points['cd' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' };
         });
@@ -599,11 +607,14 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // dirección que el caso 12→1 ya verificado — mismo signo de ctrl.
       ln('12', '9',   'curve', '', -18);
 
-      // De la profundidad real del escote (9) hasta la esquina superior de
-      // la vista (14) — antes esto salía incorrectamente desde A (la esquina
-      // teórica SIN la curva del escote), lo que dejaba la vista flotando
-      // sin conectar con el resto del contorno.
-      ln('9',   '14',  'line');
+      // Vista cuadrada: desde la profundidad real del escote (9) sube recto
+      // por la línea CF hasta la altura del pico (A), gira en línea recta
+      // horizontal hasta la esquina superior de la vista (14T) y luego baja
+      // recto hasta la altura real del escote (14, misma altura que 9) —
+      // forma de cuadrado/escalón, no de pico diagonal.
+      ln('9',   'A',   'line');
+      ln('A',   '14T', 'line');
+      ln('14T', '14',  'line');
 
       // Cierre: doblez de la vista (borde izquierdo), conecta 14 con 14D
       // y cierra el contorno completo.
