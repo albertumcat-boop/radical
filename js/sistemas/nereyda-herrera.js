@@ -796,9 +796,9 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // Puntos de referencia NH sobre la línea de sisa (y=OY)
       const d1 = T / 10 + 10;        // = CH
       const p1 = { x: OX + d1,       y: OY,        name: '1'  };
-      const p2 = { x: OX + d1/2,     y: OY,        name: '2'  };
-      const p3 = { x: OX + d1/4,     y: OY,        name: '3'  };
-      const p4 = { x: OX + anchoM/2, y: OY,        name: '4'  };  // centro sisa
+      const p2 = { x: OX + d1/2,     y: OY,        name: '2'  };  // mitad del tramo horizontal
+      const p3 = { x: OX + d1/4,     y: OY,        name: '3'  };  // cuarta parte del tramo horizontal
+      const p4 = { x: OX,            y: OY+ML/2,   name: '4'  };  // mitad de la vertical izquierda (manual NH)
 
       // Abertura y puño (manga larga) — manual: entra 7cm horizontal desde
       // el extremo posterior (antes eran 10cm fijos).
@@ -807,9 +807,19 @@ PAT.Sistemas.NereydaHerrera = (function () {
         abertura = { x: OX + anchoM - 70, y: OY + ML, name: 'AB' };
       }
 
+      // Puntos de descuento del puño (manga larga, manual NH Sección 4):
+      // Punto 5: sube 5-6cm desde C (esquina derecha del ruedo).
+      // Punto 6: ancho = mitad de contorno de puño + 3cm, desde D.
+      let p5 = null, p6 = null;
+      if (tipo === 'larga') {
+        p5 = { x: C_.x,              y: OY + ML - 55,        name: '5' };
+        p6 = { x: OX + (PU/2 + 30),  y: OY + ML,              name: '6' };
+      }
+
       const points = {};
       const allPts = [A, B_, P, C_, D, p1, p2, p3, p4];
       if (abertura) allPts.push(abertura);
+      if (p5) allPts.push(p5, p6);
       allPts.forEach((p, i) => { points['mg'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
       const byName = {};
       Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
@@ -844,6 +854,11 @@ PAT.Sistemas.NereydaHerrera = (function () {
 
       // ── Referencias ───────────────────────────────────────────────
       ln('A', 'B', 'line');    // línea de sisa (referencia)
+      if (p5 && p6) {
+        ln('5', '6', 'construction', 'descuento de puño (referencia)');
+        ln('C', '5', 'construction');
+        ln('D', '6', 'construction');
+      }
 
       return { points, lines };
     }
@@ -1009,18 +1024,22 @@ PAT.Sistemas.NereydaHerrera = (function () {
   };
 
   // ══════════════════════════════════════════════════════════════
-  // 10. CUELLO CAMISERO CON PIE (2 piezas)
-  //     Fuente: "Cuello Camisero con Pie" Nereyda Herrera
+  // 10. CUELLO CAMISERO CON PIE (2 piezas) — CLÁSICO DE DOS PIEZAS
+  //     Fuente: MANUAL TÉCNICO COMPLETO DE PATRONAJE INDUSTRIAL — NH,
+  //     Sección 5, Bloque A.
   //
-  //     PIEZA 1 — CUELLO:
-  //     A.B = escote/2
-  //     B.C = 4cm (ancho cuello)
-  //     C.1 = 1cm, B.2 = 2cm, 3 = mitad A.B y C.D
+  //     PIEZA 1 — TIRILLA / PIE DE CUELLO:
+  //       Rectángulo: mitad de contorno de cuello (escote/2) × 3cm alto.
+  //       Extensión de abotonadura: +1.5cm en el extremo de cierre, con
+  //         curva suave (igual técnica que el puño camisero).
+  //       Curvatura de asiento: el borde superior sube 1cm en el centro
+  //         y se desvanece hacia la mitad del tramo — no es línea recta.
   //
-  //     PIEZA 2 — PIE O BASE:
-  //     A.B = escote/2 + 3cm
-  //     B.C = 3cm (ancho pie)
-  //     C.1 = 1cm, B.2 = 2cm, 3 = mitad C.D
+  //     PIEZA 2 — SOLAPA (cuerpo visible del cuello):
+  //       Rectángulo: mitad de contorno de cuello (escote/2) × 4.5–5cm alto.
+  //       Punta del cuello: se prolonga 1.5–2cm en diagonal más allá de la
+  //         esquina del rectángulo, en el extremo de cierre.
+  //       Línea de quiebre (borde superior/doblez): concavidad de 0.5cm.
   // ══════════════════════════════════════════════════════════════
   const CUELLO_CON_PIE = {
     nombre: 'Cuello con Pie',
@@ -1029,59 +1048,59 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const SF = s;
       const GAP = 30; // separación entre las dos piezas
 
-      // ── PIEZA 1: CUELLO ────────────────────────────────────
-      const AB1 = NK / 2;
-      const BC1 = 40; // 4cm
+      // ── PIEZA 1: TIRILLA / PIE DE CUELLO ────────────────────────
+      const AB1 = NK / 2;   // escote/2
+      const BC1 = 30;        // 3cm alto
 
-      const A1 = { x: SF + AB1, y: SF,        name: 'A'  };
-      const B1 = { x: SF,       y: SF,         name: 'B'  };
-      const C1 = { x: SF,       y: SF + BC1,   name: 'C'  };
-      const D1 = { x: SF + AB1, y: SF + BC1,   name: 'D'  };
-      const p1_1 = { x: SF + 10,    y: SF + BC1,  name: '1'  }; // C.1 = 1cm
-      const p2_1 = { x: SF,         y: SF + 20,   name: '2'  }; // B.2 = 2cm
-      const p3_1 = { x: SF + AB1/2, y: SF + BC1,  name: '3c' }; // mitad inferior
+      const A1 = { x: SF + AB1, y: SF,        name: 'A'  };  // cierre
+      const B1 = { x: SF,       y: SF,        name: 'B'  };  // doblez/CE
+      const C1 = { x: SF,       y: SF + BC1,  name: 'C'  };
+      const D1 = { x: SF + AB1, y: SF + BC1,  name: 'D'  };  // cierre (abajo)
+      // Extensión de abotonadura: 1.5cm hacia afuera del extremo de cierre
+      const E1 = { x: SF + AB1 + 15, y: SF + BC1/2, name: 'E' };
+      // Curvatura de asiento: sube 1cm en el centro, se desvanece a la mitad
+      const M1 = { x: SF + AB1/2,    y: SF - 10,    name: 'M'  };
+      const N1 = { x: SF + AB1*0.75, y: SF,          name: 'N'  };
 
-      // ── PIEZA 2: PIE ───────────────────────────────────────
-      const yOff = SF + BC1 + GAP;
-      const AB2  = NK / 2 + 30; // escote/2 + 3cm
-      const BC2  = 30;           // 3cm
+      // ── PIEZA 2: SOLAPA (cuerpo visible) ────────────────────────
+      const yOff = SF + BC1 + GAP + 20; // +2cm para que quepa la extensión
+      const AB2  = NK / 2;   // escote/2 (mismo largo que la tirilla)
+      const BC2  = 47;        // 4.7cm alto (rango 4.5–5cm)
 
       const A2 = { x: SF + AB2, y: yOff,        name: 'A2' };
       const B2 = { x: SF,       y: yOff,         name: 'B2' };
       const C2 = { x: SF,       y: yOff + BC2,   name: 'C2' };
       const D2 = { x: SF + AB2, y: yOff + BC2,   name: 'D2' };
-      const p1_2 = { x: SF + 10,    y: yOff + BC2, name: '1p' }; // C.1 = 1cm
-      const p2_2 = { x: SF,         y: yOff + 20,  name: '2p' }; // B.2 = 2cm
-      const p3_2 = { x: SF + AB2/2, y: yOff + BC2, name: '3p' }; // mitad inf
+      // Punta del cuello: prolonga 1.75cm en diagonal desde la esquina A2
+      const P2 = { x: SF + AB2 + 17, y: yOff + 17, name: 'P2' };
+      // Línea de quiebre: concavidad de 0.5cm en el centro del borde superior
+      const Q2 = { x: SF + AB2/2, y: yOff + 5,    name: 'Q2' };
 
       const points = {};
-      [A1,B1,C1,D1,p1_1,p2_1,p3_1, A2,B2,C2,D2,p1_2,p2_2,p3_2]
+      [A1,B1,C1,D1,E1,M1,N1, A2,B2,C2,D2,P2,Q2]
         .forEach((p,i) => { points['cp'+i] = {x:p.x, y:p.y, name:p.name, fx:'', fy:''}; });
       const byName = {};
       Object.entries(points).forEach(([id,p]) => { byName[p.name] = id; });
 
       const lines = [];
-      function ln(a,b,t='line',lbl='',ctrl=20){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl,cpx:null,cpy:null}); }
+      function ln(a,b,t='line',lbl='',ctrl=20){ if(byName[a]&&byName[b]) lines.push({from:byName[a],to:byName[b],type:t,ctrl,cpx:null,cpy:null,label:lbl}); }
 
-      // Cuello
-      ln('B',  'A',  'line');
-      ln('A',  'D',  'fold');
-      ln('D',  '1',  'line');
-      ln('1',  'C',  'line');
-      ln('C',  '2',  'line');
-      // Vector 2→B apunta hacia arriba (dy<0); ctrl negativo curva hacia la DERECHA (interior cuello).
-      ln('2',  'B',  'curve', '', -20);
-      ln('3c', 'D',  'line');
+      // ── Tirilla / Pie de cuello ──────────────────────────────────
+      ln('B', 'M', 'curve', 'asiento — sube 1cm al centro', -10);
+      ln('M', 'N', 'curve', 'asiento se desvanece', 10);
+      ln('N', 'A', 'line');
+      ln('A', 'E', 'curve', 'extensión de abotonadura +1.5cm', 12);
+      ln('E', 'D', 'curve', '', 12);
+      ln('D', 'C', 'line');
+      ln('C', 'B', 'fold');  // doblez (Centro Espalda de la tirilla)
 
-      // Pie
-      ln('B2', 'A2', 'line');
-      ln('A2', 'D2', 'fold');
-      ln('D2', '1p', 'line');
-      ln('1p', 'C2', 'line');
-      ln('C2', '2p', 'line');
-      // Vector 2p→B2 apunta hacia arriba (dy<0); ctrl negativo curva hacia la DERECHA (interior pie).
-      ln('2p', 'B2', 'curve', '', -20);
-      ln('3p', 'D2', 'line');
+      // ── Solapa ────────────────────────────────────────────────────
+      ln('B2', 'Q2', 'curve', 'línea de quiebre — concavidad 0.5cm', 6);
+      ln('Q2', 'A2', 'curve', '', 6);
+      ln('A2', 'P2', 'line');   // punta del cuello (prolongación diagonal)
+      ln('P2', 'D2', 'line');
+      ln('D2', 'C2', 'line');
+      ln('C2', 'B2', 'fold');   // doblez (Centro Espalda de la solapa)
 
       return { points, lines };
     }
@@ -1108,7 +1127,8 @@ PAT.Sistemas.NereydaHerrera = (function () {
      *   1L y 1 = marca de dobladillo a 3cm del tope
      *
      * Para PICO: los 4 lados van hasta la altura del pico; centro (M)
-     *   queda 2.5cm más abajo que las esquinas inferiores CR/CL.
+     *   queda 1.5cm más abajo que las esquinas inferiores CR/CL
+     *   (Manual NH Sección 5: "el pico central baja verticalmente 1.5cm").
      * Para RECTO: fondo recto C→D.
      * Para SEMICURVA: fondo en curva C → M → D.
      */
@@ -1129,10 +1149,10 @@ PAT.Sistemas.NereydaHerrera = (function () {
       let allPts, linesFn;
 
       if (modelo === 'pico') {
-        // Esquinas inferiores al nivel del pico (5mm antes del fondo)
-        const CL = { x: OX,          y: OY+largo-25, name: 'CL' };
-        const CR = { x: OX+ancho,    y: OY+largo-25, name: 'CR' };
-        // Pico central 2.5cm más abajo que las esquinas
+        // Esquinas inferiores al nivel del pico (1.5cm antes del fondo)
+        const CL = { x: OX,          y: OY+largo-15, name: 'CL' };
+        const CR = { x: OX+ancho,    y: OY+largo-15, name: 'CR' };
+        // Pico central 1.5cm más abajo que las esquinas (manual NH)
         const M  = { x: OX+ancho/2,  y: OY+largo,    name: 'M'  };
 
         allPts = [B_, A, p1L, p1, CL, CR, M];
@@ -1192,10 +1212,13 @@ PAT.Sistemas.NereydaHerrera = (function () {
   //    Antes el "puño" solo existía como el borde inferior de la manga
   //    (sin pieza propia); el manual lo trata como patrón aparte:
   //
-  //    A.B  = mitad del contorno de puño (muñeca) + 3cm  (ancho base)
-  //    B.C  = 6cm                                         (alto del puño)
+  //    Largo = contorno de muñeca + 5cm totales (2cm holgura + 3cm cruce)
+  //            [antes el código usaba mitad-contorno+3cm; corregido]
+  //    Alto = 6cm
   //    Extensión de abotonadura: +1.5cm en el extremo de cierre
-  //    Esquinas: redondeadas levemente (curva suave en las 2 puntas)
+  //    Variantes de esquina (lado doblez, B/C):
+  //      - 'redondo'  → curva suave en ambas puntas (default)
+  //      - 'angular'  → corte diagonal de 1.5cm en ambas puntas
   // ══════════════════════════════════════════════════════════════
   const PUNO_CAMISA = {
     nombre: 'Puño Camisero',
@@ -1208,11 +1231,13 @@ PAT.Sistemas.NereydaHerrera = (function () {
      * inferior izq (cierre) · E = extensión de abotonadura.
      *
      * @param {object} m  { wrist }
+     * @param {number} s  margen en mm
+     * @param {string} estilo  'redondo' (default) | 'angular'
      */
-    generar(m, s = 10) {
+    generar(m, s = 10, estilo = 'redondo') {
       const PU = (m.wrist || 18) * 10;
 
-      const ancho = PU / 2 + 30;   // mitad contorno puño + 3cm
+      const ancho = PU + 50;       // contorno de muñeca + 5cm (2cm holgura + 3cm cruce)
       const alto  = 60;            // 6cm
 
       const OX = s;
@@ -1225,8 +1250,34 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // Extensión de abotonadura: 1.5cm hacia afuera del lado de cierre
       const E  = { x: OX - 15,     y: OY + alto/2, name: 'E' };
 
+      const pts = [A, B_, C_, D, E];
+
+      let cornerLines;
+      if (estilo === 'angular') {
+        // Esquinas en punta del lado doblez: corte diagonal de 1.5cm
+        const B1 = { x: OX + ancho - 15, y: OY,            name: 'B1' };
+        const B2 = { x: OX + ancho,      y: OY + 15,       name: 'B2' };
+        const C1 = { x: OX + ancho,      y: OY + alto - 15,name: 'C1' };
+        const C2 = { x: OX + ancho - 15, y: OY + alto,     name: 'C2' };
+        pts.push(B1, B2, C1, C2);
+        cornerLines = (ln) => {
+          ln('A',  'B1', 'line');
+          ln('B1', 'B2', 'line');   // corte angular sup
+          ln('B2', 'C1', 'fold');   // doblez (CE del puño)
+          ln('C1', 'C2', 'line');   // corte angular inf
+          ln('C2', 'D',  'line');
+        };
+      } else {
+        // Redondo: curva suave en ambas puntas
+        cornerLines = (ln) => {
+          ln('A', 'B', 'line');
+          ln('B', 'C', 'fold');     // doblez (CE del puño), con curvatura leve
+          ln('C', 'D', 'line');
+        };
+      }
+
       const points = {};
-      [A, B_, C_, D, E].forEach((p, i) => { points['pn' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' }; });
+      pts.forEach((p, i) => { points['pn' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' }; });
       const byName = {};
       Object.entries(points).forEach(([id, p]) => { byName[p.name] = id; });
 
@@ -1235,13 +1286,11 @@ PAT.Sistemas.NereydaHerrera = (function () {
         if (byName[a] && byName[b]) lines.push({ from: byName[a], to: byName[b], type: t, ctrl, cpx: null, cpy: null });
       }
 
-      ln('B', 'C', 'fold');          // doblez (Centro Espalda del puño)
-      ln('C', 'D', 'line');          // borde inferior (va al ruedo de la manga)
+      cornerLines(ln);
       // Lado de cierre: pasa por la extensión de abotonadura (leve curva
       // hacia afuera, no una esquina recta).
       ln('D', 'E', 'curve', 12);
       ln('E', 'A', 'curve', 12);
-      ln('A', 'B', 'line');          // borde superior (vista)
 
       return { points, lines };
     }
@@ -1389,8 +1438,10 @@ PAT.Sistemas.NereydaHerrera = (function () {
       'D':  'Esquina inferior izquierda (ruedo): donde termina el largo de manga en el costado izquierdo.',
       '1':  'Referencia NH: pecho/10 + 1cm desde A. Define el punto de inflexión de la curva de sisa en el lado izquierdo.',
       '2':  'Referencia NH: mitad de A→1. Divide la cabeza de manga en cuartos para controlar la curva.',
-      '3':  'Referencia NH: mitad de A→2. Cuarto interno de la cabeza de manga.',
-      '4':  'Centro de la manga (referencia): mitad exacta del ancho A→B. Marca el centro de la manga para alineación con la costura del hombro.',
+      '3':  'Referencia NH: cuarta parte del tramo horizontal de sisa (d1/4) desde A.',
+      '4':  'Mitad de la vertical izquierda (A→D): punto de referencia a media altura de la manga.',
+      '5':  'Descuento de puño: sube 5-6cm desde el punto C (esquina derecha del ruedo). Solo en manga larga.',
+      '6':  'Descuento de puño: ancho = mitad del contorno de puño + 3cm, desde D. Define el ancho final del ruedo tras los pliegues/abertura. Solo en manga larga.',
     },
     'manga-corta-vestido': {
       'A':  'Sisa izquierda: punto base de la cabeza de manga para vestido.',
@@ -1411,15 +1462,21 @@ PAT.Sistemas.NereydaHerrera = (function () {
       '3':  'Centro del cuello (ancho): mitad de A→B en el borde superior y en el inferior. Ayuda a trazar la línea central.',
     },
     'cuello-con-pie': {
-      'A':  'Extremo del cuello (cuerpo principal): el cuerpo del cuello mide escote/2 de largo.',
-      'B':  'Doblez del cuello (CE): aquí se coloca el Centro Espalda del cuello.',
-      '2':  'Curva superior del cuello: punto de inflexión que define la curva del borde visible del cuello.',
-      '3c': 'Punto de terminación de la curva superior.',
-      'A2': 'Extremo del pie de cuello: el pie tiene el mismo largo que el cuerpo (escote/2).',
-      'B2': 'Doblez del pie (CE): Centro Espalda del pie de cuello.',
-      '3p': 'Curva inferior del pie: punto de inflexión en el borde que va al escote.',
+      'A':  'Tirilla — extremo de cierre: el cuerpo mide escote/2 de largo.',
+      'B':  'Tirilla — doblez (CE): aquí se coloca el Centro Espalda de la tirilla.',
+      'C':  'Tirilla — esquina inferior del doblez.',
+      'D':  'Tirilla — esquina inferior de cierre.',
+      'E':  'Tirilla — extensión de abotonadura: 1.5cm hacia afuera del extremo de cierre, con curva suave.',
+      'M':  'Tirilla — curvatura de asiento: el borde superior sube 1cm en el centro.',
+      'N':  'Tirilla — el asiento se desvanece (vuelve a la línea recta) a la mitad del tramo.',
+      'A2': 'Solapa — esquina de cierre del cuerpo visible del cuello (escote/2 de largo).',
+      'B2': 'Solapa — doblez (CE): Centro Espalda de la solapa.',
+      'C2': 'Solapa — esquina inferior del doblez.',
+      'D2': 'Solapa — esquina inferior de cierre.',
+      'P2': 'Solapa — punta del cuello: prolongada 1.75cm en diagonal más allá de la esquina A2.',
+      'Q2': 'Solapa — línea de quiebre: concavidad de 0.5cm en el centro del borde superior (doblez).',
     },
-    'bolsillo-pico':      { 'B': 'Esquina superior izquierda del bolsillo.', 'A': 'Esquina superior derecha del bolsillo.', '1L': 'Marca de dobladillo izquierda: 3cm desde la parte superior. El dobladillo se dobla hacia adentro para terminar el borde superior.', '1': 'Marca de dobladillo derecha: 3cm desde arriba.', 'CL': 'Esquina inferior izquierda: altura donde comienza el pico.', 'CR': 'Esquina inferior derecha: altura donde comienza el pico.', 'M': 'Pico central: punto más bajo del bolsillo, 2.5cm debajo de las esquinas. Le da el acabado decorativo en V.' },
+    'bolsillo-pico':      { 'B': 'Esquina superior izquierda del bolsillo.', 'A': 'Esquina superior derecha del bolsillo.', '1L': 'Marca de dobladillo izquierda: 3cm desde la parte superior. El dobladillo se dobla hacia adentro para terminar el borde superior.', '1': 'Marca de dobladillo derecha: 3cm desde arriba.', 'CL': 'Esquina inferior izquierda: altura donde comienza el pico.', 'CR': 'Esquina inferior derecha: altura donde comienza el pico.', 'M': 'Pico central: punto más bajo del bolsillo, 1.5cm debajo de las esquinas (manual NH). Le da el acabado decorativo en V.' },
     'bolsillo-recto':     { 'B': 'Esquina superior izquierda.', 'A': 'Esquina superior derecha.', '1L': 'Marca de dobladillo izquierda (3cm desde arriba).', '1': 'Marca de dobladillo derecha (3cm desde arriba).', 'C': 'Esquina inferior izquierda: fondo recto del bolsillo.', 'D': 'Esquina inferior derecha: fondo recto del bolsillo.' },
     'bolsillo-semicurva': { 'B': 'Esquina superior izquierda.', 'A': 'Esquina superior derecha.', '1L': 'Marca de dobladillo izquierda (3cm desde arriba).', '1': 'Marca de dobladillo derecha (3cm desde arriba).', 'C': 'Esquina inferior izquierda: inicio de la semicurva.', 'M': 'Punto central inferior: define la profundidad de la semicurva. La curva C→M→D da el redondeado del bolsillo.', 'D': 'Esquina inferior derecha: fin de la semicurva.' },
     'puno-camisa': {
