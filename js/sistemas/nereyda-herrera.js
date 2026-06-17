@@ -635,10 +635,11 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const D  = { x: OX,       y: OY + RH,  name: 'D'  };  // CF bot-izq
 
       // ── ESCOTE ────────────────────────────────────────────────────
-      // A.8 ancho de escote (CC/6), A.9 profundidad de escote (CC/6) —
-      // se unen con curva cóncava (regla curva francesa).
-      const p8  = { x: OX + NK/6,     y: OY,            name: '8'  };
-      const p9  = { x: OX,            y: OY + NK/6,     name: '9'  };
+      // Punto 1 (ancho de escote) = cuello/6 − 1cm — la MISMA fórmula que
+      // la espalda (homologación delantero/trasero, confirmada por el
+      // usuario). Punto 9 (profundidad de escote) = cuello/6, sin cambio.
+      const p1  = { x: OX + (NK/6 - 10), y: OY,            name: '1'  };
+      const p9  = { x: OX,               y: OY + NK/6,     name: '9'  };
 
       // ── HOMOLOGACIÓN DE SISA Y HOMBRO (idéntico método que posterior) ──
       // Línea de sisa delantera = canesú (CC/6) + (CC/6-2cm), igual que la
@@ -646,12 +647,21 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const sisaY = OY + NK/6 + (NK/6 - 20);
       // Guía de ancho de espalda (AE/2) — eje vertical auxiliar
       const guideX = OX + ESP/2;
-      // Punto 13 — Caída de hombro: 4cm fijos sobre la guía.
-      const p13 = { x: guideX, y: OY + 40, name: '13' };
-      // Punto 10 — control de la semicurva inferior de la sisa: mitad de
-      // la guía (entre tope y línea de sisa), entra 1-1.5cm hacia el CF.
-      const ctrlY = (OY + sisaY) / 2;
-      const p10 = { x: guideX - 12, y: ctrlY, name: '10' };
+
+      // Punto 8: sobre la línea A→B (arriba), en la guía de espalda/2.
+      const p8  = { x: guideX,      y: OY,             name: '8'  };
+      // Punto 10: sobre la línea de sisa, misma x que el punto 8.
+      const p10 = { x: guideX,      y: sisaY,          name: '10' };
+      // Punto 11: el punto 10 sube 1cm en dirección a la línea A→B.
+      const p11 = { x: guideX,      y: sisaY - 10,     name: '11' };
+      // Punto 12: el punto 8 baja 1cm (referencia interna, no es vértice
+      // del contorno — el usuario lo describe como ajuste de control).
+      const p12 = { x: guideX,      y: OY + 10,        name: '12' };
+      // Punto 13: el punto 11 se mete 1cm en dirección a la línea B→C —
+      // este es el vértice real donde termina la caída de hombro y
+      // empieza la semicurva de la sisa.
+      const p13 = { x: guideX + 10, y: sisaY - 10,      name: '13' };
+
       // Punto 2 — donde la sisa llega al costado.
       const p2 = { x: OX + RW, y: sisaY, name: '2' };
 
@@ -659,20 +669,31 @@ PAT.Sistemas.NereydaHerrera = (function () {
       const E = { x: OX + RW, y: (sisaY + (OY + RH)) / 2, name: 'E' };
       const F = { x: E.x - 10, y: E.y,                    name: 'F' };
 
-      // A.14 vista de botones: margen de 7cm desde el CF.
-      const p14  = { x: OX - 70,      y: OY + NK/6,           name: '14' };
-      const p14b = { x: OX - 70,      y: OY + RH,             name: '14D' };
+      // ── REFERENCIA DE BOLSILLO ────────────────────────────────────
+      // "Línea 2": pecho/4 + 1cm desde A, en dirección al punto D
+      // (vertical, sobre la línea CF). NO es el punto de escote — se usa
+      // solo como guía para ubicar el bolsillo. Se renombra a "L2" para
+      // no chocar con el punto "2" del costado/sisa (que es algo distinto).
+      const pL2 = { x: OX, y: OY + (T/4 + 10), name: 'L2' };
+      // Punto de referencia del bolsillo: 2 a 2.5cm por debajo de la
+      // línea L2 (posición horizontal estimada — el manual no da una
+      // coordenada X exacta; ajustable con fx/fy).
+      const pBolsillo = { x: OX + RW * 0.4, y: pL2.y + 25, name: 'BOLS' };
+
+      // A.14 vista de botones (estilo Sport): margen de 9cm desde el CF.
+      const p14  = { x: OX - 90,      y: OY + NK/6,           name: '14' };
+      const p14b = { x: OX - 90,      y: OY + RH,             name: '14D' };
 
       // 14T  esquina superior de la vista, a la altura del PICO (punto A).
       // La vista sube en forma de CUADRADO (línea recta arriba), no de pico
       // diagonal: 9→A (sube recto por la línea CF) → 14T (línea horizontal
       // arriba, a la altura de A) → 14 (baja recto hasta la altura real del
       // escote, punto 9) → 14D (sigue hacia abajo).
-      const p14t = { x: OX - 70,      y: OY,                  name: '14T' };
+      const p14t = { x: OX - 90,      y: OY,                  name: '14T' };
 
       // ── Puntos ────────────────────────────────────────────────────
       const points = {};
-      [A, B_, C_, D, p8, p9, p13, p10, p2, E, F, p14, p14b, p14t]
+      [A, B_, C_, D, p1, p9, p8, p10, p11, p12, p13, p2, E, F, pL2, pBolsillo, p14, p14b, p14t]
         .forEach((p, i) => {
           points['cd' + i] = { x: p.x, y: p.y, name: p.name, fx: '', fy: '' };
         });
@@ -691,15 +712,17 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('A',  'B',   'construction', 'A.B  pecho/4+2cm');
       ln('B',  'C',   'construction', 'B.C  largo+2cm');
       ln('C',  'D',   'construction', 'base rectángulo');
-      ln('A',  '8',   'construction', 'A.8  cuello/6');
+      ln('A',  '1',   'construction', 'A.1  cuello/6-1cm');
       ln('A',  '9',   'construction', 'A.9  cuello/6');
       ln('E',  'F',   'construction', 'referencia entalle');
+      ln('8',  '10',  'construction', 'guía espalda/2');
+      ln('10', '11',  'construction', '11: 10 sube 1cm');
+      ln('8',  '12',  'construction', '12: 8 baja 1cm');
+      ln('11', '13',  'construction', '13: 11 entra 1cm hacia costado');
+      ln('A',  'L2',  'construction', 'L2: pecho/4+1cm — ref. bolsillo');
 
       // ── Contorno final de la prenda ───────────────────────────────
-      // Recorrido: 14D → D → C → F → 2 → 10 → 13 → 8 → 9 → A → 14T → 14 → (14D)
-      // (Numeración del manual: la sisa va del punto 8 al punto 13 —
-      // tramo 13→8 es la caída de hombro; del punto 13 al punto 2 se
-      // traza la semicurva inferior de la sisa, pasando por el punto 10.)
+      // Recorrido: 14D → D → C → F → 2 → 10 → 13 → 1 → 9 → A → 14T → 14 → (14D)
 
       // Vista (placket de botones): borde inferior, desde la esquina
       // inferior de la vista hasta D.
@@ -712,16 +735,16 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('C',  'F',   'line');
       ln('F',  '2',   'line');
 
-      // Sisa delantera (semicurva inferior): del punto 2 al punto 13,
-      // pasando por el punto de control 10 (entra 1-1.5cm hacia el CF).
-      ln('2', '13',   'curve', 'sisa delantera (homologada)', -20);
+      // Sisa delantera (semicurva inferior): del punto 2, recto hasta el
+      // punto 13 (caída de hombro), luego curva hasta el ancho de escote.
+      ln('2',  '13',  'curve', 'sisa delantera (homologada)', -20);
 
-      // Caída de hombro: línea recta del punto 13 al punto 8 (ancho de
-      // escote) — debe medir igual que el hombro posterior (tramo A.1→4).
-      ln('13', '8',   'line');
+      // Caída de hombro / escote: línea recta del punto 13 al punto 1
+      // (ancho de escote) — debe medir igual que el hombro posterior.
+      ln('13', '1',   'line');
 
-      // Escote: curva cóncava de A.8 a A.9 (regla curva francesa).
-      ln('8',  '9',   'curve', 'escote delantero', -16);
+      // Escote: curva cóncava de 1 a 9 (regla curva francesa).
+      ln('1',  '9',   'curve', 'escote delantero', -16);
 
       // Vista cuadrada: desde la profundidad real del escote (9) sube recto
       // por la línea CF hasta la altura del pico (A), gira en línea recta
@@ -1406,14 +1429,19 @@ PAT.Sistemas.NereydaHerrera = (function () {
       'B':   'Costado arriba-derecha: esquina superior del lado del costado. Punto de referencia del rectángulo — no es contorno.',
       'C':   'Costado abajo-derecha: esquina inferior del costado. Junto con D cierra el dobladillo.',
       'D':   'CF abajo-izquierda: esquina inferior del centro frente. El dobladillo va de D→C.',
-      '8':   'Ancho del escote (A.8): cuello/6 hacia la derecha desde A. Se une con el punto 9 en curva cóncava. La sisa va del punto 8 al punto 13.',
-      '9':   'Profundidad del escote (A.9): cuello/6 hacia abajo desde A, en la línea CF. Curva con el punto 8 (regla curva francesa).',
-      '13':  'Caída de hombro: 4cm fijos sobre la guía de espalda/2. El tramo 13→8 es el hombro y debe medir igual que el hombro posterior.',
-      '10':  'Punto de control de la semicurva inferior de la sisa (tramo 13→2): entra 1-1.5cm hacia el CF — da mayor concavidad porque la articulación del brazo se desplaza al frente.',
-      '2':   'Línea de sisa homologada con la espalda (canesú + canesú-2cm) — garantiza que ambas sisas (delantera y posterior) midan lo mismo. La semicurva 13→2 pasa por el punto 10.',
+      '1':   'Ancho del escote (A.1): cuello/6 − 1cm hacia la derecha desde A — misma fórmula homologada con el escote trasero. Se une con el punto 9 en curva cóncava, y con el punto 13 en línea recta (caída de hombro).',
+      '9':   'Profundidad del escote (A.9): cuello/6 hacia abajo desde A, en la línea CF. Curva con el punto 1 (regla curva francesa).',
+      '8':   'Guía de hombro sobre la línea A→B: en el eje espalda/2. Punto de construcción — no es vértice del contorno.',
+      '10':  'Guía sobre la línea de sisa, misma x que el punto 8. Punto de construcción.',
+      '11':  'El punto 10 sube 1cm en dirección a la línea A→B. Punto de construcción.',
+      '12':  'El punto 8 baja 1cm. Punto de construcción interno (ajuste de control).',
+      '13':  'Caída de hombro real: el punto 11 se mete 1cm en dirección a la línea B→C. Es el vértice donde termina el hombro (13→1) y empieza la semicurva de la sisa (2→13).',
+      '2':   'Línea de sisa homologada con la espalda (canesú + canesú-2cm) — garantiza que ambas sisas (delantera y posterior) midan lo mismo. La semicurva va de 2 a 13.',
       'E':   'Nivel medio del costado (referencia): mitad entre la sisa y el dobladillo.',
       'F':   'Punto de entalle: 1cm hacia adentro desde E.',
-      '14':  'Vista (ojal y botón) — A.14: margen de 7cm desde el CF (3cm cruce de botonadura + 4cm de vista doblada).',
+      'L2':  'Línea de referencia para el bolsillo: pecho/4 + 1cm desde A, en dirección al punto D (vertical, sobre la línea CF). No es el ancho de escote.',
+      'BOLS':'Punto de referencia del bolsillo: 2 a 2.5cm por debajo de la línea L2 (posición horizontal estimada, ajustable).',
+      '14':  'Vista (ojal y botón), estilo Sport — A.14: margen de 9cm desde el CF.',
       '14D': 'Esquina inferior de la vista: igual posición que punto 14 pero a la altura del dobladillo. La línea 14→14D es el doblez de la vista.',
       '14T': 'Esquina superior cuadrada de la vista: a la altura del pico (punto A). La vista sube recta y gira en ángulo recto, no en pico diagonal.',
     },
