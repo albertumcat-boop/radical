@@ -521,8 +521,14 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // pasa primero por este punto interior antes de subir al hombro.
       const p2c = { x: OX + RW - 10,  y: OY + T/4 + 10,      name: '2c' };
 
-      // A.14  9cm a la izquierda de A  (vista para ojal y botón)
-      const p14  = { x: OX - 90,      y: OY,                  name: '14' };
+      // A.14  9cm a la izquierda, a la altura del escote REAL (punto 9),
+      // no a la altura de A. A ya no es parte del contorno (el escote
+      // termina en 9, más abajo que A) — si 14 quedara a la altura de A,
+      // la línea 9→14 tendría que subir en diagonal de golpe, creando un
+      // "pico" falso justo donde va el ojal/botón. Poniendo 14 a la misma
+      // altura que 9, la línea 9→14 queda horizontal y la vista nace
+      // limpiamente desde el final real del escote.
+      const p14  = { x: OX - 90,      y: OY + NK/6,           name: '14' };
       const p14b = { x: OX - 90,      y: OY + RH,             name: '14D' };
 
       // ── Puntos ────────────────────────────────────────────────────
