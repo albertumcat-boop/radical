@@ -255,14 +255,17 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('D1', 'D2',  'line');
       ln('D2', '6',   'line');
 
-      // Líneas de referencia (construcción)
-      ln('E',  'F',   'line');   // nivel hombro (referencia)
-      ln('A',  'B',   'line');   // línea tope (referencia)
+      // Líneas de referencia (construcción) — antes mal etiquetadas como
+      // 'line', lo que las metía dentro del contorno relleno como bordes
+      // falsos. 'construction' las deja como guía punteada, fuera del relleno.
+      ln('E',  'F',   'construction');   // nivel hombro (referencia)
+      ln('A',  'B',   'construction');   // línea tope (referencia)
 
-      // Pinza trasera
-      ln('7',  '8',   'line');
-      ln('8',  '9L',  'line');
-      ln('8',  '9R',  'line');
+      // Pinza trasera — interna, NO es parte del contorno exterior.
+      // 'dart' la excluye del relleno (antes era 'line' y ensuciaba la silueta).
+      ln('7',  '8',   'dart');
+      ln('8',  '9L',  'dart');
+      ln('8',  '9R',  'dart');
 
       return { points, lines };
     },
@@ -403,9 +406,10 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('7',  '2D', 'line');
       ln('2D', 'B',  'line');
 
-      // Referencias
-      ln('B',  'A',  'line');    // tope superior
-      ln('E',  'F',  'line');    // referencia entalle
+      // Referencias — 'construction' (no 'line') para que no se cuelen
+      // como bordes falsos dentro del contorno relleno.
+      ln('B',  'A',  'construction');    // tope superior
+      ln('E',  'F',  'construction');    // referencia entalle
 
       return { points, lines };
     },
@@ -553,13 +557,17 @@ PAT.Sistemas.NereydaHerrera = (function () {
       ln('11', '13',  'construction', '11.13  1cm');
 
       // ── Contorno final de la prenda ───────────────────────────────
-      // Vista (placket de botones a la izquierda del CF)
-      ln('14',  '14D', 'fold');
-      ln('A',   '14',  'line');
-      ln('14D', 'D',   'line');
+      // IMPORTANTE: estas líneas deben formar UNA SOLA cadena continua
+      // (cada "from" = "to" de la línea anterior). El renderer dibuja el
+      // relleno recorriendo _lines en orden y asume que el punto de partida
+      // de cada tramo es donde terminó el anterior — si el orden no es una
+      // cadena real, salta puntos y dibuja diagonales falsas (esto causaba
+      // el fragmento de la vista desconectado del resto de la pieza).
+      // Recorrido: 14D → D → C → 2b → 2c → 13 → 12 → 9 → 14 → (cierra en 14D)
 
-      // CF (doblez / botones)
-      ln('D',  'A',   'fold');
+      // Vista (placket de botones): borde inferior, desde la esquina
+      // inferior de la vista hasta D.
+      ln('14D', 'D',   'line');
 
       // Dobladillo
       ln('D',  'C',   'line');
@@ -584,6 +592,16 @@ PAT.Sistemas.NereydaHerrera = (function () {
       // Vector 12→9 va a la izquierda y hacia abajo (dx<0, dy>0), misma
       // dirección que el caso 12→1 ya verificado — mismo signo de ctrl.
       ln('12', '9',   'curve', '', -18);
+
+      // De la profundidad real del escote (9) hasta la esquina superior de
+      // la vista (14) — antes esto salía incorrectamente desde A (la esquina
+      // teórica SIN la curva del escote), lo que dejaba la vista flotando
+      // sin conectar con el resto del contorno.
+      ln('9',   '14',  'line');
+
+      // Cierre: doblez de la vista (borde izquierdo), conecta 14 con 14D
+      // y cierra el contorno completo.
+      ln('14',  '14D', 'fold');
 
       return { points, lines };
     },

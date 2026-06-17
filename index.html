@@ -2239,7 +2239,12 @@ PAT.DrafterUI = (function () {
     // ── Relleno (solo líneas de contorno, excluye construction) ──────────────
     let d='';
     _lines.forEach(ln=>{
-      if(ln.type==='construction'||ln.type==='fold'||ln.type==='dart')return; // excluir del relleno
+      // El doblez (fold) SÍ es un tramo real del contorno de la pieza (conecta
+      // dos segmentos de la silueta) — excluirlo rompía la continuidad del
+      // relleno y creaba líneas espurias entre puntos no consecutivos.
+      // Solo se excluyen las líneas de referencia (construction) y las pinzas
+      // internas (dart), que no forman parte del borde exterior.
+      if(ln.type==='construction'||ln.type==='dart')return; // excluir del relleno
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       if(!d)d=`M ${a.x} ${a.y}`;
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
