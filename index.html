@@ -1014,6 +1014,7 @@ window.PAT = window.PAT || {};
 PAT.DrafterUI = (function () {
   const NS = 'http://www.w3.org/2000/svg';
   const MK = 'pat_v6';
+  const BASE_KEY = 'pat_v6_bases'; // bases personalizadas por pieza (camisa-trasera, camisa-delantera, franela, etc.)
   const SC = 2; // px por mm a zoom=1
 
   // ── Estado ─────────────────────────────────────────────────
@@ -1359,6 +1360,10 @@ PAT.DrafterUI = (function () {
       <div class="dv6-psec">
         <div class="dv6-ptl">Líneas / Curvas <span id="dv6-lncnt" style="color:#5a5678;font-weight:400">0</span></div>
         <div class="dv6-lnlist" id="dv6-lnlist"></div>
+        <!-- Longitud de la línea seleccionada (cualquier tipo: recta, curva, doblez) -->
+        <div id="dv6-line-info" style="display:none;margin:4px 8px;padding:6px 8px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.35);border-radius:6px;font-size:11px;color:#93c5fd;font-family:monospace">
+          <span id="dv6-line-info-txt">—</span>
+        </div>
         <!-- Slider de curvatura (visible solo cuando se selecciona una curva) -->
         <div class="dv6-ctrl-slider" id="dv6-ctrl-slider">
           <span style="font-size:10px;color:#60a5fa">⌒ Curva</span>
@@ -1394,6 +1399,7 @@ PAT.DrafterUI = (function () {
       <div class="dv6-ft">
         <button class="dv6-fb pri" id="dv6-apb">＋ Agregar al patrón principal</button>
         <button class="dv6-fb sec" id="dv6-svb">💾 Guardar pieza</button>
+        <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo ajustado como la base que se cargará la próxima vez que abras esta pieza desde el asistente">📌 Guardar como base de esta pieza</button>
         <button class="dv6-fb sec" id="dv6-rpb">📋 Ver reporte / auditoría</button>
       </div>
     </div>
@@ -1575,6 +1581,8 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-clr').onclick  = () => { if (confirm('¿Limpiar todo?')) { _snapshot(); _clearAll(); } };
     document.getElementById('dv6-sv').onclick   = _save;
     document.getElementById('dv6-svb').onclick  = _save;
+    const svbaseBtn = document.getElementById('dv6-svbase-btn');
+    if (svbaseBtn) svbaseBtn.onclick = _saveAsBase;
     document.getElementById('dv6-ap').onclick   = _addToPattern;
     document.getElementById('dv6-apb').onclick  = _addToPattern;
     document.getElementById('dv6-rpb').onclick  = _showReporte;
@@ -1847,6 +1855,7 @@ PAT.DrafterUI = (function () {
       _renderLines();
       _renderCurveControls();
       _renderDims();
+      _updateLineInfo();
       return;
     }
 
@@ -1857,7 +1866,7 @@ PAT.DrafterUI = (function () {
       p.y = mm.y - _dragOff.y;
       p.formula = '';
       _renderAll();
-      _updateForm(); return;
+      _updateForm(); _updateLineInfo(); return;
     }
 
     // Línea temporal — ★ CRÍTICO: usa _mmToSvg() para convertir a coords SVG directas
@@ -2106,16 +2115,49 @@ PAT.DrafterUI = (function () {
   function _selectLine(idx){
     _selectedLine=idx;
     const slider=document.getElementById('dv6-ctrl-slider');
-    if(idx===null||!_lines[idx]||_lines[idx].type!=='curve'){
+    if(idx===null||!_lines[idx]){
       if(slider)slider.classList.remove('vis');
+      _updateLineInfo();
       _renderCurveControls();
       return;
     }
-    const sl=document.getElementById('dv6-csl');
-    const nm=document.getElementById('dv6-cnm');
-    if(sl){sl.value=_lines[idx].ctrl;nm.textContent=_lines[idx].ctrl+'mm';}
-    if(slider)slider.classList.add('vis');
+    if(_lines[idx].type==='curve'){
+      const sl=document.getElementById('dv6-csl');
+      const nm=document.getElementById('dv6-cnm');
+      if(sl){sl.value=_lines[idx].ctrl;nm.textContent=_lines[idx].ctrl+'mm';}
+      if(slider)slider.classList.add('vis');
+    }else{
+      if(slider)slider.classList.remove('vis');
+    }
+    _updateLineInfo();
     _renderCurveControls();
+  }
+
+  /** Calcula la longitud (en mm) de una línea (recta, doblez o curva). */
+  function _lineLengthMm(ln){
+    const a=_points[ln.from],b=_points[ln.to];
+    if(!a||!b)return 0;
+    if(ln.type==='curve'){
+      const{cpx,cpy}=_curveCP(a,b,ln);
+      // Aproximación: cuerda + control, igual que en _renderDims
+      return Math.hypot((a.x+cpx)/2-b.x,(a.y+cpy)/2-b.y)+Math.hypot(a.x-cpx,a.y-cpy);
+    }
+    return Math.hypot(b.x-a.x,b.y-a.y);
+  }
+
+  /** Refresca el cuadro "Longitud: X cm" de la línea seleccionada. */
+  function _updateLineInfo(){
+    const box=document.getElementById('dv6-line-info');
+    const txt=document.getElementById('dv6-line-info-txt');
+    if(!box||!txt)return;
+    const ln=(_selectedLine!=null)?_lines[_selectedLine]:null;
+    const a=ln?_points[ln.from]:null, b=ln?_points[ln.to]:null;
+    if(!ln||!a||!b){box.style.display='none';return;}
+    const mm=_lineLengthMm(ln);
+    const cm=(mm/10).toFixed(2);
+    const tipo=ln.type==='curve'?'curva':ln.type==='fold'?'doblez':ln.type==='dart'?'pinza':'recta';
+    txt.textContent=`📏 ${a.name}→${b.name} (${tipo}): ${cm} cm  ·  ${Math.round(mm)} mm`;
+    box.style.display='';
   }
 
   // ════════════════════════════════════════════════════════════
@@ -2142,7 +2184,7 @@ PAT.DrafterUI = (function () {
     _snapshot();
     _renderAll();_fitView();
     _setTool('addPoint');
-    _instr(`⬜ ${Math.round(W)}×${Math.round(H)}mm · A(0,0) B(${Math.round(W)},0) C(${Math.round(W)},${Math.round(H)}) D(0,${Math.round(H)}). Agrega puntos [P].`);
+    _instr(`⬜ Rectángulo base: ${(W/10).toFixed(1)}×${(H/10).toFixed(1)}cm (${Math.round(W)}×${Math.round(H)}mm) · A(0,0) B(${Math.round(W)},0) C(${Math.round(W)},${Math.round(H)}) D(0,${Math.round(H)}). Agrega puntos [P].`);
   }
 
   function _clearAll(){
@@ -2204,7 +2246,7 @@ PAT.DrafterUI = (function () {
   // ════════════════════════════════════════════════════════════
   // RENDER
   // ════════════════════════════════════════════════════════════
-  function _renderAll(){_renderLines();_renderCurveControls();_renderPoints();_renderDims();_refreshPanel();}
+  function _renderAll(){_renderLines();_renderCurveControls();_renderPoints();_renderDims();_refreshPanel();_updateLineInfo();}
 
   function _renderLines(){
     while(_linesG.firstChild)_linesG.removeChild(_linesG.firstChild);
@@ -2525,8 +2567,9 @@ PAT.DrafterUI = (function () {
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       const col=ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':ln.type==='curve'?'#60a5fa':'#e2e8f0';
       const bg=ln.type==='fold'?'repeating-linear-gradient(90deg,#f87171 0,#f87171 4px,transparent 4px,transparent 8px)':ln.type==='dart'?'repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 4px,transparent 4px,transparent 8px)':col;
+      const lenCm=(_lineLengthMm(ln)/10).toFixed(1);
       const div=document.createElement('div');div.className='dv6-lni'+(i===_selectedLine?' on':'');
-      div.innerHTML=`<div class="dv6-lbar" style="background:${bg}"></div><span class="dv6-llb">${a.name}→${b.name} <span style="color:#3d3d58">(${ln.type}${ln.type==='curve'?' '+ln.ctrl+'mm':''})</span></span><button class="dv6-ldel">✕</button>`;
+      div.innerHTML=`<div class="dv6-lbar" style="background:${bg}"></div><span class="dv6-llb">${a.name}→${b.name} <span style="color:#3d3d58">(${ln.type}) ${lenCm}cm</span></span><button class="dv6-ldel">✕</button>`;
       div.addEventListener('click',e=>{if(e.target.classList.contains('dv6-ldel'))return;_selectLine(i===_selectedLine?null:i);_refreshPanel();});
       div.querySelector('.dv6-ldel').addEventListener('click',()=>{_snapshot();_lines.splice(i,1);if(_selectedLine===i)_selectLine(null);_renderAll();});
       lnlist.appendChild(div);
@@ -2727,6 +2770,48 @@ PAT.DrafterUI = (function () {
   }
 
   function _loadStore(){try{return JSON.parse(localStorage.getItem(MK)||'{}');}catch(e){return{};}}
+
+  /** Carga el almacén de "bases personalizadas" (una entrada por pieza: id = bloqueId). */
+  function _loadBaseStore(){try{return JSON.parse(localStorage.getItem(BASE_KEY)||'{}');}catch(e){return{};}}
+
+  /** Guarda el trazo actual como la base que se usará automáticamente la próxima
+   *  vez que se abra esta misma pieza (camisa-trasera, camisa-delantera, franela, etc.)
+   *  desde el asistente/wizard, en lugar de regenerarla desde las fórmulas NH. */
+  function _saveAsBase(){
+    if(!_pieceBloqueId){
+      if(PAT.App)PAT.App.toast('⚠ Esta pieza no tiene un ID de bloque reconocido (no viene del asistente) — no se puede fijar como base','error');
+      else alert('⚠ Esta pieza no viene del asistente de patrones, no se puede guardar como base.');
+      return;
+    }
+    if(!confirm(`Esto guardará tu ajuste actual como la base de "${_pieceName}".\nLa próxima vez que abras esta pieza desde el asistente se cargará TU versión en vez de la generada automáticamente.\n¿Continuar?`))return;
+    const store=_loadBaseStore();
+    store[_pieceBloqueId]={
+      bloqueId:_pieceBloqueId,
+      name:_pieceName,
+      points:JSON.parse(JSON.stringify(_points)),
+      lines:JSON.parse(JSON.stringify(_lines)),
+      ptCtr:_ptCtr,
+      medidas:_pieceMedidas?JSON.parse(JSON.stringify(_pieceMedidas)):null,
+      savedAt:new Date().toISOString(),
+    };
+    localStorage.setItem(BASE_KEY,JSON.stringify(store));
+    if(PAT.App)PAT.App.toast('📌 "'+_pieceName+'" fijado como base — se cargará así la próxima vez','success');
+    else alert('📌 "'+_pieceName+'" fijado como base.');
+  }
+
+  /** Si existe una base personalizada guardada para este bloqueId, la devuelve
+   *  (null si no hay ninguna o no aplica). */
+  function _getBaseOverride(bloqueId){
+    if(!bloqueId)return null;
+    const store=_loadBaseStore();
+    return store[bloqueId]||null;
+  }
+
+  /** Quita la base personalizada de una pieza (vuelve a generarse desde NH). */
+  function _clearBaseOverride(bloqueId){
+    const store=_loadBaseStore();
+    if(store[bloqueId]){delete store[bloqueId];localStorage.setItem(BASE_KEY,JSON.stringify(store));}
+  }
 
   function _refreshSaved(){
     const list=document.getElementById('dv6-sl');if(!list)return;
@@ -3041,6 +3126,31 @@ PAT.DrafterUI = (function () {
   function _runPieza(bloqueId, medidas) {
     if (Object.keys(_points).length > 0) {
       if (!confirm('⚠️ Esto borrará el trazado actual.\n¿Continuar?')) return;
+    }
+
+    // ── Base personalizada guardada por el usuario para esta pieza ───
+    // (vía "📌 Guardar como base de esta pieza") — si existe, se carga
+    // esa versión ajustada en vez de regenerar desde las fórmulas NH.
+    const override = _getBaseOverride(bloqueId);
+    if (override && confirm(
+      `📌 Tienes una versión personalizada guardada de "${override.name}".\n` +
+      `¿Cargar TU versión ajustada en vez de generarla de nuevo desde las fórmulas?\n\n` +
+      `Aceptar = cargar tu base · Cancelar = generar la versión estándar`)) {
+      _points   = JSON.parse(JSON.stringify(override.points || {}));
+      _lines    = JSON.parse(JSON.stringify(override.lines  || []));
+      _ptCtr    = override.ptCtr || 0;
+      _pieceName     = override.name || bloqueId;
+      _pieceBloqueId = bloqueId;
+      _pieceMedidas  = medidas;
+      _buildLog = []; _selected = null; _lnStart = null; _selectedLine = null;
+      const nmEl = document.getElementById('dv6-nm');
+      if (nmEl) nmEl.value = _pieceName;
+      _tempLine && _tempLine.setAttribute('opacity', '0');
+      _snapshot(); _renderAll(); _fitView();
+      _setTool('select');
+      _instr(`📌 "${_pieceName}" cargado desde tu base personalizada — ${Object.keys(_points).length} puntos · ${_lines.length} líneas.`);
+      if (PAT.App) PAT.App.toast('📌 ' + _pieceName + ' (tu base personalizada)', 'success');
+      return;
     }
 
     let bloque;
