@@ -358,6 +358,22 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
       <span class="badge-u">cm</span>
     </div>
 
+    <!-- Perfiles de medidas: guardar/cargar el set de medidas de un cliente,
+         o exportarlo/importarlo como archivo .json (tipo SeamlyME). -->
+    <div class="m-profiles" style="display:flex;flex-direction:column;gap:5px;margin:4px 0 10px;padding:8px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.18);border-radius:8px">
+      <div style="font-size:10px;color:#9490b0;font-weight:700;letter-spacing:.03em">👤 PERFIL DE MEDIDAS</div>
+      <select id="mp-select" style="width:100%;background:#13111c;color:#ede9fe;border:1px solid #2a2640;border-radius:6px;padding:5px 6px;font-size:11px">
+        <option value="">— Sin perfil (medidas manuales) —</option>
+      </select>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button id="mp-save"   class="m-btn" style="flex:1;font-size:10px;padding:4px 6px;width:auto">💾 Guardar</button>
+        <button id="mp-del"    class="m-btn" style="flex:1;font-size:10px;padding:4px 6px;width:auto">🗑 Eliminar</button>
+        <button id="mp-export" class="m-btn" style="flex:1;font-size:10px;padding:4px 6px;width:auto">⬇ Exportar</button>
+        <button id="mp-import" class="m-btn" style="flex:1;font-size:10px;padding:4px 6px;width:auto">⬆ Importar</button>
+      </div>
+      <input type="file" id="mp-import-file" accept="application/json" style="display:none">
+    </div>
+
     <div class="m-group-title">📏 Contornos</div>
     <div class="m-row">
       <div class="m-dot" style="background:#f59e0b"></div>
@@ -3330,6 +3346,118 @@ function stepInput(key, dir) {
   inp.dispatchEvent(new Event('input', {bubbles:true}));
 }
 
+// ── Perfiles de medidas (guardar/cargar/exportar/importar) ──────
+(function () {
+  function allMeasureInputs() {
+    return Array.from(document.querySelectorAll('input[data-measure]'));
+  }
+
+  function leerMedidasDelForm() {
+    var out = {};
+    allMeasureInputs().forEach(function (inp) {
+      var v = parseFloat(inp.value);
+      if (!isNaN(v)) out[inp.dataset.measure] = v;
+    });
+    return out;
+  }
+
+  function escribirMedidasEnForm(medidas) {
+    allMeasureInputs().forEach(function (inp) {
+      var key = inp.dataset.measure;
+      if (medidas[key] != null) {
+        inp.value = medidas[key];
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }
+
+  function refrescarSelect(selectedId) {
+    var sel = document.getElementById('mp-select');
+    if (!sel || !PAT.MeasurementProfiles) return;
+    var perfiles = PAT.MeasurementProfiles.listar();
+    sel.innerHTML = '<option value="">— Sin perfil (medidas manuales) —</option>';
+    perfiles.forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.nombre;
+      sel.appendChild(opt);
+    });
+    if (selectedId) sel.value = selectedId;
+  }
+
+  function init() {
+    if (!PAT.MeasurementProfiles) { setTimeout(init, 200); return; }
+    refrescarSelect();
+
+    var sel       = document.getElementById('mp-select');
+    var btnSave   = document.getElementById('mp-save');
+    var btnDel    = document.getElementById('mp-del');
+    var btnExport = document.getElementById('mp-export');
+    var btnImport = document.getElementById('mp-import');
+    var fileInput = document.getElementById('mp-import-file');
+
+    if (sel) sel.onchange = function () {
+      if (!sel.value) return;
+      var p = PAT.MeasurementProfiles.obtener(sel.value);
+      if (p) {
+        escribirMedidasEnForm(p.medidas);
+        if (PAT.App) PAT.App.toast('👤 Medidas de "' + p.nombre + '" cargadas', 'success');
+      }
+    };
+
+    if (btnSave) btnSave.onclick = async function () {
+      var actual = sel && sel.value ? PAT.MeasurementProfiles.obtener(sel.value) : null;
+      var nombre = prompt('Nombre del perfil (ej. nombre del cliente):', actual ? actual.nombre : '');
+      if (nombre === null) return; // canceló
+      var medidas = leerMedidasDelForm();
+      if (!Object.keys(medidas).length) {
+        alert('No hay medidas ingresadas en el formulario para guardar.');
+        return;
+      }
+      var id = await PAT.MeasurementProfiles.guardar(nombre || 'Sin nombre', medidas, { id: actual ? actual.id : null });
+      refrescarSelect(id);
+      if (PAT.App) PAT.App.toast('💾 Perfil "' + (nombre || 'Sin nombre') + '" guardado', 'success');
+    };
+
+    if (btnDel) btnDel.onclick = async function () {
+      if (!sel || !sel.value) { alert('Selecciona un perfil para eliminar.'); return; }
+      var p = PAT.MeasurementProfiles.obtener(sel.value);
+      if (!confirm('¿Eliminar el perfil "' + (p ? p.nombre : '') + '"?')) return;
+      await PAT.MeasurementProfiles.eliminar(sel.value);
+      refrescarSelect();
+      if (PAT.App) PAT.App.toast('🗑 Perfil eliminado', 'success');
+    };
+
+    if (btnExport) btnExport.onclick = function () {
+      if (!sel || !sel.value) { alert('Selecciona un perfil para exportar (o guárdalo primero).'); return; }
+      PAT.MeasurementProfiles.descargarArchivo(sel.value);
+    };
+
+    if (btnImport) btnImport.onclick = function () { fileInput && fileInput.click(); };
+
+    if (fileInput) fileInput.onchange = function (e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = async function (ev) {
+        try {
+          var id = await PAT.MeasurementProfiles.importarJSON(ev.target.result);
+          refrescarSelect(id);
+          var p = PAT.MeasurementProfiles.obtener(id);
+          if (p) escribirMedidasEnForm(p.medidas);
+          if (PAT.App) PAT.App.toast('⬆ Perfil importado y aplicado', 'success');
+        } catch (err) {
+          alert('No se pudo importar: ' + err.message);
+        }
+        fileInput.value = '';
+      };
+      reader.readAsText(file);
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+
 // ── Mobile menu button visible en pequeño ───────────────────────
 (function() {
   var menuBtn = document.getElementById('menu-mobile');
@@ -3478,6 +3606,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/sistemas/nereyda-herrera.js"></script>
 <script src="js/wizard.js"></script>
 <script src="js/notas-usuario.js"></script>
+<script src="js/measurement-profiles.js"></script>
 <script src="js/pizarra.js"></script>
 <script src="js/pizarra-ui.js"></script>
 <script src="js/sistemas/sistemas-ui.js"></script>
