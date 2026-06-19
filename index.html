@@ -1088,6 +1088,8 @@ PAT.DrafterUI = (function () {
   let _pieceMedidas = null;   // medidas (cm) usadas para generar la pieza actual — para el reporte/auditoría
   let _refreshFormulaBuilder = null; // refresca el valor/preview del constructor de fórmulas al cambiar de punto
   let _curSave     = null;
+  let _seamMm      = 10;   // mm — margen de costura (línea de corte) para imprimir/descargar
+  let _seamOn      = true; // si se incluye el margen de costura al imprimir/descargar
   let _snapEnabled  = false;
   let _snapSize     = 5; // mm
   let _showDims     = true;
@@ -1561,6 +1563,16 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         <button class="dv6-fb sec" id="dv6-addsample-btn" title="Guarda este trazo + sus medidas como una muestra para que el sistema aprenda a graduar esta pieza a otras medidas automáticamente">📊 Agregar muestra para graduar</button>
         <button class="dv6-fb sec" id="dv6-viewsamples-btn" title="Ver las muestras guardadas para graduar esta pieza">📊 Ver muestras guardadas</button>
         <button class="dv6-fb sec" id="dv6-rpb">📋 Ver reporte / auditoría</button>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10.5px;color:#9490b0">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+            <input type="checkbox" id="dv6-seam-on" checked style="cursor:pointer">
+            ✂ Margen de costura
+          </label>
+          <input type="number" id="dv6-seam-input" value="10" min="0" max="50" step="0.5"
+                 title="Distancia del margen de costura (línea de corte) más allá de la línea de patrón"
+                 style="width:55px;background:#1a1730;border:1px solid #332d54;color:#e9e7f5;border-radius:4px;padding:2px 4px">
+          <span>mm</span>
+        </div>
         <div style="display:flex;gap:6px;margin-top:4px">
           <button class="dv6-fb sec" id="dv6-print-btn" style="flex:1" title="Genera un PDF a escala 1:1, listo para imprimir y armar">🖨 Imprimir</button>
           <button class="dv6-fb sec" id="dv6-download-btn" style="flex:1" title="Descarga esta pieza como archivo SVG vectorial">⬇ Descargar</button>
@@ -1768,6 +1780,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if (addSampleBtn) addSampleBtn.onclick = _addSample;
     const viewSamplesBtn = document.getElementById('dv6-viewsamples-btn');
     if (viewSamplesBtn) viewSamplesBtn.onclick = _verMuestras;
+    const seamInput = document.getElementById('dv6-seam-input');
+    if (seamInput) seamInput.oninput = () => { const v = parseFloat(seamInput.value); _seamMm = Number.isFinite(v) ? Math.max(0, v) : 10; };
+    const seamOnChk = document.getElementById('dv6-seam-on');
+    if (seamOnChk) seamOnChk.onchange = () => { _seamOn = seamOnChk.checked; };
     document.getElementById('dv6-ap').onclick   = _addToPattern;
     document.getElementById('dv6-apb').onclick  = _addToPattern;
     document.getElementById('dv6-rpb').onclick  = _showReporte;
@@ -4046,10 +4062,89 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   // en PAT.PieceBases, y esto no las toca).
   // ════════════════════════════════════════════════════════════
 
+  /** Agrupa las líneas del PATRÓN (excluye estructura/pinza) en cadenas
+   *  continuas de puntos muestreados (las curvas/curvas S se subdividen),
+   *  igual criterio de "levantar el lápiz" que _addToPattern. Cada cadena
+   *  indica si quedó cerrada (vuelve a su punto de partida) — solo esas se
+   *  pueden offsetear para dibujar el margen de costura. */
+  function _buildPatternChains(){
+    const chains=[]; // [{pts:[{x,y}...], closed:bool}]
+    let cur=null, lastTo=null;
+    _lines.forEach(ln=>{
+      if(ln.type==='construction'||ln.type==='dart')return;
+      const a=_points[ln.from], b=_points[ln.to]; if(!a||!b)return;
+      if(!cur || lastTo!==ln.from){
+        cur=[{x:a.x,y:a.y}];
+        chains.push(cur);
+      }
+      if(ln.type==='curve'){
+        const{cpx,cpy}=_curveCP(a,b,ln);
+        for(let t=1;t<=12;t++){const u=t/12;cur.push({
+          x:(1-u)*(1-u)*a.x+2*(1-u)*u*cpx+u*u*b.x,
+          y:(1-u)*(1-u)*a.y+2*(1-u)*u*cpy+u*u*b.y,
+        });}
+      }else if(ln.type==='scurve'){
+        const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
+        for(let t=1;t<=12;t++){const u=t/12,v=1-u;cur.push({
+          x:v*v*v*a.x+3*v*v*u*cp1x+3*v*u*u*cp2x+u*u*u*b.x,
+          y:v*v*v*a.y+3*v*v*u*cp1y+3*v*u*u*cp2y+u*u*u*b.y,
+        });}
+      }else{
+        cur.push({x:b.x,y:b.y});
+      }
+      lastTo=ln.to;
+    });
+    return chains.map(pts=>{
+      const closed = pts.length>2 && Math.hypot(pts[0].x-pts[pts.length-1].x, pts[0].y-pts[pts.length-1].y) < 0.6;
+      return {pts, closed};
+    });
+  }
+
+  /** Offset hacia afuera de un polígono cerrado (puntos en mm), por una
+   *  distancia fija — usado para dibujar la línea de corte (margen de
+   *  costura) alrededor del contorno real de la pieza. Es una aproximación
+   *  por normales promediadas (con miter limitado): funciona bien para
+   *  contornos de patrones de costura (concavidades suaves tipo sisa o
+   *  escote); no es un offset booleano perfecto para formas muy irregulares. */
+  function _offsetClosedPolygon(pts, offset){
+    const n=pts.length;
+    if(n<3||offset<=0) return pts.slice();
+    let cx=0,cy=0; pts.forEach(p=>{cx+=p.x;cy+=p.y;}); cx/=n; cy/=n;
+    return pts.map((cur,i)=>{
+      const prev=pts[(i-1+n)%n], next=pts[(i+1)%n];
+      const d1x=cur.x-prev.x, d1y=cur.y-prev.y, l1=Math.hypot(d1x,d1y)||1;
+      const d2x=next.x-cur.x, d2y=next.y-cur.y, l2=Math.hypot(d2x,d2y)||1;
+      const n1x=-d1y/l1, n1y=d1x/l1, n2x=-d2y/l2, n2y=d2x/l2;
+      let nx=n1x+n2x, ny=n1y+n2y;
+      const nl=Math.hypot(nx,ny);
+      if(nl<1e-6){nx=n1x;ny=n1y;}else{nx/=nl;ny/=nl;}
+      const toCx=cur.x-cx, toCy=cur.y-cy;
+      if(nx*toCx+ny*toCy<0){nx=-nx;ny=-ny;} // asegurar que apunte hacia afuera
+      const cosHalf=Math.max(0.15,(n1x*n2x+n1y*n2y+1)/2);
+      const miter=Math.min(2.5,1/Math.sqrt(cosHalf));
+      return {x:cur.x+nx*offset*miter, y:cur.y+ny*offset*miter};
+    });
+  }
+
+  /** Devuelve los path "d" SVG (uno por cadena cerrada) de la línea de
+   *  corte (margen de costura) a `seamMm` del contorno real de la pieza. */
+  function _buildSeamPaths(seamMm){
+    if(!seamMm||seamMm<=0) return [];
+    return _buildPatternChains()
+      .filter(c=>c.closed)
+      .map(c=>{
+        const off=_offsetClosedPolygon(c.pts, seamMm);
+        return 'M ' + off.map(p=>`${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' L ') + ' Z';
+      });
+  }
+
   /** Construye un <svg> independiente (sin pan/zoom del editor), con
-   *  viewBox en mm real, listo para imprimir/descargar/compartir. */
-  function _buildStandaloneSVG(marginMm){
-    marginMm = marginMm!=null ? marginMm : 15;
+   *  viewBox en mm real, listo para imprimir/descargar/compartir.
+   *  Si seamMm>0, agrega también la línea de corte (margen de costura)
+   *  punteada en azul, paralela al contorno real del patrón. */
+  function _buildStandaloneSVG(marginMm, seamMm){
+    seamMm = seamMm!=null ? seamMm : 0;
+    marginMm = marginMm!=null ? marginMm : Math.max(15, seamMm+10);
     const xs=Object.values(_points).map(p=>p.x), ys=Object.values(_points).map(p=>p.y);
     if(!xs.length) return null;
     const minX=Math.min(...xs)-marginMm, minY=Math.min(...ys)-marginMm;
@@ -4063,6 +4158,28 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     bg.setAttribute('id','svg-bg');bg.setAttribute('x',minX);bg.setAttribute('y',minY);
     bg.setAttribute('width',W);bg.setAttribute('height',H);bg.setAttribute('fill','#ffffff');
     svg.appendChild(bg);
+    // ── Línea de corte (margen de costura) — se dibuja PRIMERO, detrás
+    // del contorno real, para que la línea de patrón quede siempre visible
+    // encima.
+    let seamChainsOmitted = 0;
+    if(seamMm>0){
+      const allChains=_buildPatternChains();
+      seamChainsOmitted = allChains.filter(c=>!c.closed).length;
+      _buildSeamPaths(seamMm).forEach(d=>{
+        const el=document.createElementNS(NS,'path');
+        el.setAttribute('d',d);
+        el.setAttribute('fill','none');
+        el.setAttribute('stroke','#2563eb');
+        el.setAttribute('stroke-width','0.5');
+        el.setAttribute('stroke-dasharray','3,2');
+        svg.appendChild(el);
+      });
+      const lbl=document.createElementNS(NS,'text');
+      lbl.setAttribute('x',minX+3);lbl.setAttribute('y',minY+6);
+      lbl.setAttribute('font-size','3.2');lbl.setAttribute('fill','#2563eb');lbl.setAttribute('font-family','Arial');
+      lbl.textContent=`✂ Línea de corte = +${seamMm}mm de margen de costura (azul punteado)`;
+      svg.appendChild(lbl);
+    }
     _lines.forEach(ln=>{
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       let el;
@@ -4103,9 +4220,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _imprimirPieza(){
     if(!Object.keys(_points).length){if(PAT.App)PAT.App.toast('No hay puntos para imprimir','error');return;}
-    const built=_buildStandaloneSVG();
+    const seamMm = _seamOn ? _seamMm : 0;
+    const built=_buildStandaloneSVG(undefined, seamMm);
     if(!built){if(PAT.App)PAT.App.toast('No hay puntos para imprimir','error');return;}
     if(!PAT.PDFExport){if(PAT.App)PAT.App.toast('Exportador de PDF no disponible','error');return;}
+    if(seamMm>0 && _buildSeamPaths(seamMm).length===0 && PAT.App){
+      PAT.App.toast('⚠ No se pudo trazar el margen de costura: el contorno de la pieza no forma un cierre continuo (revisa que las líneas del patrón se conecten en un solo lazo cerrado). Se imprime sin margen.','error');
+    }
     PAT.PDFExport.exportTiledPDF(
       { bounds:{w:built.W,h:built.H}, svgEl:built.svg },
       { paper:'letter', patternName:(_pieceName||'patron').replace(/\s+/g,'_') }
@@ -4114,7 +4235,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _descargarPieza(){
     if(!Object.keys(_points).length){if(PAT.App)PAT.App.toast('No hay puntos para descargar','error');return;}
-    const built=_buildStandaloneSVG();
+    const seamMm = _seamOn ? _seamMm : 0;
+    const built=_buildStandaloneSVG(undefined, seamMm);
     if(!built)return;
     const svgString=new XMLSerializer().serializeToString(built.svg);
     const blob=new Blob([svgString],{type:'image/svg+xml'});
