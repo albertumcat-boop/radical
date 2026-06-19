@@ -1501,6 +1501,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             <input type="number" id="dv6-line-len-mm" step="1" min="0" style="width:62px;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:5px;padding:3px 6px;font-size:11px;font-family:monospace;outline:none">
             <span style="color:#5a5678">mm</span>
           </div>
+          <!-- Interruptor estructura/patrón: la misma herramienta "Línea" se usa
+               para ambas cosas, así que el tipo no alcanza para distinguirlas
+               solo — se marca a mano cuál es cuál. Afecta qué se manda a la
+               pantalla principal / imprime / descarga (solo el patrón). -->
+          <button id="dv6-line-struct-btn" style="margin-top:6px;width:100%;background:#1a1730;border:1px solid #4c1d95;color:#c4b5fd;border-radius:5px;padding:5px 6px;font-size:10px;font-family:inherit;cursor:pointer">🏗 Marcar como estructura (no se imprime)</button>
         </div>
         <!-- Slider de curvatura (visible solo cuando se selecciona una curva) -->
         <div class="dv6-ctrl-slider" id="dv6-ctrl-slider">
@@ -1762,6 +1767,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-ap').onclick   = _addToPattern;
     document.getElementById('dv6-apb').onclick  = _addToPattern;
     document.getElementById('dv6-rpb').onclick  = _showReporte;
+    document.getElementById('dv6-line-struct-btn').onclick = _toggleLineStructure;
     document.getElementById('dv6-print-btn').onclick    = _imprimirPieza;
     document.getElementById('dv6-download-btn').onclick = _descargarPieza;
     document.getElementById('dv6-share-btn').onclick    = _compartirPieza;
@@ -2424,12 +2430,41 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if(!ln||!a||!b){box.style.display='none';return;}
     const mm=_lineLengthMm(ln);
     const cm=(mm/10).toFixed(2);
-    const tipo=ln.type==='curve'?'curva':ln.type==='scurve'?'curva S':ln.type==='fold'?'doblez':ln.type==='dart'?'pinza':'recta';
+    const esEstructura=ln.type==='construction';
+    const tipo=esEstructura?'estructura':ln.type==='curve'?'curva':ln.type==='scurve'?'curva S':ln.type==='fold'?'doblez':ln.type==='dart'?'pinza':'recta';
     txt.textContent=`📏 ${a.name}→${b.name} (${tipo}):`;
     // No pisar el campo si el usuario lo tiene enfocado (está escribiendo en él)
     if(cmInp && document.activeElement!==cmInp) cmInp.value=cm;
     if(mmInp && document.activeElement!==mmInp) mmInp.value=Math.round(mm);
     box.style.display='';
+    const sbtn=document.getElementById('dv6-line-struct-btn');
+    if(sbtn){
+      sbtn.textContent=esEstructura?'✓ Es estructura — clic para volverla parte del patrón':'🏗 Marcar como estructura (no se imprime)';
+      sbtn.style.background=esEstructura?'#1d3a2e':'#1a1730';
+      sbtn.style.borderColor=esEstructura?'#10b981':'#4c1d95';
+      sbtn.style.color=esEstructura?'#6ee7b7':'#c4b5fd';
+    }
+  }
+
+  /** Alterna la línea seleccionada entre "parte del patrón" y "estructura/
+   *  referencia". Como la misma herramienta "Línea" se usa para ambas cosas,
+   *  el sistema no puede adivinar cuál es cuál — se marca a mano. Al pasar a
+   *  estructura se guarda el tipo real en _realType para poder revertir sin
+   *  perder si era recta/curva/curva S/doblez. Las líneas de estructura no
+   *  se incluyen al mandar a la pantalla principal, imprimir ni descargar. */
+  function _toggleLineStructure(){
+    if(_selectedLine==null||!_lines[_selectedLine])return;
+    const ln=_lines[_selectedLine];
+    _snapshot();
+    if(ln.type==='construction'){
+      ln.type=ln._realType||'line';
+      delete ln._realType;
+    }else{
+      ln._realType=ln.type;
+      ln.type='construction';
+    }
+    _renderAll();
+    if(PAT.App)PAT.App.toast(ln.type==='construction'?'🏗 Marcada como estructura':'✓ Ahora es parte del patrón','success');
   }
 
   /** Mueve el punto final ("to") de la línea seleccionada para que mida
