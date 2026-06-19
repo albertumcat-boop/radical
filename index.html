@@ -2902,11 +2902,37 @@ PAT.DrafterUI = (function () {
    *  vez que se abra esta misma pieza (camisa-trasera, camisa-delantera, franela, etc.)
    *  desde el asistente/wizard, en lugar de regenerarla desde las fórmulas NH.
    *  Se persiste vía PAT.PieceBases (Firestore + localStorage), igual que notas y perfiles. */
+  const _NH_BLOQUE_OPTS=[
+    {id:'blusa-trasera',label:'Blusa Trasera (dama)'},
+    {id:'blusa-delantera',label:'Blusa Delantera (dama)'},
+    {id:'camisa-delantera',label:'Camisa Delantera'},
+    {id:'camisa-posterior',label:'Camisa Posterior (caballero)'},
+    {id:'manga-corta-vestido',label:'Manga Corta (Vestido)'},
+    {id:'manga-larga-vestido',label:'Manga Larga (Vestido)'},
+    {id:'manga-corta-camisa',label:'Manga Corta (Camisa)'},
+    {id:'manga-larga-camisa',label:'Manga Larga (Camisa)'},
+    {id:'cuello-sport',label:'Cuello Sport'},
+    {id:'cuello-con-pie',label:'Cuello con Pie'},
+    {id:'bolsillo-pico',label:'Bolsillo en Pico'},
+    {id:'bolsillo-recto',label:'Bolsillo Recto'},
+    {id:'bolsillo-semicurva',label:'Bolsillo Semicurva'},
+    {id:'puno-camisa',label:'Puño Camisero'},
+  ];
+  function _pickBloqueId(){
+    const lista=_NH_BLOQUE_OPTS.map((o,i)=>`${i+1}. ${o.label}  [${o.id}]`).join('\n');
+    const resp=window.prompt(`Esta pieza se trazó desde cero (no viene del asistente).\n¿A cuál pieza del sistema corresponde? Escribe el número:\n\n${lista}`,'');
+    if(resp===null)return null;
+    const n=parseInt(resp,10);
+    if(Number.isFinite(n)&&n>=1&&n<=_NH_BLOQUE_OPTS.length)return _NH_BLOQUE_OPTS[n-1].id;
+    if(PAT.App)PAT.App.toast('⚠ Opción no válida, no se guardó como base','error');
+    else alert('⚠ Opción no válida, no se guardó como base.');
+    return null;
+  }
   function _saveAsBase(){
     if(!_pieceBloqueId){
-      if(PAT.App)PAT.App.toast('⚠ Esta pieza no tiene un ID de bloque reconocido (no viene del asistente) — no se puede fijar como base','error');
-      else alert('⚠ Esta pieza no viene del asistente de patrones, no se puede guardar como base.');
-      return;
+      const elegido=_pickBloqueId();
+      if(!elegido)return;
+      _pieceBloqueId=elegido;
     }
     if(!confirm(`Esto guardará tu ajuste actual como la base de "${_pieceName}".\nLa próxima vez que abras esta pieza desde el asistente se cargará TU versión en vez de la generada automáticamente.\n¿Continuar?`))return;
     const data={
