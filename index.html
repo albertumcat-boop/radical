@@ -1264,6 +1264,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <button class="tb" data-tool="addPoint" title="P">＋ Punto</button>
     <button class="tb" data-tool="addLine" title="L">╱ Línea</button>
     <button class="tb" data-tool="addCurve" title="C">⌒ Curva</button>
+    <button class="tb" data-tool="addSCurve" title="V" style="border-color:rgba(52,211,153,.3);color:#34d399">〜 Curva S</button>
     <button class="tb" data-tool="addFold" title="F">— Doblez</button>
     <button class="tb" data-tool="addDart" title="D" style="border-color:rgba(251,191,36,.25);color:#fbbf24">📌 Pinza</button>
     <div class="dv6-sep"></div>
@@ -1507,6 +1508,19 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           <input type="range" class="dv6-csl" id="dv6-csl" min="-80" max="80" value="0">
           <span class="dv6-cnm" id="dv6-cnm">0mm</span>
         </div>
+        <!-- Doble slider para curva S: un extremo cóncavo, el otro convexo -->
+        <div class="dv6-ctrl-slider" id="dv6-sctrl-slider" style="display:none;flex-direction:column;gap:4px;align-items:stretch">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:10px;color:#34d399;width:78px">〜 Extremo A</span>
+            <input type="range" id="dv6-scsl-a" min="-80" max="80" value="20" style="flex:1">
+            <span id="dv6-scnm-a" style="font-size:10px;color:#9490b0;width:38px;text-align:right">20mm</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:10px;color:#34d399;width:78px">〜 Extremo B</span>
+            <input type="range" id="dv6-scsl-b" min="-80" max="80" value="-20" style="flex:1">
+            <span id="dv6-scnm-b" style="font-size:10px;color:#9490b0;width:38px;text-align:right">-20mm</span>
+          </div>
+        </div>
       </div>
 
       <!-- Historial de construcción (Feature 4) -->
@@ -1540,6 +1554,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada de esta pieza (volverá a generarse desde las fórmulas NH)">✖ Quitar base personalizada</button>
         <button class="dv6-fb sec" id="dv6-addsample-btn" title="Guarda este trazo + sus medidas como una muestra para que el sistema aprenda a graduar esta pieza a otras medidas automáticamente">📊 Agregar muestra para graduar</button>
         <button class="dv6-fb sec" id="dv6-rpb">📋 Ver reporte / auditoría</button>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="dv6-fb sec" id="dv6-print-btn" style="flex:1" title="Genera un PDF a escala 1:1, listo para imprimir y armar">🖨 Imprimir</button>
+          <button class="dv6-fb sec" id="dv6-download-btn" style="flex:1" title="Descarga esta pieza como archivo SVG vectorial">⬇ Descargar</button>
+          <button class="dv6-fb sec" id="dv6-share-btn" style="flex:1" title="Comparte esta pieza como archivo">📤 Compartir</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1743,6 +1762,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-ap').onclick   = _addToPattern;
     document.getElementById('dv6-apb').onclick  = _addToPattern;
     document.getElementById('dv6-rpb').onclick  = _showReporte;
+    document.getElementById('dv6-print-btn').onclick    = _imprimirPieza;
+    document.getElementById('dv6-download-btn').onclick = _descargarPieza;
+    document.getElementById('dv6-share-btn').onclick    = _compartirPieza;
     document.getElementById('dv6-validate').onclick = _validatePattern;
     document.getElementById('dv6-mirror').onclick = _mirrorSelected;
     document.getElementById('dv6-demo').onclick = _runDemo;
@@ -1805,6 +1827,20 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         _renderDims();
       }
     };
+
+    function _wireSCurveSlider(elId,nmId,ctrlKey){
+      document.getElementById(elId).oninput = function(){
+        const val=parseInt(this.value);
+        document.getElementById(nmId).textContent=val+'mm';
+        if(_selectedLine!==null&&_lines[_selectedLine]&&_lines[_selectedLine].type==='scurve'){
+          const ln=_lines[_selectedLine];
+          ln[ctrlKey]=val; ln.cp1x=null; ln.cp1y=null; ln.cp2x=null; ln.cp2y=null;
+          _renderLines();_renderCurveControls();_renderDims();
+        }
+      };
+    }
+    _wireSCurveSlider('dv6-scsl-a','dv6-scnm-a','ctrl1');
+    _wireSCurveSlider('dv6-scsl-b','dv6-scnm-b','ctrl2');
 
     const wrap = document.getElementById('dv6-wrap');
     wrap.addEventListener('mousedown',  _mdown);
@@ -1900,7 +1936,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _addDart(near); return;
     }
 
-    if (_tool === 'addLine' || _tool === 'addCurve' || _tool === 'addFold') {
+    if (_tool === 'addLine' || _tool === 'addCurve' || _tool === 'addSCurve' || _tool === 'addFold') {
       if (!near) {
         _instr('⚠️ Haz clic exactamente sobre un punto existente (círculo morado)');
         return;
@@ -2051,7 +2087,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _tempLine.setAttribute('x2', svgTo.x);
       _tempLine.setAttribute('y2', svgTo.y);
       _tempLine.setAttribute('opacity', '1');
-      const col = _tool==='addFold'?'#f87171':_tool==='addCurve'?'#60a5fa':'#34d399';
+      const col = _tool==='addFold'?'#f87171':_tool==='addCurve'?'#60a5fa':_tool==='addSCurve'?'#34d399':'#34d399';
       _tempLine.setAttribute('stroke', col);
 
       // Mostrar distancia en tiempo real
@@ -2086,6 +2122,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       case 'p': case 'P': _setTool('addPoint'); break;
       case 'l': case 'L': _setTool('addLine'); break;
       case 'c': case 'C': _setTool('addCurve'); break;
+      case 'v': case 'V': _setTool('addSCurve'); break;
       case 'f': case 'F': _setTool('addFold'); break;
       case 'd': case 'D': _setTool('addDart'); break;
       case 'm': case 'M': _mirrorSelected(); break; // Simetría/espejo
@@ -2115,6 +2152,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       addPoint: '＋ Clic en el canvas para agregar punto. Con Snap ON se alinea a la grilla.',
       addLine:  '╱ Clic en punto A → clic en punto B — traza línea recta. La distancia aparece en verde.',
       addCurve: '⌒ Clic en punto A → clic en punto B — traza curva. Arrastra el ◆ azul para ajustar.',
+      addSCurve: '〜 Clic en punto A → clic en punto B — traza curva en S (un extremo cóncavo, el otro convexo). Ajusta cada extremo con los sliders del panel.',
       addFold:  '— Doblez/Hilo: Clic en punto A → clic en punto B. Línea roja punteada = doblez de papel (centro frente/espalda).',
       addDart:  '📌 Pinza: Clic 1=APEX (punta) → Clic 2=lado DERECHO → Clic 3=lado IZQUIERDO. Líneas naranjas = costura de pinza.',
     }[_tool]||'';
@@ -2265,8 +2303,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   }
 
   function _addLn(fromId,toId,tool){
-    const type=tool==='addCurve'?'curve':tool==='addFold'?'fold':'line';
-    _lines.push({from:fromId,to:toId,type,ctrl:20,cpx:null,cpy:null});
+    const type=tool==='addCurve'?'curve':tool==='addSCurve'?'scurve':tool==='addFold'?'fold':'line';
+    if(type==='scurve'){
+      // Curva en S: dos puntos de control independientes, con signo opuesto
+      // por defecto (uno cóncavo, el otro convexo) — eso es lo que la hace "S".
+      _lines.push({from:fromId,to:toId,type,ctrl1:20,ctrl2:-20,cpx:null,cpy:null});
+    }else{
+      _lines.push({from:fromId,to:toId,type,ctrl:20,cpx:null,cpy:null});
+    }
     // Historial de construcción
     const a=_points[fromId],b=_points[toId];
     if(a&&b)_buildLog.push({type:'line',desc:`${a.name}→${b.name} (${type})`,t:Date.now()});
@@ -2274,20 +2318,46 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const newIdx=_lines.length-1;
     _renderAll();
     // Después de trazar una curva: auto-seleccionar y mostrar controles (no durante demo)
-    if(type==='curve'&&!_demoRunning){
+    if((type==='curve'||type==='scurve')&&!_demoRunning){
       setTimeout(()=>{
         _setTool('select');
         _selectLine(newIdx);
-        _instr('⌒ Curva trazada. Arrastra el ◆ azul para ajustar — o usa el slider del panel derecho.');
+        _instr(type==='scurve'
+          ? '〜 Curva S trazada. Ajusta cada extremo con los sliders del panel (uno cóncavo, otro convexo).'
+          : '⌒ Curva trazada. Arrastra el ◆ azul para ajustar — o usa el slider del panel derecho.');
       },50);
     }
+  }
+
+  /** Calcula los dos puntos de control de una curva en S (cúbica de Bézier).
+   *  cp1 va a 1/3 del trayecto A→B, cp2 a 2/3 — cada uno desplazado
+   *  perpendicularmente por su propio "ctrl" (mm). Con signos opuestos
+   *  (por defecto ctrl1=+20, ctrl2=-20) un extremo queda cóncavo y el otro
+   *  convexo, formando la "S". Si la línea ya tiene cp1x/cp1y absolutos
+   *  (arrastrados a mano), se usan esos en vez de recalcular. */
+  function _scurveCPs(a,b,ln){
+    const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy)||1;
+    const px=-dy/len, py=dx/len;
+    if(ln.cp1x!=null&&ln.cp2x!=null){
+      return {cp1x:ln.cp1x,cp1y:ln.cp1y,cp2x:ln.cp2x,cp2y:ln.cp2y};
+    }
+    const ctrl1=(ln.ctrl1!=null)?ln.ctrl1:20;
+    const ctrl2=(ln.ctrl2!=null)?ln.ctrl2:-20;
+    const p1x=a.x+dx/3, p1y=a.y+dy/3;
+    const p2x=a.x+dx*2/3, p2y=a.y+dy*2/3;
+    return {
+      cp1x:p1x+px*ctrl1, cp1y:p1y+py*ctrl1,
+      cp2x:p2x+px*ctrl2, cp2y:p2y+py*ctrl2,
+    };
   }
 
   function _selectLine(idx){
     _selectedLine=idx;
     const slider=document.getElementById('dv6-ctrl-slider');
+    const sslider=document.getElementById('dv6-sctrl-slider');
     if(idx===null||!_lines[idx]){
       if(slider)slider.classList.remove('vis');
+      if(sslider)sslider.style.display='none';
       _updateLineInfo();
       _renderCurveControls();
       return;
@@ -2297,8 +2367,21 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const nm=document.getElementById('dv6-cnm');
       if(sl){sl.value=_lines[idx].ctrl;nm.textContent=_lines[idx].ctrl+'mm';}
       if(slider)slider.classList.add('vis');
+      if(sslider)sslider.style.display='none';
+    }else if(_lines[idx].type==='scurve'){
+      if(slider)slider.classList.remove('vis');
+      if(sslider){
+        sslider.style.display='flex';
+        const ln=_lines[idx];
+        const slA=document.getElementById('dv6-scsl-a'), nmA=document.getElementById('dv6-scnm-a');
+        const slB=document.getElementById('dv6-scsl-b'), nmB=document.getElementById('dv6-scnm-b');
+        const c1=ln.ctrl1!=null?ln.ctrl1:20, c2=ln.ctrl2!=null?ln.ctrl2:-20;
+        if(slA){slA.value=c1;nmA.textContent=c1+'mm';}
+        if(slB){slB.value=c2;nmB.textContent=c2+'mm';}
+      }
     }else{
       if(slider)slider.classList.remove('vis');
+      if(sslider)sslider.style.display='none';
     }
     _updateLineInfo();
     _renderCurveControls();
@@ -2312,6 +2395,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const{cpx,cpy}=_curveCP(a,b,ln);
       // Aproximación: cuerda + control, igual que en _renderDims
       return Math.hypot((a.x+cpx)/2-b.x,(a.y+cpy)/2-b.y)+Math.hypot(a.x-cpx,a.y-cpy);
+    }
+    if(ln.type==='scurve'){
+      // Aproximación poligonal de la cúbica (suficiente para mostrar cm)
+      const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
+      let len=0,px=a.x,py=a.y;
+      for(let t=0.05;t<=1.0001;t+=0.05){
+        const mt=1-t;
+        const x=mt*mt*mt*a.x+3*mt*mt*t*cp1x+3*mt*t*t*cp2x+t*t*t*b.x;
+        const y=mt*mt*mt*a.y+3*mt*mt*t*cp1y+3*mt*t*t*cp2y+t*t*t*b.y;
+        len+=Math.hypot(x-px,y-py); px=x;py=y;
+      }
+      return len;
     }
     return Math.hypot(b.x-a.x,b.y-a.y);
   }
@@ -2329,7 +2424,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if(!ln||!a||!b){box.style.display='none';return;}
     const mm=_lineLengthMm(ln);
     const cm=(mm/10).toFixed(2);
-    const tipo=ln.type==='curve'?'curva':ln.type==='fold'?'doblez':ln.type==='dart'?'pinza':'recta';
+    const tipo=ln.type==='curve'?'curva':ln.type==='scurve'?'curva S':ln.type==='fold'?'doblez':ln.type==='dart'?'pinza':'recta';
     txt.textContent=`📏 ${a.name}→${b.name} (${tipo}):`;
     // No pisar el campo si el usuario lo tiene enfocado (está escribiendo en él)
     if(cmInp && document.activeElement!==cmInp) cmInp.value=cm;
@@ -2526,6 +2621,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       if(!d){d=`M ${a.x} ${a.y}`;}
       else if(_lastTo!==ln.from){d+=` M ${a.x} ${a.y}`;} // no conecta: levantar lápiz, no diagonal
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
+      else if(ln.type==='scurve'){const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);d+=` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`;}
       else d+=` L ${b.x} ${b.y}`;
       _lastTo=ln.to;
     });
@@ -2541,6 +2637,12 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         el=document.createElementNS(NS,'path');
         el.setAttribute('d',`M ${a.x} ${a.y} Q ${cpx} ${cpy} ${b.x} ${b.y}`);
         el.setAttribute('stroke',i===_selectedLine?'#93c5fd':'#60a5fa');
+        el.setAttribute('fill','none');
+      }else if(ln.type==='scurve'){
+        const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
+        el=document.createElementNS(NS,'path');
+        el.setAttribute('d',`M ${a.x} ${a.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`);
+        el.setAttribute('stroke',i===_selectedLine?'#6ee7b7':'#34d399');
         el.setAttribute('fill','none');
       }else{
         el=document.createElementNS(NS,'line');
@@ -2615,6 +2717,25 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         lbl.textContent=Math.round(ln.ctrl)+'mm';
         _ctrlG.appendChild(lbl);
       }
+    });
+
+    // ── Curvas en S: mostrar los dos puntos de control (sin arrastre directo
+    // por ahora — se ajustan con los sliders "Extremo A/B" del panel) ──────
+    _lines.forEach((ln,i)=>{
+      if(ln.type!=='scurve')return;
+      const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
+      const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
+      const sel=i===_selectedLine;
+      [[cp1x,cp1y],[cp2x,cp2y]].forEach(([cx,cy],n)=>{
+        const dsz=sel?4:3;
+        const pts=`${cx},${cy-dsz} ${cx+dsz},${cy} ${cx},${cy+dsz} ${cx-dsz},${cy}`;
+        const diamond=document.createElementNS(NS,'polygon');
+        diamond.setAttribute('points',pts);
+        diamond.setAttribute('fill',sel?'#6ee7b7':'rgba(52,211,153,.8)');
+        diamond.setAttribute('stroke',sel?'#fff':'#ecfdf5');
+        diamond.setAttribute('stroke-width',sel?'0.6':'0.3');
+        _ctrlG.appendChild(diamond);
+      });
     });
   }
 
@@ -2811,7 +2932,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-lncnt').textContent=_lines.length;
     _lines.forEach((ln,i)=>{
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
-      const col=ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':ln.type==='curve'?'#60a5fa':'#e2e8f0';
+      const col=ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':ln.type==='curve'?'#60a5fa':ln.type==='scurve'?'#34d399':'#e2e8f0';
       const bg=ln.type==='fold'?'repeating-linear-gradient(90deg,#f87171 0,#f87171 4px,transparent 4px,transparent 8px)':ln.type==='dart'?'repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 4px,transparent 4px,transparent 8px)':col;
       const lenCm=(_lineLengthMm(ln)/10).toFixed(1);
       const div=document.createElement('div');div.className='dv6-lni'+(i===_selectedLine?' on':'');
@@ -3599,12 +3720,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       if(!d)d=`M ${a.x} ${a.y}`;
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
+      else if(ln.type==='scurve'){const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);d+=` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`;}
       else d+=` L ${b.x} ${b.y}`;
     });
     if(d){const f=document.createElementNS(svgNS,'path');f.setAttribute('d',d);f.setAttribute('fill','rgba(139,92,246,.08)');f.setAttribute('stroke','none');gt.appendChild(f);}
     _lines.forEach(ln=>{
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln);const el=document.createElementNS(svgNS,'path');el.setAttribute('d',`M ${a.x} ${a.y} Q ${cpx} ${cpy} ${b.x} ${b.y}`);el.setAttribute('stroke','#1f2937');el.setAttribute('stroke-width','1');el.setAttribute('fill','none');gt.appendChild(el);}
+      else if(ln.type==='scurve'){const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);const el=document.createElementNS(svgNS,'path');el.setAttribute('d',`M ${a.x} ${a.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`);el.setAttribute('stroke','#1f2937');el.setAttribute('stroke-width','1');el.setAttribute('fill','none');gt.appendChild(el);}
       else{const el=document.createElementNS(svgNS,'line');el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);el.setAttribute('stroke',ln.type==='fold'?'#dc2626':'#1f2937');el.setAttribute('stroke-width','1');if(ln.type==='fold')el.setAttribute('stroke-dasharray','4,2');gt.appendChild(el);}
     });
     Object.entries(_points).forEach(([,p])=>{
@@ -3621,7 +3744,127 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if(PAT.App){PAT.App.toast('✅ "'+_pieceName+'" agregado','success');if(PAT.App.fitScreen)setTimeout(PAT.App.fitScreen,120);}
   }
 
-  
+  // ════════════════════════════════════════════════════════════
+  // IMPRIMIR / DESCARGAR / COMPARTIR — este patrón es un trabajo en curso
+  // (no una muestra descartable): debe poder mandarse a la pantalla
+  // principal (ya existía con "＋ Agregar al patrón principal"), imprimirse
+  // a escala 1:1, descargarse como archivo, y compartirse — sin afectar
+  // para nada las muestras de graduación ya guardadas (eso vive aparte,
+  // en PAT.PieceBases, y esto no las toca).
+  // ════════════════════════════════════════════════════════════
+
+  /** Construye un <svg> independiente (sin pan/zoom del editor), con
+   *  viewBox en mm real, listo para imprimir/descargar/compartir. */
+  function _buildStandaloneSVG(marginMm){
+    marginMm = marginMm!=null ? marginMm : 15;
+    const xs=Object.values(_points).map(p=>p.x), ys=Object.values(_points).map(p=>p.y);
+    if(!xs.length) return null;
+    const minX=Math.min(...xs)-marginMm, minY=Math.min(...ys)-marginMm;
+    const W=Math.max(...xs)-Math.min(...xs)+marginMm*2;
+    const H=Math.max(...ys)-Math.min(...ys)+marginMm*2;
+    const svg=document.createElementNS(NS,'svg');
+    svg.setAttribute('xmlns',NS);
+    svg.setAttribute('viewBox',`${minX} ${minY} ${W} ${H}`);
+    svg.setAttribute('width',W+'mm'); svg.setAttribute('height',H+'mm');
+    const bg=document.createElementNS(NS,'rect');
+    bg.setAttribute('id','svg-bg');bg.setAttribute('x',minX);bg.setAttribute('y',minY);
+    bg.setAttribute('width',W);bg.setAttribute('height',H);bg.setAttribute('fill','#ffffff');
+    svg.appendChild(bg);
+    _lines.forEach(ln=>{
+      const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
+      let el;
+      if(ln.type==='curve'){
+        const{cpx,cpy}=_curveCP(a,b,ln);
+        el=document.createElementNS(NS,'path');
+        el.setAttribute('d',`M ${a.x} ${a.y} Q ${cpx} ${cpy} ${b.x} ${b.y}`);
+        el.setAttribute('fill','none');
+      }else if(ln.type==='scurve'){
+        const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
+        el=document.createElementNS(NS,'path');
+        el.setAttribute('d',`M ${a.x} ${a.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`);
+        el.setAttribute('fill','none');
+      }else if(ln.type==='construction'){
+        el=document.createElementNS(NS,'line');
+        el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);
+        el.setAttribute('stroke-dasharray','2,2');
+      }else{
+        el=document.createElementNS(NS,'line');
+        el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);
+        if(ln.type==='fold')el.setAttribute('stroke-dasharray','3,2');
+      }
+      el.setAttribute('stroke', ln.type==='fold'?'#dc2626':ln.type==='construction'?'#999':'#111111');
+      el.setAttribute('stroke-width','0.5');
+      svg.appendChild(el);
+    });
+    Object.values(_points).forEach(p=>{
+      const c=document.createElementNS(NS,'circle');
+      c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r','1');c.setAttribute('fill','#6d28d9');
+      svg.appendChild(c);
+      const t=document.createElementNS(NS,'text');
+      t.setAttribute('x',p.x+2);t.setAttribute('y',p.y-1.5);t.setAttribute('font-size','3.5');
+      t.setAttribute('fill','#333');t.setAttribute('font-family','Arial');
+      t.textContent=p.name; svg.appendChild(t);
+    });
+    return {svg,W,H};
+  }
+
+  function _imprimirPieza(){
+    if(!Object.keys(_points).length){if(PAT.App)PAT.App.toast('No hay puntos para imprimir','error');return;}
+    const built=_buildStandaloneSVG();
+    if(!built){if(PAT.App)PAT.App.toast('No hay puntos para imprimir','error');return;}
+    if(!PAT.PDFExport){if(PAT.App)PAT.App.toast('Exportador de PDF no disponible','error');return;}
+    PAT.PDFExport.exportTiledPDF(
+      { bounds:{w:built.W,h:built.H}, svgEl:built.svg },
+      { paper:'letter', patternName:(_pieceName||'patron').replace(/\s+/g,'_') }
+    );
+  }
+
+  function _descargarPieza(){
+    if(!Object.keys(_points).length){if(PAT.App)PAT.App.toast('No hay puntos para descargar','error');return;}
+    const built=_buildStandaloneSVG();
+    if(!built)return;
+    const svgString=new XMLSerializer().serializeToString(built.svg);
+    const blob=new Blob([svgString],{type:'image/svg+xml'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`${(_pieceName||'patron').replace(/\s+/g,'_')}_${Date.now()}.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+    if(PAT.App)PAT.App.toast('⬇ Descargado: '+a.download,'success');
+  }
+
+  function _compartirPieza(){
+    if(!Object.keys(_points).length){if(PAT.App)PAT.App.toast('No hay puntos para compartir','error');return;}
+    // Payload completo: puntos + líneas + medidas de la pieza — para que,
+    // al importarlo (PAT.Share / pat:importCustomPiece), se pueda seguir
+    // trabajando sobre EXACTAMENTE este patrón, no una muestra suelta.
+    const payload={
+      app:'PatrónAI Pro', type:'custom-piece', version:1,
+      name:_pieceName||'Patrón', bloqueId:_pieceBloqueId||null,
+      points:_points, lines:_lines, pieceMedidas:_pieceMedidas||{},
+      createdAt:new Date().toISOString(),
+    };
+    const json=JSON.stringify(payload,null,2);
+    const fileName=`${(_pieceName||'patron').replace(/\s+/g,'_')}_${Date.now()}.json`;
+    // Intentar compartir nativo (móvil/desktop con soporte) con el archivo real
+    if(navigator.share && navigator.canShare){
+      const file=new File([json],fileName,{type:'application/json'});
+      if(navigator.canShare({files:[file]})){
+        navigator.share({files:[file],title:_pieceName||'Patrón',text:'Patrón hecho con PatrónAI Pro'})
+          .catch(()=>{}); // el usuario puede cancelar el share sheet, no es error
+        return;
+      }
+    }
+    // Fallback universal: descargar el JSON para compartirlo manualmente
+    const blob=new Blob([json],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=fileName; a.click();
+    URL.revokeObjectURL(url);
+    if(PAT.App)PAT.App.toast('📤 Archivo listo para compartir: '+fileName,'success');
+  }
+
+
   // ════════════════════════════════════════════════════════════
   // VALIDACIÓN DE PATRÓN
   // ════════════════════════════════════════════════════════════
