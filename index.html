@@ -1984,6 +1984,16 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         _dragOff = { x: mm.x - _points[near].x, y: mm.y - _points[near].y };
         _selectLine(null);
       } else {
+        // ¿Clic directamente sobre el trazo de una línea (recta, doblez,
+        // pinza, estructura, o el cuerpo de una curva)? Selecciónala —
+        // así no es necesario buscarla en la lista del panel lateral.
+        const lineIdx = _nearestLineBody(mm, threshMm);
+        if (lineIdx !== -1) {
+          _deselectPt();
+          _selectLine(lineIdx);
+          _refreshPanel();
+          return;
+        }
         _deselectPt();
         _selectLine(null);
         _isPan = true;
@@ -2255,6 +2265,51 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       if(Math.hypot(cp2x-mm.x,cp2y-mm.y)<thresh*2)return {idx:i,which:'cp2'};
     }
     return null;
+  }
+
+  /** Distancia mínima de un punto (mm) a un segmento A-B (mm). */
+  function _distToSegment(mm,a,b){
+    const dx=b.x-a.x, dy=b.y-a.y;
+    const len2=dx*dx+dy*dy;
+    if(len2<1e-6)return Math.hypot(mm.x-a.x,mm.y-a.y);
+    let t=((mm.x-a.x)*dx+(mm.y-a.y)*dy)/len2;
+    t=Math.max(0,Math.min(1,t));
+    const px=a.x+t*dx, py=a.y+t*dy;
+    return Math.hypot(mm.x-px,mm.y-py);
+  }
+
+  /** Detecta clic sobre el TRAZO de cualquier línea (recta, doblez, pinza,
+   *  estructura, o el cuerpo de una curva/curva S) — para poder seleccionar
+   *  una línea con solo darle clic encima, sin tener que usar la lista del
+   *  panel lateral. Devuelve el índice de la línea, o -1 si no hay match. */
+  function _nearestLineBody(mm,thresh){
+    let best=-1,bestD=thresh;
+    _lines.forEach((ln,i)=>{
+      const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
+      let d;
+      if(ln.type==='curve'){
+        const{cpx,cpy}=_curveCP(a,b,ln);
+        d=Infinity;
+        for(let t=0;t<=1;t+=0.04){
+          const px=(1-t)*(1-t)*a.x+2*(1-t)*t*cpx+t*t*b.x;
+          const py=(1-t)*(1-t)*a.y+2*(1-t)*t*cpy+t*t*b.y;
+          d=Math.min(d,Math.hypot(mm.x-px,mm.y-py));
+        }
+      }else if(ln.type==='scurve'){
+        const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
+        d=Infinity;
+        for(let t=0;t<=1;t+=0.04){
+          const u=1-t;
+          const px=u*u*u*a.x+3*u*u*t*cp1x+3*u*t*t*cp2x+t*t*t*b.x;
+          const py=u*u*u*a.y+3*u*u*t*cp1y+3*u*t*t*cp2y+t*t*t*b.y;
+          d=Math.min(d,Math.hypot(mm.x-px,mm.y-py));
+        }
+      }else{
+        d=_distToSegment(mm,a,b);
+      }
+      if(d<bestD){bestD=d;best=i;}
+    });
+    return best;
   }
 
   function _showNota(pt){
