@@ -1073,6 +1073,7 @@ PAT.DrafterUI = (function () {
   // Interacción
   let _dragging    = null; // id de punto siendo arrastrado
   let _draggingCtrl= null; // índice de línea cuyo ctrl se arrastra
+  let _draggingSCtrl = null; // {idx, which:'cp1'|'cp2'} del control de curva S que se arrastra
   let _dragOff     = {x:0,y:0};
   let _tool        = 'select';
   let _lnStart     = null;
@@ -1899,6 +1900,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       return;
     }
 
+    // ¿Clic en uno de los dos diamantes de control de una curva S?
+    const nearSCtrl = (near === null && nearCtrl === -1) ? _nearestSCtrl(mm, threshMm * 1.5) : null;
+    if (_tool === 'select' && nearSCtrl) {
+      _draggingSCtrl = nearSCtrl;
+      _selectLine(nearSCtrl.idx);
+      return;
+    }
+
     // ── MODO UNIFICADO (Feature 3) ──────────────────────────────────
     // Click vacío = agregar punto; Click en punto existente = iniciar/completar línea
     if (_unifiedMode && _tool !== 'addDart' && _tool !== 'select') {
@@ -2075,6 +2084,29 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       return;
     }
 
+    // Arrastrar uno de los dos puntos de control de una curva S — fija ese
+    // control en coordenadas absolutas donde está el mouse (el otro control
+    // conserva su posición actual, también fijada en absoluto para que no
+    // "salte" al recalcular).
+    if (_draggingSCtrl !== null && _lines[_draggingSCtrl.idx]) {
+      const ln = _lines[_draggingSCtrl.idx];
+      const a = _points[ln.from], b = _points[ln.to];
+      if (a && b) {
+        const cur = _scurveCPs(a, b, ln); // posición actual de ambos controles
+        let cp1x=cur.cp1x, cp1y=cur.cp1y, cp2x=cur.cp2x, cp2y=cur.cp2y;
+        if (_draggingSCtrl.which === 'cp1') { cp1x = mm.x; cp1y = mm.y; }
+        else { cp2x = mm.x; cp2y = mm.y; }
+        ln.cp1x = cp1x; ln.cp1y = cp1y;
+        ln.cp2x = cp2x; ln.cp2y = cp2y;
+        ln.ctrl1 = null; ln.ctrl2 = null; // ya no usamos el offset escalar
+      }
+      _renderLines();
+      _renderCurveControls();
+      _renderDims();
+      _updateLineInfo();
+      return;
+    }
+
     // Arrastrar punto
     if (_dragging && _points[_dragging]) {
       const p = _points[_dragging];
@@ -2114,9 +2146,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   }
 
   function _mup(e) {
-    if (_dragging) _snapshot(); // guardar estado después de arrastrar
+    if (_dragging || _draggingSCtrl) _snapshot(); // guardar estado después de arrastrar
     _isPan = false; _panStart = null;
-    _dragging = null; _draggingCtrl = null;
+    _dragging = null; _draggingCtrl = null; _draggingSCtrl = null;
   }
 
   function _kdown(e) {
@@ -2210,6 +2242,19 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       }
     }
     return -1;
+  }
+
+  /** Detecta clic cerca de uno de los dos diamantes de control de una curva S.
+   *  Devuelve {idx,which} con which:'cp1'|'cp2', o null si no hay match. */
+  function _nearestSCtrl(mm,thresh) {
+    for(let i=0;i<_lines.length;i++){
+      const ln=_lines[i];if(ln.type!=='scurve')continue;
+      const a=_points[ln.from],b=_points[ln.to];if(!a||!b)continue;
+      const {cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
+      if(Math.hypot(cp1x-mm.x,cp1y-mm.y)<thresh*2)return {idx:i,which:'cp1'};
+      if(Math.hypot(cp2x-mm.x,cp2y-mm.y)<thresh*2)return {idx:i,which:'cp2'};
+    }
+    return null;
   }
 
   function _showNota(pt){
@@ -2757,21 +2802,47 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       }
     });
 
-    // ── Curvas en S: mostrar los dos puntos de control (sin arrastre directo
-    // por ahora — se ajustan con los sliders "Extremo A/B" del panel) ──────
+    // ── Curvas en S: mostrar los dos puntos de control, arrastrables
+    // directamente con el mouse (también se pueden ajustar con los sliders
+    // "Extremo A/B" del panel) ──────────────────────────────────────────
     _lines.forEach((ln,i)=>{
       if(ln.type!=='scurve')return;
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
       const sel=i===_selectedLine;
+
+      // Líneas guía A→CP1 y B→CP2 (tangentes)
+      const gA=document.createElementNS(NS,'line');
+      gA.setAttribute('x1',a.x);gA.setAttribute('y1',a.y);
+      gA.setAttribute('x2',cp1x);gA.setAttribute('y2',cp1y);
+      gA.setAttribute('stroke',sel?'rgba(110,231,183,.7)':'rgba(52,211,153,.35)');
+      gA.setAttribute('stroke-width','0.5');gA.setAttribute('stroke-dasharray','2,1.5');
+      _ctrlG.appendChild(gA);
+
+      const gB=document.createElementNS(NS,'line');
+      gB.setAttribute('x1',b.x);gB.setAttribute('y1',b.y);
+      gB.setAttribute('x2',cp2x);gB.setAttribute('y2',cp2y);
+      gB.setAttribute('stroke',sel?'rgba(110,231,183,.7)':'rgba(52,211,153,.35)');
+      gB.setAttribute('stroke-width','0.5');gB.setAttribute('stroke-dasharray','2,1.5');
+      _ctrlG.appendChild(gB);
+
       [[cp1x,cp1y],[cp2x,cp2y]].forEach(([cx,cy],n)=>{
         const dsz=sel?4:3;
+
+        // Zona de hit invisible (grande) para facilitar agarre del CP
+        const hitZone=document.createElementNS(NS,'circle');
+        hitZone.setAttribute('cx',cx);hitZone.setAttribute('cy',cy);hitZone.setAttribute('r',dsz*2.5);
+        hitZone.setAttribute('fill','transparent');hitZone.setAttribute('stroke','none');
+        hitZone.style.cursor='move';
+        _ctrlG.appendChild(hitZone);
+
         const pts=`${cx},${cy-dsz} ${cx+dsz},${cy} ${cx},${cy+dsz} ${cx-dsz},${cy}`;
         const diamond=document.createElementNS(NS,'polygon');
         diamond.setAttribute('points',pts);
         diamond.setAttribute('fill',sel?'#6ee7b7':'rgba(52,211,153,.8)');
         diamond.setAttribute('stroke',sel?'#fff':'#ecfdf5');
         diamond.setAttribute('stroke-width',sel?'0.6':'0.3');
+        diamond.style.cursor='move';
         _ctrlG.appendChild(diamond);
       });
     });
