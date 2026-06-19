@@ -1387,9 +1387,17 @@ PAT.DrafterUI = (function () {
       <div class="dv6-psec">
         <div class="dv6-ptl">Líneas / Curvas <span id="dv6-lncnt" style="color:#5a5678;font-weight:400">0</span></div>
         <div class="dv6-lnlist" id="dv6-lnlist"></div>
-        <!-- Longitud de la línea seleccionada (cualquier tipo: recta, curva, doblez) -->
+        <!-- Longitud de la línea seleccionada (cualquier tipo: recta, curva, doblez).
+             Los campos cm/mm son editables: al escribir una medida, el punto final
+             de la línea se mueve para que la línea mida exactamente eso. -->
         <div id="dv6-line-info" style="display:none;margin:4px 8px;padding:6px 8px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.35);border-radius:6px;font-size:11px;color:#93c5fd;font-family:monospace">
           <span id="dv6-line-info-txt">—</span>
+          <div style="display:flex;align-items:center;gap:5px;margin-top:5px">
+            <input type="number" id="dv6-line-len-cm" step="0.1" min="0" style="width:62px;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:5px;padding:3px 6px;font-size:11px;font-family:monospace;outline:none">
+            <span style="color:#5a5678">cm</span>
+            <input type="number" id="dv6-line-len-mm" step="1" min="0" style="width:62px;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:5px;padding:3px 6px;font-size:11px;font-family:monospace;outline:none">
+            <span style="color:#5a5678">mm</span>
+          </div>
         </div>
         <!-- Slider de curvatura (visible solo cuando se selecciona una curva) -->
         <div class="dv6-ctrl-slider" id="dv6-ctrl-slider">
@@ -1651,6 +1659,16 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-unit-mm').onclick = function(){ _setCoordUnit('mm'); };
     document.getElementById('dv6-unit-cm').onclick = function(){ _setCoordUnit('cm'); };
     _setCoordUnit(_coordUnit); // refleja el estado guardado (botón activo + etiquetas) al cargar
+
+    // Campos editables de longitud de línea — al escribir, mueve el punto final
+    document.getElementById('dv6-line-len-cm').oninput = function(){
+      const cm=parseFloat(this.value);
+      if(Number.isFinite(cm)&&cm>0) _applyLineLength(cm*10);
+    };
+    document.getElementById('dv6-line-len-mm').oninput = function(){
+      const mm=parseFloat(this.value);
+      if(Number.isFinite(mm)&&mm>0) _applyLineLength(mm);
+    };
     document.getElementById('dv6-pfx').oninput = _applyFormula;
     document.getElementById('dv6-pfy').oninput = _applyFormula;
 
@@ -2184,10 +2202,13 @@ PAT.DrafterUI = (function () {
     return Math.hypot(b.x-a.x,b.y-a.y);
   }
 
-  /** Refresca el cuadro "Longitud: X cm" de la línea seleccionada. */
+  /** Refresca el cuadro "Longitud: X cm" de la línea seleccionada, incluyendo
+   *  los campos editables cm/mm (sin pisar el que el usuario está escribiendo). */
   function _updateLineInfo(){
     const box=document.getElementById('dv6-line-info');
     const txt=document.getElementById('dv6-line-info-txt');
+    const cmInp=document.getElementById('dv6-line-len-cm');
+    const mmInp=document.getElementById('dv6-line-len-mm');
     if(!box||!txt)return;
     const ln=(_selectedLine!=null)?_lines[_selectedLine]:null;
     const a=ln?_points[ln.from]:null, b=ln?_points[ln.to]:null;
@@ -2195,8 +2216,28 @@ PAT.DrafterUI = (function () {
     const mm=_lineLengthMm(ln);
     const cm=(mm/10).toFixed(2);
     const tipo=ln.type==='curve'?'curva':ln.type==='fold'?'doblez':ln.type==='dart'?'pinza':'recta';
-    txt.textContent=`📏 ${a.name}→${b.name} (${tipo}): ${cm} cm  ·  ${Math.round(mm)} mm`;
+    txt.textContent=`📏 ${a.name}→${b.name} (${tipo}):`;
+    // No pisar el campo si el usuario lo tiene enfocado (está escribiendo en él)
+    if(cmInp && document.activeElement!==cmInp) cmInp.value=cm;
+    if(mmInp && document.activeElement!==mmInp) mmInp.value=Math.round(mm);
     box.style.display='';
+  }
+
+  /** Mueve el punto final ("to") de la línea seleccionada para que mida
+   *  exactamente newMm milímetros, manteniendo la misma dirección actual
+   *  (mismo ángulo desde el punto "from"). Para curvas, ajusta la cuerda
+   *  recta entre los dos puntos — el offset de curvatura (ctrl) se conserva. */
+  function _applyLineLength(newMm){
+    if(_selectedLine==null)return;
+    const ln=_lines[_selectedLine];if(!ln)return;
+    const a=_points[ln.from],b=_points[ln.to];
+    if(!a||!b||!Number.isFinite(newMm)||newMm<=0)return;
+    const dx=b.x-a.x,dy=b.y-a.y;
+    const curLen=Math.hypot(dx,dy)||1;
+    const ux=dx/curLen,uy=dy/curLen;
+    b.x=a.x+ux*newMm;
+    b.y=a.y+uy*newMm;
+    _snapshot();_renderAll();
   }
 
   // ════════════════════════════════════════════════════════════
