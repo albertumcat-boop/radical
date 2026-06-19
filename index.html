@@ -3071,6 +3071,22 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       document.getElementById('dv6-pfy').value=fy;
       document.getElementById('dv6-px').value=_fmtCoord(p.x);
       document.getElementById('dv6-py').value=_fmtCoord(p.y);
+      // Esta relación con A/B ya queda guardada en la fórmula viva (fx/fy).
+      // Si además había una línea recta dibujada a mano entre el punto
+      // ubicado y A o B (ej. trazada antes con la herramienta "L"), esa
+      // línea visual ya no representa nada nuevo — y al subir/bajar/meter/
+      // sacar el punto, se ve como una línea diagonal "tirando" hacia A o B,
+      // que es justo lo que confundía: parecía que el punto se trasladaba a
+      // A cuando en realidad solo se estiraba la línea vieja. Se elimina
+      // automáticamente para que el punto quede libre; las líneas que
+      // realmente quieras desde este punto se trazan después, a mano.
+      const refIds=[pointAEl.value,pointBEl.value].filter(Boolean);
+      const antes=_lines.length;
+      _lines=_lines.filter(l=>!((l.from===_selected&&refIds.includes(l.to))||(l.to===_selected&&refIds.includes(l.from))));
+      if(_lines.length<antes){
+        if(_selectedLine!=null&&!_lines[_selectedLine])_selectedLine=null;
+        _instr('🧹 Se quitó la línea recta que conectaba este punto con '+refIds.map(id=>_points[id]?.name||id).join('/')+' (ya no hace falta: la posición vive en la fórmula). Traza tú las líneas nuevas que necesites desde aquí.');
+      }
       _updateFVal(); _renderAll();
     }
     pointAEl.onchange=_actualizarPreview2;
