@@ -1560,6 +1560,14 @@ PAT.DrafterUI = (function () {
     }, 30);
 
     _bindAll();
+    // Recalcular TODOS los puntos con fórmula cada vez que cambia una medida
+    // global o de la pieza — así una base hecha con fórmulas (y no con
+    // valores fijos) se reescala solo al usarla con medidas/tallas distintas.
+    document.addEventListener('input', (e) => {
+      if (e.target && e.target.matches && e.target.matches('[data-measure]')) {
+        _recalcAllFormulas();
+      }
+    });
     _renderVars();
     _refreshSaved();
     _snapshot(); // snapshot inicial vacío
@@ -2972,20 +2980,26 @@ PAT.DrafterUI = (function () {
         alert('Elige el punto de referencia.');
         return;
       }
+      if(!ref.name){
+        alert('El punto de referencia necesita un nombre (ej. "B") para poder citarlo en la fórmula.');
+        return;
+      }
       const cm=parseFloat(cmEl.value)||0;
       const mm=cm*10;
-      let x=ref.x, y=ref.y;
       const dir=dirSel.value;
-      if(dir==='up') y-=mm;
-      else if(dir==='down') y+=mm;
-      else if(dir==='in') x-=mm;
-      else if(dir==='out') x+=mm;
       const p=_points[_selected];
-      // Valor fijo: limpiamos cualquier fórmula previa, igual que al
-      // arrastrar el punto a mano.
-      p.fx=''; p.fy=''; p.x=x; p.y=y;
-      document.getElementById('dv6-pfx').value='';
-      document.getElementById('dv6-pfy').value='';
+      // Fórmula VIVA (no un número fijo): si el punto de referencia se
+      // recalcula al cambiar de medidas/talla, este punto se mueve con él.
+      // Subir/Bajar afectan Y; Meter/Sacar afectan X. El eje que no se
+      // mueve simplemente copia la coordenada del punto de referencia.
+      let fx=ref.name+'.x', fy=ref.name+'.y';
+      if(dir==='up')   fy=ref.name+'.y-'+mm;
+      else if(dir==='down') fy=ref.name+'.y+'+mm;
+      else if(dir==='in')   fx=ref.name+'.x-'+mm;
+      else if(dir==='out')  fx=ref.name+'.x+'+mm;
+      p.fx=fx; p.fy=fy;
+      document.getElementById('dv6-pfx').value=fx;
+      document.getElementById('dv6-pfy').value=fy;
       _updateForm(); _renderAll();
     }
     pointSel.onchange=_actualizarPreview2;
@@ -3160,13 +3174,51 @@ PAT.DrafterUI = (function () {
     };
   }
 
-  function _evalF(expr){
+  /** Resuelve "NombrePunto.x" / "NombrePunto.y" dentro de una fórmula —
+   *  permite que un punto se defina como "B.y+30" (relativo a otro punto
+   *  ya trazado) en vez de un número fijo, así si B se recalcula (por
+   *  cambiar de medidas/talla) este punto se mueve solo con él.
+   *  _depth evita ciclos infinitos (A depende de B que depende de A). */
+  function _coordDePunto(name,axis,_depth){
+    if(_depth>8) return null; // protección contra referencias circulares
+    const id=Object.keys(_points).find(k=>_points[k].name===name);
+    if(id==null) return null;
+    const pt=_points[id];
+    const f=axis==='x'?pt.fx:pt.fy;
+    if(f) return _evalF(f,_depth+1);
+    const raw=axis==='x'?pt.x:pt.y;
+    return (typeof raw==='number')?raw:null;
+  }
+
+  function _evalF(expr,_depth){
+    _depth=_depth||0;
     if(!expr||expr==='0')return 0;
-    const vars=_buildVarsMap();
     let c=String(expr).trim();
+    // Primero las referencias a otros puntos: NombrePunto.x / NombrePunto.y
+    let refError=false;
+    c=c.replace(/\b([A-Za-zÁÉÍÓÚÑáéíóúñ_][\wÁÉÍÓÚÑáéíóúñ]*)\.(x|y)\b/g,(m,name,axis)=>{
+      const v=_coordDePunto(name,axis,_depth);
+      if(v==null){refError=true;return '0';}
+      return v.toFixed(4);
+    });
+    if(refError)return null;
+    const vars=_buildVarsMap();
     Object.entries(vars).forEach(([k,v])=>{c=c.replace(new RegExp('\\b'+k+'\\b','g'),v.toFixed(4));});
     if(!/^[\d\s+\-*/().]+$/.test(c))return null;
     try{return Function('"use strict";return('+c+')')();}catch(e){return null;}
+  }
+
+  /** Reevalúa todas las fórmulas (de medida o de referencia a otro punto)
+   *  de TODOS los puntos del patrón actual. Se llama cada vez que cambia
+   *  una medida en el panel general, para que una base hecha con fórmulas
+   *  se reescale automáticamente al usarla con medidas/tallas distintas. */
+  function _recalcAllFormulas(){
+    let changed=false;
+    Object.values(_points).forEach(p=>{
+      if(p.fx){const v=_evalF(p.fx);if(v!=null){p.x=v;changed=true;}}
+      if(p.fy){const v=_evalF(p.fy);if(v!=null){p.y=v;changed=true;}}
+    });
+    if(changed){_renderAll();_updateForm();}
   }
 
   // ════════════════════════════════════════════════════════════
