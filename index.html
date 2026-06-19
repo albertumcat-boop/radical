@@ -1355,8 +1355,12 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
     <!-- ══ PANEL DERECHO ══ -->
     <div class="dv6-pnl">
-      <!-- Propiedades del punto -->
-      <div class="dv6-psec">
+      <!-- Propiedades del punto. Con los dos constructores de fórmula
+           (medida y desde-otro-punto/línea) este bloque puede ser más alto
+           que el panel — antes se recortaba sin forma de hacer scroll y
+           el botón "Ubicar punto aquí" quedaba inalcanzable. Le damos
+           scroll propio limitando su alto al 70% de la ventana. -->
+      <div class="dv6-psec" style="max-height:70vh;overflow-y:auto">
         <div class="dv6-ptl">Punto seleccionado <span id="dv6-badge" style="color:#a78bfa;font-family:monospace;font-weight:800">—</span></div>
         <div class="dv6-prow" style="justify-content:space-between;align-items:center;padding:6px 14px">
           <span class="dv6-plb">Unidades</span>
