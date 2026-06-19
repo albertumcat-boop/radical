@@ -3715,20 +3715,31 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const minX=Math.min(...xs),minY=Math.min(...ys),W=Math.max(...xs)-minX,H=Math.max(...ys)-minY;
     const g=document.createElementNS(svgNS,'g');
     const gt=document.createElementNS(svgNS,'g');gt.setAttribute('transform',`translate(${-minX},${-minY})`);
-    let d='';
+    // Solo el patrón real va a la pantalla principal — las líneas de
+    // estructura/referencia (type:'construction', las punteadas grises del
+    // editor que se usan para apoyar otras medidas) y las pinzas internas
+    // (type:'dart', que no son borde de la pieza) se excluyen del contorno.
+    // Igual que en _renderLines: si dos tramos no son consecutivos en el
+    // array, se "levanta el lápiz" (M) en vez de trazar una diagonal falsa
+    // entre puntos que no están conectados en la silueta real.
+    let d='', lastTo=null;
     _lines.forEach(ln=>{
+      if(ln.type==='construction'||ln.type==='dart')return;
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       if(!d)d=`M ${a.x} ${a.y}`;
+      else if(lastTo!==ln.from)d+=` M ${a.x} ${a.y}`;
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
       else if(ln.type==='scurve'){const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);d+=` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`;}
       else d+=` L ${b.x} ${b.y}`;
+      lastTo=ln.to;
     });
     if(d){const f=document.createElementNS(svgNS,'path');f.setAttribute('d',d);f.setAttribute('fill','rgba(139,92,246,.08)');f.setAttribute('stroke','none');gt.appendChild(f);}
     _lines.forEach(ln=>{
+      if(ln.type==='construction')return; // estructura: no se dibuja en el patrón final
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln);const el=document.createElementNS(svgNS,'path');el.setAttribute('d',`M ${a.x} ${a.y} Q ${cpx} ${cpy} ${b.x} ${b.y}`);el.setAttribute('stroke','#1f2937');el.setAttribute('stroke-width','1');el.setAttribute('fill','none');gt.appendChild(el);}
       else if(ln.type==='scurve'){const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);const el=document.createElementNS(svgNS,'path');el.setAttribute('d',`M ${a.x} ${a.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`);el.setAttribute('stroke','#1f2937');el.setAttribute('stroke-width','1');el.setAttribute('fill','none');gt.appendChild(el);}
-      else{const el=document.createElementNS(svgNS,'line');el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);el.setAttribute('stroke',ln.type==='fold'?'#dc2626':'#1f2937');el.setAttribute('stroke-width','1');if(ln.type==='fold')el.setAttribute('stroke-dasharray','4,2');gt.appendChild(el);}
+      else{const el=document.createElementNS(svgNS,'line');el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);el.setAttribute('stroke',ln.type==='fold'?'#dc2626':ln.type==='dart'?'#d97706':'#1f2937');el.setAttribute('stroke-width','1');if(ln.type==='fold')el.setAttribute('stroke-dasharray','4,2');if(ln.type==='dart')el.setAttribute('stroke-dasharray','2,1');gt.appendChild(el);}
     });
     Object.entries(_points).forEach(([,p])=>{
       const c=document.createElementNS(svgNS,'circle');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r','1.5');c.setAttribute('fill','#6d28d9');gt.appendChild(c);
