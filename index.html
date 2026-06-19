@@ -1085,6 +1085,7 @@ PAT.DrafterUI = (function () {
   let _pieceName   = 'Mi Pieza';
   let _pieceBloqueId = '';
   let _pieceMedidas = null;   // medidas (cm) usadas para generar la pieza actual — para el reporte/auditoría
+  let _refreshFormulaBuilder = null; // refresca el valor/preview del constructor de fórmulas al cambiar de punto
   let _curSave     = null;
   let _snapEnabled  = false;
   let _snapSize     = 5; // mm
@@ -1378,8 +1379,9 @@ PAT.DrafterUI = (function () {
                botón inserta la fórmula compuesta en X o Y. -->
           <div style="margin:6px 14px 10px;padding:8px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
             <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600">🧩 CONSTRUCTOR DE FÓRMULA</div>
-            <div class="dv6-prow" style="padding:2px 0">
+            <div class="dv6-prow" style="padding:2px 0;gap:6px">
               <select class="dv6-pi" id="dv6-fb-medida" style="flex:1"></select>
+              <input type="number" class="dv6-pi" id="dv6-fb-valor" step="0.5" style="width:62px" placeholder="cm" title="Valor de esta medida, en cm">
             </div>
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
               <select class="dv6-pi" id="dv6-fb-div" style="flex:1">
@@ -1400,6 +1402,7 @@ PAT.DrafterUI = (function () {
               </select>
               <input type="number" class="dv6-pi" id="dv6-fb-const" value="0" step="0.1" style="width:60px" placeholder="cm">
             </div>
+            <div id="dv6-fb-preview" style="font-size:11px;color:#34d399;padding:4px 2px;font-weight:600">= —</div>
             <div class="dv6-prow" style="padding:4px 0 0;gap:6px">
               <button type="button" class="tb" id="dv6-fb-tox" style="flex:1;justify-content:center;font-size:10px;padding:5px 0">→ Insertar en X</button>
               <button type="button" class="tb" id="dv6-fb-toy" style="flex:1;justify-content:center;font-size:10px;padding:5px 0">→ Insertar en Y</button>
@@ -2688,6 +2691,7 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-pfx').value=p.fx||'';
     document.getElementById('dv6-pfy').value=p.fy||'';
     _updateFVal();
+    if (_refreshFormulaBuilder) _refreshFormulaBuilder();
   }
 
   function _updateFVal(){
@@ -2794,9 +2798,14 @@ PAT.DrafterUI = (function () {
     });
   }
 
-  /** Constructor visual de fórmulas (dropdowns en vez de texto). Compone
-   *  una fórmula tipo "pecho/4+2" (medida ÷ división ± constante en cm)
-   *  y la inserta en el campo Fórm. X o Fórm. Y del punto seleccionado. */
+  /** Constructor visual de fórmulas (dropdowns en vez de texto). El propio
+   *  constructor pide el valor de la medida en cm ahí mismo (no depende de
+   *  que ya esté rellenado en el panel general) — al escribirlo se guarda
+   *  también en el campo [data-measure] correspondiente, para que quede
+   *  disponible para el resto de puntos/piezas. Compone una fórmula tipo
+   *  "pecho/4+20" (medida ÷ división ± constante, ya en mm) y la inserta
+   *  en el campo Fórm. X o Fórm. Y del punto seleccionado, mostrando antes
+   *  una vista previa en vivo del resultado en cm. */
   function _initFormulaBuilder(){
     const sel=document.getElementById('dv6-fb-medida');
     if(!sel)return;
@@ -2807,11 +2816,43 @@ PAT.DrafterUI = (function () {
       sel.appendChild(opt);
     });
 
+    const valorEl=document.getElementById('dv6-fb-valor');
+    const divEl=document.getElementById('dv6-fb-div');
+    const signEl=document.getElementById('dv6-fb-sign');
+    const constEl=document.getElementById('dv6-fb-const');
+    const previewEl=document.getElementById('dv6-fb-preview');
+
+    function _medidaActual(){
+      return _MEDIDAS_FORMULA.find(m=>m.key===sel.value);
+    }
+    // Al cambiar la medida elegida, mostrar el valor actual (si ya hay uno
+    // guardado en el panel general o en la pieza); si no hay ninguno, queda
+    // vacío para que el usuario lo escriba aquí mismo.
+    function _cargarValorActual(){
+      const med=_medidaActual();
+      if(!med){valorEl.value='';return;}
+      const v=_getMeasures()[med.field];
+      valorEl.value=(v!=null&&v>0)?v:'';
+    }
+    // Al escribir/cambiar el valor en cm, lo guardamos de inmediato en el
+    // input [data-measure] correspondiente, para que TODA la pieza (y el
+    // resto de puntos) usen ese mismo valor — así no hace falta ir a otro
+    // panel a "configurar" la medida antes.
+    function _guardarValor(){
+      const med=_medidaActual();
+      if(!med)return;
+      const v=parseFloat(valorEl.value);
+      if(!isFinite(v)||v<=0)return;
+      const inp=document.querySelector('[data-measure="'+med.field+'"]');
+      if(inp){ inp.value=v; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+      else { _pieceMedidas=_pieceMedidas||{}; _pieceMedidas[med.field]=v; }
+      _actualizarPreview();
+    }
     function _compose(){
       const medida=sel.value;
-      const div=document.getElementById('dv6-fb-div').value;
-      const sign=document.getElementById('dv6-fb-sign').value;
-      const cm=parseFloat(document.getElementById('dv6-fb-const').value)||0;
+      const div=divEl.value;
+      const sign=signEl.value;
+      const cm=parseFloat(constEl.value)||0;
       let f=medida;
       if(div&&div!=='1') f+='/'+div;
       if(sign&&cm){
@@ -2821,11 +2862,24 @@ PAT.DrafterUI = (function () {
       }
       return f;
     }
+    function _actualizarPreview(){
+      const med=_medidaActual();
+      const v=parseFloat(valorEl.value);
+      if(!med||!isFinite(v)||v<=0){ previewEl.textContent='= —'; return; }
+      const div=parseFloat(divEl.value)||1;
+      const sign=signEl.value;
+      const cm=parseFloat(constEl.value)||0;
+      let resultado=v/div;
+      if(sign==='+') resultado+=cm;
+      else if(sign==='-') resultado-=cm;
+      previewEl.textContent='= '+resultado.toFixed(1)+' cm';
+    }
     function _insertar(targetId){
       if(!_selected||!_points[_selected]){
         alert('Selecciona primero un punto del patrón.');
         return;
       }
+      _guardarValor();
       const formula=_compose();
       const el=document.getElementById(targetId);
       el.value=formula;
@@ -2833,8 +2887,16 @@ PAT.DrafterUI = (function () {
       else _points[_selected].fy=formula;
       _updateFVal();_renderAll();
     }
+    sel.onchange=()=>{_cargarValorActual();_actualizarPreview();};
+    valorEl.oninput=()=>{_guardarValor();_actualizarPreview();};
+    divEl.onchange=_actualizarPreview;
+    signEl.onchange=_actualizarPreview;
+    constEl.oninput=_actualizarPreview;
     document.getElementById('dv6-fb-tox').onclick=()=>_insertar('dv6-pfx');
     document.getElementById('dv6-fb-toy').onclick=()=>_insertar('dv6-pfy');
+
+    _refreshFormulaBuilder=()=>{_cargarValorActual();_actualizarPreview();};
+    _cargarValorActual();_actualizarPreview();
   }
 
   // ════════════════════════════════════════════════════════════
@@ -2964,20 +3026,20 @@ PAT.DrafterUI = (function () {
    *  (ya en mm, lista para dividir/sumar). Cubre las medidas de caballero
    *  y dama que se usan en los sistemas NH. */
   const _MEDIDAS_FORMULA = [
-    { key:'pecho',    label:'Contorno de Pecho / Busto' },
-    { key:'hombros',  label:'Ancho de Espalda' },
-    { key:'cuello',   label:'Contorno de Cuello' },
-    { key:'talle',    label:'Talle Espalda (trasero)' },
-    { key:'talledel', label:'Talle Delantero' },
-    { key:'largo',    label:'Largo Total / Largo de Camisa' },
-    { key:'cintura',  label:'Contorno de Cintura' },
-    { key:'cadera',   label:'Contorno de Cadera' },
-    { key:'caderaprof', label:'Alto de Cadera (desde cintura)' },
-    { key:'falda',    label:'Largo de Falda' },
-    { key:'manga',    label:'Largo de Manga Larga' },
-    { key:'mangacorta', label:'Largo de Manga Corta' },
-    { key:'brazo',    label:'Contorno de Brazo' },
-    { key:'puno',     label:'Contorno de Puño / Muñeca' },
+    { key:'pecho',    label:'Contorno de Pecho / Busto', field:'bust' },
+    { key:'hombros',  label:'Ancho de Espalda',          field:'shoulder' },
+    { key:'cuello',   label:'Contorno de Cuello',        field:'neck' },
+    { key:'talle',    label:'Talle Espalda (trasero)',   field:'backLength' },
+    { key:'talledel', label:'Talle Delantero',           field:'frontLength' },
+    { key:'largo',    label:'Largo Total / Largo de Camisa', field:'totalLength' },
+    { key:'cintura',  label:'Contorno de Cintura',       field:'waist' },
+    { key:'cadera',   label:'Contorno de Cadera',        field:'hip' },
+    { key:'caderaprof', label:'Alto de Cadera (desde cintura)', field:'hipDepth' },
+    { key:'falda',    label:'Largo de Falda',            field:'skirtLength' },
+    { key:'manga',    label:'Largo de Manga Larga',       field:'sleeveLength' },
+    { key:'mangacorta', label:'Largo de Manga Corta',     field:'sleeveShort' },
+    { key:'brazo',    label:'Contorno de Brazo',          field:'armCirc' },
+    { key:'puno',     label:'Contorno de Puño / Muñeca',  field:'wrist' },
   ];
 
   function _buildVarsMap(){
