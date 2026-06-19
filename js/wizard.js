@@ -38,7 +38,7 @@ PAT.Wizard = (function () {
           nombre: 'Espalda',
           icon: '🔙',
           desc: 'Parte posterior · NH',
-          campos: ['bust', 'shoulder', 'neck', 'backLength', 'waist', 'hip', 'hipDepth'],
+          campos: ['bust', 'shoulder', 'neck', 'totalLength'],
         },
         {
           id: 'camisa-delantera',
