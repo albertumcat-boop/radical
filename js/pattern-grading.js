@@ -2,7 +2,9 @@
 window.PAT = window.PAT || {};
 
 /**
- * PAT.Grading — graduación de patrones personalizados por regresión.
+ * PAT.PatternGrading — graduación de patrones personalizados por regresión.
+ * (Nombrado distinto a PAT.Grading porque ese namespace ya lo usa
+ * js/grading.js para el selector de tallas — no mezclar.)
  *
  * Idea: en patronaje real, "graduar" una talla es mover cada punto del
  * patrón base una cantidad fija por cada medida que cambia (reglas de
@@ -21,7 +23,7 @@ window.PAT = window.PAT || {};
  * separado — para mejores resultados, varía una medida a la vez entre
  * muestras cuando sea posible.
  */
-PAT.Grading = (function () {
+PAT.PatternGrading = (function () {
 
   /**
    * @param {Array<{medidas:object, points:object}>} muestras

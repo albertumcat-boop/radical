@@ -3017,7 +3017,7 @@ PAT.DrafterUI = (function () {
   }
 
   /** Guarda el trazo actual + sus medidas como una "muestra" para entrenar
-   *  la graduación automática de esta pieza (PAT.Grading). Cada muestra debe
+   *  la graduación automática de esta pieza (PAT.PatternGrading). Cada muestra debe
    *  tener las MISMAS medidas con las que fue trazada esta versión — por
    *  eso pide confirmar/completar las medidas antes de guardar.
    *  Con 2+ muestras de la misma pieza (con medidas distintas), el asistente
@@ -3453,9 +3453,9 @@ PAT.DrafterUI = (function () {
       let loadedPoints = JSON.parse(JSON.stringify(override.points || {}));
       let metodoTxt = '';
       const muestras = (PAT.PieceBases && PAT.PieceBases.obtenerMuestras) ? PAT.PieceBases.obtenerMuestras(bloqueId) : [];
-      const modelo = (PAT.Grading && muestras.length >= 2) ? PAT.Grading.calcularModelo(muestras) : null;
+      const modelo = (PAT.PatternGrading && muestras.length >= 2) ? PAT.PatternGrading.calcularModelo(muestras) : null;
       if (modelo) {
-        const generados = PAT.Grading.generar(modelo, medidas);
+        const generados = PAT.PatternGrading.generar(modelo, medidas);
         // Combinar: usar el punto graduado si el modelo lo cubre, si no
         // dejar el de la base original (evita huecos si algún punto no
         // apareció en todas las muestras).
