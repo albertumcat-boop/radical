@@ -1557,12 +1557,19 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
       <div class="dv6-ft">
         <button class="dv6-fb pri" id="dv6-apb">＋ Agregar al patrón principal</button>
-        <button class="dv6-fb sec" id="dv6-svb">💾 Guardar pieza</button>
-        <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo ajustado como la base que se cargará la próxima vez que abras esta pieza desde el asistente">📌 Guardar como base de esta pieza</button>
-        <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada de esta pieza (volverá a generarse desde las fórmulas NH)">✖ Quitar base personalizada</button>
-        <button class="dv6-fb sec" id="dv6-addsample-btn" title="Guarda este trazo + sus medidas como una muestra para que el sistema aprenda a graduar esta pieza a otras medidas automáticamente">📊 Agregar muestra para graduar</button>
-        <button class="dv6-fb sec" id="dv6-viewsamples-btn" title="Ver las muestras guardadas para graduar esta pieza">📊 Ver muestras guardadas</button>
-        <button class="dv6-fb sec" id="dv6-rpb">📋 Ver reporte / auditoría</button>
+
+        <div style="position:relative">
+          <button class="dv6-fb sec" id="dv6-more-btn" style="width:100%;display:flex;justify-content:center;align-items:center;gap:6px">⋯ Más opciones (guardar, base, muestras, reporte)</button>
+          <div id="dv6-more-menu" style="display:none;position:absolute;left:0;right:0;bottom:calc(100% + 4px);background:#19162c;border:1px solid #332d54;border-radius:8px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:50;display:flex;flex-direction:column;gap:4px">
+            <button class="dv6-fb sec" id="dv6-svb">💾 Guardar pieza</button>
+            <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo ajustado como la base que se cargará la próxima vez que abras esta pieza desde el asistente">📌 Guardar como base de esta pieza</button>
+            <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada de esta pieza (volverá a generarse desde las fórmulas NH)">✖ Quitar base personalizada</button>
+            <button class="dv6-fb sec" id="dv6-addsample-btn" title="Guarda este trazo + sus medidas como una muestra para que el sistema aprenda a graduar esta pieza a otras medidas automáticamente">📊 Agregar muestra para graduar</button>
+            <button class="dv6-fb sec" id="dv6-viewsamples-btn" title="Ver las muestras guardadas para graduar esta pieza">📊 Ver muestras guardadas</button>
+            <button class="dv6-fb sec" id="dv6-rpb">📋 Ver reporte / auditoría</button>
+          </div>
+        </div>
+
         <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10.5px;color:#9490b0">
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
             <input type="checkbox" id="dv6-seam-on" checked style="cursor:pointer">
@@ -1780,6 +1787,24 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if (addSampleBtn) addSampleBtn.onclick = _addSample;
     const viewSamplesBtn = document.getElementById('dv6-viewsamples-btn');
     if (viewSamplesBtn) viewSamplesBtn.onclick = _verMuestras;
+    const moreBtn  = document.getElementById('dv6-more-btn');
+    const moreMenu = document.getElementById('dv6-more-menu');
+    if (moreBtn && moreMenu) {
+      moreBtn.onclick = (e) => {
+        e.stopPropagation();
+        moreMenu.style.display = (moreMenu.style.display === 'none') ? 'flex' : 'none';
+      };
+      // Cerrar el menú al elegir cualquier opción de adentro
+      moreMenu.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => { moreMenu.style.display = 'none'; }, { capture: false });
+      });
+      // Cerrar al hacer clic fuera del menú
+      document.addEventListener('click', (e) => {
+        if (moreMenu.style.display !== 'none' && !moreMenu.contains(e.target) && e.target !== moreBtn) {
+          moreMenu.style.display = 'none';
+        }
+      });
+    }
     const seamInput = document.getElementById('dv6-seam-input');
     if (seamInput) seamInput.oninput = () => { const v = parseFloat(seamInput.value); _seamMm = Number.isFinite(v) ? Math.max(0, v) : 10; };
     const seamOnChk = document.getElementById('dv6-seam-on');
