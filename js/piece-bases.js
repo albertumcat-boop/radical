@@ -133,6 +133,16 @@ PAT.PieceBases = (function () {
     return (_cache[bloqueId]?.muestras) || [];
   }
 
+  /** Elimina una muestra de graduación por índice (la que se ve en el
+   *  visor "📊 Muestras guardadas" del editor). */
+  async function eliminarMuestra(bloqueId, idx) {
+    const entry = _cache[bloqueId];
+    if (!entry || !entry.muestras || !entry.muestras[idx]) return false;
+    entry.muestras.splice(idx, 1);
+    await _persist();
+    return true;
+  }
+
   // Cargar automáticamente al iniciar/cerrar sesión (mismo patrón que NotasUsuario)
   document.addEventListener('pat:authChanged', (e) => {
     if (e.detail) loadAll();
@@ -142,6 +152,6 @@ PAT.PieceBases = (function () {
   // Cache local disponible de inmediato, antes de resolver el login
   _cache = _lsLoad();
 
-  return { loadAll, listar, obtener, guardar, eliminar, agregarMuestra, obtenerMuestras };
+  return { loadAll, listar, obtener, guardar, eliminar, agregarMuestra, obtenerMuestras, eliminarMuestra };
 
 })();

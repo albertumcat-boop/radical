@@ -1558,6 +1558,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo ajustado como la base que se cargará la próxima vez que abras esta pieza desde el asistente">📌 Guardar como base de esta pieza</button>
         <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada de esta pieza (volverá a generarse desde las fórmulas NH)">✖ Quitar base personalizada</button>
         <button class="dv6-fb sec" id="dv6-addsample-btn" title="Guarda este trazo + sus medidas como una muestra para que el sistema aprenda a graduar esta pieza a otras medidas automáticamente">📊 Agregar muestra para graduar</button>
+        <button class="dv6-fb sec" id="dv6-viewsamples-btn" title="Ver las muestras guardadas para graduar esta pieza">📊 Ver muestras guardadas</button>
         <button class="dv6-fb sec" id="dv6-rpb">📋 Ver reporte / auditoría</button>
         <div style="display:flex;gap:6px;margin-top:4px">
           <button class="dv6-fb sec" id="dv6-print-btn" style="flex:1" title="Genera un PDF a escala 1:1, listo para imprimir y armar">🖨 Imprimir</button>
@@ -1764,6 +1765,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     };
     const addSampleBtn = document.getElementById('dv6-addsample-btn');
     if (addSampleBtn) addSampleBtn.onclick = _addSample;
+    const viewSamplesBtn = document.getElementById('dv6-viewsamples-btn');
+    if (viewSamplesBtn) viewSamplesBtn.onclick = _verMuestras;
     document.getElementById('dv6-ap').onclick   = _addToPattern;
     document.getElementById('dv6-apb').onclick  = _addToPattern;
     document.getElementById('dv6-rpb').onclick  = _showReporte;
@@ -3693,6 +3696,80 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         : `📊 Muestra #${total} guardada — necesitas al menos 1 muestra más (con medidas distintas) para que el sistema aprenda a graduar esta pieza.`;
       if(PAT.App)PAT.App.toast(msg,'success'); else alert(msg);
     });
+  }
+
+  /** Abre un panel modal con la lista de muestras de graduación guardadas
+   *  para la pieza actual (_pieceBloqueId), con fecha, medidas y opción
+   *  de borrar cada una. */
+  function _verMuestras(){
+    if(!_pieceBloqueId){
+      if(PAT.App)PAT.App.toast('⚠ Esta pieza no tiene un ID de bloque reconocido todavía. Usa primero "📊 Agregar muestra para graduar" o "📌 Guardar como base".','error');
+      else alert('Esta pieza no tiene un ID de bloque reconocido todavía.');
+      return;
+    }
+    if(!PAT.PieceBases || !PAT.PieceBases.obtenerMuestras){
+      if(PAT.App)PAT.App.toast('⚠ Módulo de graduación no disponible','error');
+      return;
+    }
+
+    let ov = document.getElementById('dv6-muestras-modal');
+    if(ov) ov.remove();
+
+    ov = document.createElement('div');
+    ov.id = 'dv6-muestras-modal';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55)';
+    ov.innerHTML = `
+      <div style="background:#19162c;border:1px solid #332d54;border-radius:12px;padding:20px;width:min(480px,92vw);max-height:80vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.5)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="font-size:14px;font-weight:600;color:#e9e7f5">📊 Muestras guardadas — ${_pieceName||'pieza'}</div>
+          <button id="dv6-muestras-close" style="background:none;border:none;color:#9490b0;font-size:18px;cursor:pointer;line-height:1">✕</button>
+        </div>
+        <p style="font-size:11px;color:#9490b0;margin:4px 0 14px">
+          Estas muestras (medidas + trazado) le enseñan al sistema cómo graduar automáticamente esta pieza a otras medidas.
+          Se necesitan al menos 2 para que la graduación funcione.
+        </p>
+        <div id="dv6-muestras-list"></div>
+      </div>`;
+    document.body.appendChild(ov);
+    document.getElementById('dv6-muestras-close').onclick = () => ov.remove();
+    ov.onclick = (e) => { if(e.target === ov) ov.remove(); };
+
+    function render(){
+      const muestras = PAT.PieceBases.obtenerMuestras(_pieceBloqueId) || [];
+      const list = document.getElementById('dv6-muestras-list');
+      if(!list) return;
+      if(muestras.length === 0){
+        list.innerHTML = `<div style="font-size:12px;color:#9490b0;text-align:center;padding:20px 0">Aún no hay muestras guardadas para esta pieza.</div>`;
+        return;
+      }
+      list.innerHTML = muestras.map((m, idx) => {
+        let fecha = '—';
+        try { fecha = new Date(m.savedAt).toLocaleString(); } catch(e){}
+        const nPts = m.points ? Object.keys(m.points).length : 0;
+        const medidasResumen = m.medidas && Object.keys(m.medidas).length
+          ? Object.entries(m.medidas).map(([k,v]) => `${k}: ${v}`).join(' · ')
+          : '(sin medidas registradas)';
+        return `
+          <div style="border:1px solid #2a2547;border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;color:#e9e7f5;font-weight:600">Muestra #${idx+1}</div>
+              <div style="font-size:10.5px;color:#9490b0;margin-top:2px">🕒 ${fecha} · ${nPts} puntos</div>
+              <div style="font-size:10.5px;color:#b9b6cf;margin-top:4px;word-break:break-word">${medidasResumen}</div>
+            </div>
+            <button data-idx="${idx}" class="dv6-muestra-del" title="Eliminar esta muestra" style="flex-shrink:0;background:#2a1530;border:1px solid #5c2a3a;color:#f87171;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">🗑</button>
+          </div>`;
+      }).join('');
+      list.querySelectorAll('.dv6-muestra-del').forEach(btn => {
+        btn.onclick = async () => {
+          const idx = parseInt(btn.dataset.idx, 10);
+          if(!confirm(`¿Eliminar la muestra #${idx+1}? Esta acción no se puede deshacer.`)) return;
+          await PAT.PieceBases.eliminarMuestra(_pieceBloqueId, idx);
+          if(PAT.App)PAT.App.toast('🗑 Muestra eliminada','success');
+          render();
+        };
+      });
+    }
+    render();
   }
 
   /** Si existe una base personalizada guardada para este bloqueId, la devuelve
