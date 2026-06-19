@@ -1155,6 +1155,10 @@ PAT.DrafterUI = (function () {
   padding:4px 8px;font-size:11px;font-family:monospace;outline:none;transition:border-color .15s}
 .dv6-pi:focus{border-color:#8b5cf6}
 .dv6-fv{font-size:10px;color:#a78bfa;font-family:monospace;padding:0 14px 6px}
+.dv6-unit-btn{background:#141420;border:1.5px solid #2e2e45;color:#9491c4;border-radius:6px;
+  padding:3px 10px;font-size:10px;font-family:monospace;cursor:pointer;transition:.15s}
+.dv6-unit-btn:hover{border-color:#8b5cf6;color:#ede9fe}
+.dv6-unit-btn.active{background:#8b5cf6;border-color:#8b5cf6;color:#fff;font-weight:700}
 /* listas */
 .dv6-ptlist{flex:1;overflow-y:auto;padding:4px 8px}
 .dv6-pti{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:6px;cursor:pointer;
@@ -1333,13 +1337,20 @@ PAT.DrafterUI = (function () {
       <!-- Propiedades del punto -->
       <div class="dv6-psec">
         <div class="dv6-ptl">Punto seleccionado <span id="dv6-badge" style="color:#a78bfa;font-family:monospace;font-weight:800">—</span></div>
+        <div class="dv6-prow" style="justify-content:space-between;align-items:center;padding:6px 14px">
+          <span class="dv6-plb">Unidades</span>
+          <div style="display:flex;gap:4px">
+            <button type="button" class="dv6-unit-btn" id="dv6-unit-mm" data-unit="mm">mm</button>
+            <button type="button" class="dv6-unit-btn" id="dv6-unit-cm" data-unit="cm">cm</button>
+          </div>
+        </div>
         <div id="dv6-nosel" style="padding:10px 14px;font-size:11px;color:#5a5678">
           Clic en un punto para editarlo · Arrástralo para moverlo
         </div>
         <div id="dv6-pform" style="display:none">
           <div class="dv6-prow"><span class="dv6-plb">Nombre</span><input class="dv6-pi" id="dv6-pnm" maxlength="4" placeholder="A, B, 1…"></div>
-          <div class="dv6-prow"><span class="dv6-plb">X (mm)</span><input type="number" class="dv6-pi" id="dv6-px" step="0.5"></div>
-          <div class="dv6-prow"><span class="dv6-plb">Y (mm)</span><input type="number" class="dv6-pi" id="dv6-py" step="0.5"></div>
+          <div class="dv6-prow"><span class="dv6-plb" id="dv6-lbl-x">X (mm)</span><input type="number" class="dv6-pi" id="dv6-px" step="0.5"></div>
+          <div class="dv6-prow"><span class="dv6-plb" id="dv6-lbl-y">Y (mm)</span><input type="number" class="dv6-pi" id="dv6-py" step="0.5"></div>
           <div class="dv6-prow"><span class="dv6-plb">Fórm. X</span><input class="dv6-pi" id="dv6-pfx" style="color:#a78bfa" placeholder="B4, pecho/4+10…"></div>
           <div class="dv6-prow"><span class="dv6-plb">Fórm. Y</span><input class="dv6-pi" id="dv6-pfy" style="color:#a78bfa" placeholder="TALLE_ESP, largo…"></div>
           <div class="dv6-fv" id="dv6-fv">—</div>
@@ -1637,6 +1648,9 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-pnm').oninput = _applyProps;
     document.getElementById('dv6-px').oninput  = _applyProps;
     document.getElementById('dv6-py').oninput  = _applyProps;
+    document.getElementById('dv6-unit-mm').onclick = function(){ _setCoordUnit('mm'); };
+    document.getElementById('dv6-unit-cm').onclick = function(){ _setCoordUnit('cm'); };
+    _setCoordUnit(_coordUnit); // refleja el estado guardado (botón activo + etiquetas) al cargar
     document.getElementById('dv6-pfx').oninput = _applyFormula;
     document.getElementById('dv6-pfy').oninput = _applyFormula;
 
@@ -2536,6 +2550,33 @@ PAT.DrafterUI = (function () {
   // ════════════════════════════════════════════════════════════
   // PANEL PROPIEDADES
   // ════════════════════════════════════════════════════════════
+
+  // Unidad de visualización para los campos X/Y del panel (el almacenamiento
+  // interno SIEMPRE es en mm — esto solo afecta cómo se muestra/escribe).
+  let _coordUnit = localStorage.getItem('pat_v6_coordunit') || 'mm';
+
+  /** mm internos → valor a mostrar en el input, según la unidad elegida. */
+  function _fmtCoord(mm){
+    return _coordUnit==='cm' ? Math.round(mm/10*100)/100 : Math.round(mm*10)/10;
+  }
+  /** valor del input (en la unidad elegida) → mm internos. */
+  function _parseCoord(val){
+    const n=parseFloat(val)||0;
+    return _coordUnit==='cm' ? n*10 : n;
+  }
+
+  function _setCoordUnit(u){
+    _coordUnit = (u==='cm') ? 'cm' : 'mm';
+    localStorage.setItem('pat_v6_coordunit', _coordUnit);
+    const lblX=document.getElementById('dv6-lbl-x'), lblY=document.getElementById('dv6-lbl-y');
+    if(lblX) lblX.textContent='X ('+_coordUnit+')';
+    if(lblY) lblY.textContent='Y ('+_coordUnit+')';
+    const bmm=document.getElementById('dv6-unit-mm'), bcm=document.getElementById('dv6-unit-cm');
+    if(bmm) bmm.classList.toggle('active', _coordUnit==='mm');
+    if(bcm) bcm.classList.toggle('active', _coordUnit==='cm');
+    _updateForm(); // re-renderiza los valores en la nueva unidad
+  }
+
   function _updateForm(){
     const form=document.getElementById('dv6-pform');
     const nosel=document.getElementById('dv6-nosel');
@@ -2546,8 +2587,8 @@ PAT.DrafterUI = (function () {
     const p=_points[_selected];
     form.style.display='';nosel.style.display='none';badge.textContent=p.name;
     document.getElementById('dv6-pnm').value=p.name;
-    document.getElementById('dv6-px').value=Math.round(p.x*10)/10;
-    document.getElementById('dv6-py').value=Math.round(p.y*10)/10;
+    document.getElementById('dv6-px').value=_fmtCoord(p.x);
+    document.getElementById('dv6-py').value=_fmtCoord(p.y);
     document.getElementById('dv6-pfx').value=p.fx||'';
     document.getElementById('dv6-pfy').value=p.fy||'';
     _updateFVal();
@@ -2560,9 +2601,9 @@ PAT.DrafterUI = (function () {
     const vx=p.fx?_evalF(p.fx):null;
     const vy=p.fy?_evalF(p.fy):null;
     const parts=[];
-    if(vx!==null&&p.fx)parts.push(`X=${Math.round(vx)}mm`);
+    if(vx!==null&&p.fx)parts.push(`X=${_fmtCoord(vx)}${_coordUnit}`);
     else if(p.fx)parts.push('X=inválida');
-    if(vy!==null&&p.fy)parts.push(`Y=${Math.round(vy)}mm`);
+    if(vy!==null&&p.fy)parts.push(`Y=${_fmtCoord(vy)}${_coordUnit}`);
     else if(p.fy)parts.push('Y=inválida');
     fv.textContent=parts.length?'= '+parts.join(' · '):'—';
   }
@@ -2572,8 +2613,8 @@ PAT.DrafterUI = (function () {
     const p=_points[_selected];
     const nm=document.getElementById('dv6-pnm').value.trim().toUpperCase();
     if(nm)p.name=nm;
-    p.x=parseFloat(document.getElementById('dv6-px').value)||0;
-    p.y=parseFloat(document.getElementById('dv6-py').value)||0;
+    p.x=_parseCoord(document.getElementById('dv6-px').value);
+    p.y=_parseCoord(document.getElementById('dv6-py').value);
     _renderAll();
   }
 
@@ -2585,8 +2626,8 @@ PAT.DrafterUI = (function () {
     // Aplicar inmediatamente si la fórmula es válida
     const vx=p.fx?_evalF(p.fx):null;
     const vy=p.fy?_evalF(p.fy):null;
-    if(vx!==null&&p.fx){p.x=vx;document.getElementById('dv6-px').value=Math.round(vx*10)/10;}
-    if(vy!==null&&p.fy){p.y=vy;document.getElementById('dv6-py').value=Math.round(vy*10)/10;}
+    if(vx!==null&&p.fx){p.x=vx;document.getElementById('dv6-px').value=_fmtCoord(vx);}
+    if(vy!==null&&p.fy){p.y=vy;document.getElementById('dv6-py').value=_fmtCoord(vy);}
     _updateFVal();_renderAll();
   }
 
