@@ -2891,15 +2891,27 @@ PAT.DrafterUI = (function () {
   // GUARDAR / CARGAR
   // ════════════════════════════════════════════════════════════
   function _save(){
-    const id=_curSave||('sv6_'+Date.now());
-    const store=_loadStore();
-    store[id]={id,name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr,savedAt:new Date().toISOString()};
-    localStorage.setItem(MK,JSON.stringify(store));
-    _curSave=id;_refreshSaved();
-    if(PAT.App)PAT.App.toast('💾 "'+_pieceName+'" guardado','success');
+    const data={name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr};
+    if(PAT.SavedPatterns){
+      PAT.SavedPatterns.guardar(_curSave,data).then(id=>{
+        _curSave=id;_refreshSaved();
+        if(PAT.App)PAT.App.toast('💾 "'+_pieceName+'" guardado (sincronizado a tu cuenta)','success');
+      });
+    } else {
+      // Respaldo si el módulo no cargó por alguna razón
+      const id=_curSave||('sv6_'+Date.now());
+      const store=_loadStore();
+      store[id]=Object.assign({id},data,{savedAt:new Date().toISOString()});
+      localStorage.setItem(MK,JSON.stringify(store));
+      _curSave=id;_refreshSaved();
+      if(PAT.App)PAT.App.toast('💾 "'+_pieceName+'" guardado (solo local)','success');
+    }
   }
 
-  function _loadStore(){try{return JSON.parse(localStorage.getItem(MK)||'{}');}catch(e){return{};}}
+  function _loadStore(){
+    if(PAT.SavedPatterns)return PAT.SavedPatterns.obtenerTodos();
+    try{return JSON.parse(localStorage.getItem(MK)||'{}');}catch(e){return{};}
+  }
 
   /** Guarda el trazo actual como la base que se usará automáticamente la próxima
    *  vez que se abra esta misma pieza (camisa-trasera, camisa-delantera, franela, etc.)
@@ -3113,7 +3125,8 @@ PAT.DrafterUI = (function () {
       });
       div.querySelector('.dv6-sdel').addEventListener('click',e=>{
         e.stopPropagation();if(!confirm('¿Eliminar "'+item.name+'"?'))return;
-        delete store[id];localStorage.setItem(MK,JSON.stringify(store));_refreshSaved();
+        if(PAT.SavedPatterns){PAT.SavedPatterns.eliminar(id).then(()=>_refreshSaved());}
+        else{delete store[id];localStorage.setItem(MK,JSON.stringify(store));_refreshSaved();}
       });
       list.appendChild(div);
     });
@@ -3927,6 +3940,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/notas-usuario.js"></script>
 <script src="js/measurement-profiles.js"></script>
 <script src="js/piece-bases.js"></script>
+<script src="js/saved-patterns.js"></script>
 <script src="js/pattern-grading.js"></script>
 <script src="js/pizarra.js"></script>
 <script src="js/pizarra-ui.js"></script>
