@@ -46,6 +46,9 @@ window.PAT = window.PAT || {};
         if (PAT.AuthTier && PAT.AuthTier.loadTierFromFirestore) {
           await PAT.AuthTier.loadTierFromFirestore();
         }
+        if (PAT.Atelier && PAT.Atelier.getMiAtelier) {
+          await PAT.Atelier.getMiAtelier(true); // precarga el atelierId en caché para materiales.js
+        }
         document.dispatchEvent(new CustomEvent('pat:authChanged', { detail: { uid: user.uid, email: user.email } }));
         // Cargar sistemas propios del usuario en PAT.Sistemas
         if (PAT.MisSistemas?.cargarTodos) PAT.MisSistemas.cargarTodos();

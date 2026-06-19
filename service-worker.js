@@ -4,8 +4,8 @@
  * Versión: debe actualizarse en cada deploy para invalidar caché.
  */
 
-const CACHE_NAME   = 'patronai-v22';
-const CACHE_STATIC = 'patronai-static-v22';
+const CACHE_NAME   = 'patronai-v23';
+const CACHE_STATIC = 'patronai-static-v23';
 
 // Assets que se cachean en la instalación
 const STATIC_ASSETS = [
@@ -21,6 +21,8 @@ const STATIC_ASSETS = [
   '/js/pattern-engine.js',
   '/js/pdf-export.js',
   '/js/mannequin-3d.js',
+  '/js/atelier.js',
+  '/js/atelier-ui.js',
   '/js/firebase-config.js',
   '/js/auth-tier.js',
   '/js/payment.js',

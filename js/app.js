@@ -331,6 +331,7 @@ document.getElementById('logo-mark')?.addEventListener('click', function() {
   // ─── MONETIZACIÓN ──────────────────────────────────────────────
   function setupMonetizationEvents() {
     $('btn-atelier-panel')?.addEventListener('click', () => PAT.AtelierPanel?.openPanel());
+    $('btn-mi-atelier')?.addEventListener('click', () => PAT.AtelierUI?.open());
 
     document.addEventListener('pat:tierChanged', () => { applyTierUI(); generate(); });
 

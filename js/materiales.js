@@ -3,8 +3,13 @@
  * materiales.js
  * Gestión de materiales de apoyo (manuales, videos, imágenes, material de clase).
  *
- * Firestore:  users/{uid}/materiales/{id}
+ * Firestore:  ateliers/{atelierId}/materiales/{id}  (si el usuario pertenece a un atelier)
+ *             users/{uid}/materiales/{id}            (fallback: usuario sin atelier)
  * Storage:    materiales/{uid}/{filename}
+ *
+ * Los materiales se comparten entre todos los empleados del mismo atelier
+ * (PAT.Atelier.getMiAtelierIdCached()) — así un manual o video subido por
+ * cualquiera del equipo aparece para todos, sin mezclarse con otros ateliers.
  *
  * Tipos:  manual | video | imagen | clase | referencia
  * Formato de un material:
@@ -34,6 +39,8 @@ PAT.Materiales = (function () {
   function _col() {
     const uid = _auth()?.currentUser?.uid;
     if (!uid) throw new Error('No hay usuario autenticado');
+    const atelierId = window.PAT?.Atelier?.getMiAtelierIdCached?.();
+    if (atelierId) return _db().collection('ateliers').doc(atelierId).collection('materiales');
     return _db().collection('users').doc(uid).collection('materiales');
   }
 

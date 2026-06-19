@@ -22,6 +22,54 @@ service cloud.firestore {
     // Nota: bloques, mis-sistemas y notas viven dentro de users/{uid}/...
     // y ya quedan cubiertos por la regla de arriba.
 
+    // ── Ateliers (talleres con varios empleados) ──────────────────────────
+    // Solo el dueño o un empleado ya registrado en "empleados" puede leer
+    // el atelier. La escritura del documento principal es del dueño, EXCEPTO
+    // el caso de "unirse con código": un usuario autenticado puede agregarse
+    // a sí mismo al arreglo "empleados" (y solo a sí mismo, sin tocar nada
+    // más) — así es como funciona el flujo de unirse sin backend propio.
+    match /ateliers/{atelierId} {
+      allow read: if request.auth != null
+                  && (resource.data.ownerUid == request.auth.uid
+                      || request.auth.uid in resource.data.empleados);
+
+      allow create: if request.auth != null
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.empleados == [request.auth.uid];
+
+      allow update: if request.auth != null
+                    && resource.data.ownerUid == request.auth.uid;
+
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['empleados'])
+                    && (
+                         // unirse: agrega solo el propio uid
+                         request.resource.data.empleados == resource.data.empleados.concat([request.auth.uid])
+                         ||
+                         // salir: quita solo el propio uid (no aplica al dueño)
+                         (resource.data.ownerUid != request.auth.uid
+                          && resource.data.empleados.hasAll(request.resource.data.empleados)
+                          && resource.data.empleados.size() == request.resource.data.empleados.size() + 1)
+                       );
+
+      // ── Materiales compartidos del atelier ──────────────────────────────
+      match /materiales/{matId} {
+        allow read, write: if request.auth != null
+                            && get(/databases/$(database)/documents/ateliers/$(atelierId)).data.empleados.hasAny([request.auth.uid]);
+      }
+    }
+
+    // Lookup de código → atelierId. "get" individual permitido (para validar
+    // un código que el empleado escribió), pero NUNCA se permite listar toda
+    // la colección — así los códigos no se pueden enumerar como pasaba con
+    // los códigos de afiliado hardcodeados en el frontend.
+    match /atelierCodes/{codigo} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if request.auth != null && request.resource.data.keys().hasOnly(['atelierId']);
+      allow update, delete: if false;
+    }
+
     // ── Todo lo demás: denegado ──────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
