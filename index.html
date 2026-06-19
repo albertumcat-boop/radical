@@ -2991,6 +2991,27 @@ PAT.DrafterUI = (function () {
       if(PAT.App)PAT.App.toast('⚠ Módulo de graduación no disponible','error');
       return;
     }
+    // Verificar que los IDs de puntos coincidan con muestras anteriores —
+    // la graduación solo funciona si es LA MISMA pieza (mismos puntos)
+    // ajustada, no una trazada desde cero con nombres distintos.
+    const previas = PAT.PieceBases.obtenerMuestras ? PAT.PieceBases.obtenerMuestras(_pieceBloqueId) : [];
+    if (previas.length > 0) {
+      const idsActuales = new Set(Object.keys(_points));
+      const idsPrevios  = new Set(Object.keys(previas[previas.length-1].points || {}));
+      const interseccion = [...idsActuales].filter(id => idsPrevios.has(id)).length;
+      const minSize = Math.min(idsActuales.size, idsPrevios.size) || 1;
+      const coincidencia = interseccion / minSize;
+      if (coincidencia < 0.7) {
+        const seguir = confirm(
+          `⚠ Esta pieza tiene puntos muy distintos a tus muestras anteriores de "${_pieceName}" ` +
+          `(solo ${Math.round(coincidencia*100)}% de los puntos coinciden por ID).\n\n` +
+          `La graduación automática SOLO funciona bien si reutilizas la misma pieza guardada y solo ajustas ` +
+          `posiciones — si la trazaste desde cero con puntos nuevos, el modelo no podrá relacionarlos bien.\n\n` +
+          `¿Guardar de todos modos?`
+        );
+        if (!seguir) return;
+      }
+    }
     const data={
       name:_pieceName,
       points:JSON.parse(JSON.stringify(_points)),
