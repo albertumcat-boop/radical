@@ -88,16 +88,49 @@ PAT.PieceBases = (function () {
     return _cache[bloqueId] || null;
   }
 
-  /** Guarda (crea o reemplaza) la base de una pieza. */
+  /** Guarda (crea o reemplaza) la base de una pieza. Conserva las muestras
+   *  de graduación existentes si ya había alguna. */
   async function guardar(bloqueId, data) {
-    _cache[bloqueId] = Object.assign({}, data, { bloqueId, savedAt: new Date().toISOString() });
+    const prevMuestras = _cache[bloqueId]?.muestras || [];
+    _cache[bloqueId] = Object.assign({}, data, {
+      bloqueId, savedAt: new Date().toISOString(), muestras: prevMuestras,
+    });
     await _persist();
   }
 
-  /** Quita la base personalizada de una pieza (vuelve a generarse desde NH). */
+  /** Quita la base personalizada de una pieza (vuelve a generarse desde NH).
+   *  Esto también borra sus muestras de graduación. */
   async function eliminar(bloqueId) {
     delete _cache[bloqueId];
     await _persist();
+  }
+
+  /** Agrega una muestra (medidas + puntos) para entrenar la graduación
+   *  automática de esta pieza. Si la pieza no tenía base guardada todavía,
+   *  esta muestra también se fija como la base actual. */
+  async function agregarMuestra(bloqueId, data) {
+    if (!_cache[bloqueId]) {
+      _cache[bloqueId] = {
+        bloqueId, name: data.name, points: data.points, lines: data.lines,
+        ptCtr: data.ptCtr, medidas: data.medidas,
+        savedAt: new Date().toISOString(), muestras: [],
+      };
+    }
+    const entry = _cache[bloqueId];
+    entry.muestras = entry.muestras || [];
+    entry.muestras.push({
+      medidas: data.medidas ? Object.assign({}, data.medidas) : {},
+      points: JSON.parse(JSON.stringify(data.points || {})),
+      savedAt: new Date().toISOString(),
+    });
+    await _persist();
+    return entry.muestras.length;
+  }
+
+  /** Devuelve las muestras de graduación guardadas para una pieza (array,
+   *  vacío si no hay ninguna). */
+  function obtenerMuestras(bloqueId) {
+    return (_cache[bloqueId]?.muestras) || [];
   }
 
   // Cargar automáticamente al iniciar/cerrar sesión (mismo patrón que NotasUsuario)
@@ -109,6 +142,6 @@ PAT.PieceBases = (function () {
   // Cache local disponible de inmediato, antes de resolver el login
   _cache = _lsLoad();
 
-  return { loadAll, listar, obtener, guardar, eliminar };
+  return { loadAll, listar, obtener, guardar, eliminar, agregarMuestra, obtenerMuestras };
 
 })();

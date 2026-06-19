@@ -1436,6 +1436,7 @@ PAT.DrafterUI = (function () {
         <button class="dv6-fb sec" id="dv6-svb">💾 Guardar pieza</button>
         <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo ajustado como la base que se cargará la próxima vez que abras esta pieza desde el asistente">📌 Guardar como base de esta pieza</button>
         <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada de esta pieza (volverá a generarse desde las fórmulas NH)">✖ Quitar base personalizada</button>
+        <button class="dv6-fb sec" id="dv6-addsample-btn" title="Guarda este trazo + sus medidas como una muestra para que el sistema aprenda a graduar esta pieza a otras medidas automáticamente">📊 Agregar muestra para graduar</button>
         <button class="dv6-fb sec" id="dv6-rpb">📋 Ver reporte / auditoría</button>
       </div>
     </div>
@@ -1627,6 +1628,8 @@ PAT.DrafterUI = (function () {
       if(PAT.App)PAT.App.toast('✖ Base personalizada eliminada para "'+_pieceName+'"','success');
       else alert('Base personalizada eliminada.');
     };
+    const addSampleBtn = document.getElementById('dv6-addsample-btn');
+    if (addSampleBtn) addSampleBtn.onclick = _addSample;
     document.getElementById('dv6-ap').onclick   = _addToPattern;
     document.getElementById('dv6-apb').onclick  = _addToPattern;
     document.getElementById('dv6-rpb').onclick  = _showReporte;
@@ -2955,6 +2958,54 @@ PAT.DrafterUI = (function () {
     }
   }
 
+  /** Guarda el trazo actual + sus medidas como una "muestra" para entrenar
+   *  la graduación automática de esta pieza (PAT.Grading). Cada muestra debe
+   *  tener las MISMAS medidas con las que fue trazada esta versión — por
+   *  eso pide confirmar/completar las medidas antes de guardar.
+   *  Con 2+ muestras de la misma pieza (con medidas distintas), el asistente
+   *  podrá generar esta pieza para CUALQUIER medida nueva usando un modelo
+   *  de graduación real, no solo un reescalado proporcional. */
+  function _addSample(){
+    if(!_pieceBloqueId){
+      const elegido=_pickBloqueId();
+      if(!elegido)return;
+      _pieceBloqueId=elegido;
+    }
+    let medidas=_pieceMedidas;
+    if(!medidas||Object.keys(medidas).length===0){
+      const txt=window.prompt('¿Con qué medidas trazaste esta pieza? Escribe pares clave=valor separados por coma.\nEj: bust=88,neck=36,shoulder=38,totalLength=68','');
+      if(txt===null)return;
+      medidas={};
+      txt.split(',').forEach(par=>{
+        const [k,v]=par.split('=').map(s=>s.trim());
+        const n=parseFloat(v);
+        if(k&&Number.isFinite(n))medidas[k]=n;
+      });
+      if(Object.keys(medidas).length===0){
+        if(PAT.App)PAT.App.toast('⚠ No se reconocieron medidas válidas, no se guardó la muestra','error');
+        return;
+      }
+      _pieceMedidas=medidas;
+    }
+    if(!PAT.PieceBases){
+      if(PAT.App)PAT.App.toast('⚠ Módulo de graduación no disponible','error');
+      return;
+    }
+    const data={
+      name:_pieceName,
+      points:JSON.parse(JSON.stringify(_points)),
+      lines:JSON.parse(JSON.stringify(_lines)),
+      ptCtr:_ptCtr,
+      medidas:JSON.parse(JSON.stringify(medidas)),
+    };
+    PAT.PieceBases.agregarMuestra(_pieceBloqueId,data).then(total=>{
+      const msg = total>=2
+        ? `📊 Muestra #${total} guardada — ya hay suficientes muestras (${total}) para graduar "${_pieceName}" automáticamente a otras medidas.`
+        : `📊 Muestra #${total} guardada — necesitas al menos 1 muestra más (con medidas distintas) para que el sistema aprenda a graduar esta pieza.`;
+      if(PAT.App)PAT.App.toast(msg,'success'); else alert(msg);
+    });
+  }
+
   /** Si existe una base personalizada guardada para este bloqueId, la devuelve
    *  (null si no hay ninguna o no aplica). */
   function _getBaseOverride(bloqueId){
@@ -3331,9 +3382,26 @@ PAT.DrafterUI = (function () {
       `¿Cargar TU versión ajustada en vez de generarla de nuevo desde las fórmulas?\n\n` +
       `Aceptar = cargar tu base · Cancelar = generar la versión estándar`)) {
       let loadedPoints = JSON.parse(JSON.stringify(override.points || {}));
-      const oldM = override.medidas;
-      const scaled = _scaleOverridePoints(loadedPoints, oldM, medidas);
-      loadedPoints = scaled.points;
+      let metodoTxt = '';
+      const muestras = (PAT.PieceBases && PAT.PieceBases.obtenerMuestras) ? PAT.PieceBases.obtenerMuestras(bloqueId) : [];
+      const modelo = (PAT.Grading && muestras.length >= 2) ? PAT.Grading.calcularModelo(muestras) : null;
+      if (modelo) {
+        const generados = PAT.Grading.generar(modelo, medidas);
+        // Combinar: usar el punto graduado si el modelo lo cubre, si no
+        // dejar el de la base original (evita huecos si algún punto no
+        // apareció en todas las muestras).
+        Object.keys(loadedPoints).forEach(id => {
+          if (generados[id]) {
+            loadedPoints[id] = Object.assign({}, loadedPoints[id], { x: generados[id].x, y: generados[id].y });
+          }
+        });
+        metodoTxt = ` (graduado con modelo aprendido de ${muestras.length} muestras)`;
+      } else {
+        const oldM = override.medidas;
+        const scaled = _scaleOverridePoints(loadedPoints, oldM, medidas);
+        loadedPoints = scaled.points;
+        if (scaled.applied) metodoTxt = ` (reescalado proporcional: ancho ×${scaled.sx.toFixed(3)}, alto ×${scaled.sy.toFixed(3)})`;
+      }
       _points   = loadedPoints;
       _lines    = JSON.parse(JSON.stringify(override.lines  || []));
       _ptCtr    = override.ptCtr || 0;
@@ -3346,11 +3414,8 @@ PAT.DrafterUI = (function () {
       _tempLine && _tempLine.setAttribute('opacity', '0');
       _snapshot(); _renderAll(); _fitView();
       _setTool('select');
-      const escalaTxt = scaled.applied
-        ? ` (reescalado: ancho ×${scaled.sx.toFixed(3)}, alto ×${scaled.sy.toFixed(3)} según tus nuevas medidas)`
-        : '';
-      _instr(`📌 "${_pieceName}" cargado desde tu base personalizada — ${Object.keys(_points).length} puntos · ${_lines.length} líneas.${escalaTxt}`);
-      if (PAT.App) PAT.App.toast('📌 ' + _pieceName + ' (tu base personalizada)' + escalaTxt, 'success');
+      _instr(`📌 "${_pieceName}" cargado desde tu base personalizada — ${Object.keys(_points).length} puntos · ${_lines.length} líneas.${metodoTxt}`);
+      if (PAT.App) PAT.App.toast('📌 ' + _pieceName + ' (tu base personalizada)' + metodoTxt, 'success');
       return;
     }
 
@@ -3793,6 +3858,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/notas-usuario.js"></script>
 <script src="js/measurement-profiles.js"></script>
 <script src="js/piece-bases.js"></script>
+<script src="js/pattern-grading.js"></script>
 <script src="js/pizarra.js"></script>
 <script src="js/pizarra-ui.js"></script>
 <script src="js/sistemas/sistemas-ui.js"></script>
