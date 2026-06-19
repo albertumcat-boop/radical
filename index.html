@@ -1416,6 +1416,7 @@ PAT.DrafterUI = (function () {
         <button class="dv6-fb pri" id="dv6-apb">＋ Agregar al patrón principal</button>
         <button class="dv6-fb sec" id="dv6-svb">💾 Guardar pieza</button>
         <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo ajustado como la base que se cargará la próxima vez que abras esta pieza desde el asistente">📌 Guardar como base de esta pieza</button>
+        <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada de esta pieza (volverá a generarse desde las fórmulas NH)">✖ Quitar base personalizada</button>
         <button class="dv6-fb sec" id="dv6-rpb">📋 Ver reporte / auditoría</button>
       </div>
     </div>
@@ -1599,6 +1600,14 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-svb').onclick  = _save;
     const svbaseBtn = document.getElementById('dv6-svbase-btn');
     if (svbaseBtn) svbaseBtn.onclick = _saveAsBase;
+    const clrbaseBtn = document.getElementById('dv6-clrbase-btn');
+    if (clrbaseBtn) clrbaseBtn.onclick = function(){
+      if(!_pieceBloqueId){ if(PAT.App)PAT.App.toast('⚠ Esta pieza no tiene un ID de bloque reconocido','error'); return; }
+      if(!confirm(`¿Quitar la base personalizada de "${_pieceName}"?\nLa próxima vez se generará desde las fórmulas estándar NH.`))return;
+      _clearBaseOverride(_pieceBloqueId);
+      if(PAT.App)PAT.App.toast('✖ Base personalizada eliminada para "'+_pieceName+'"','success');
+      else alert('Base personalizada eliminada.');
+    };
     document.getElementById('dv6-ap').onclick   = _addToPattern;
     document.getElementById('dv6-apb').onclick  = _addToPattern;
     document.getElementById('dv6-rpb').onclick  = _showReporte;
@@ -2798,12 +2807,10 @@ PAT.DrafterUI = (function () {
 
   function _loadStore(){try{return JSON.parse(localStorage.getItem(MK)||'{}');}catch(e){return{};}}
 
-  /** Carga el almacén de "bases personalizadas" (una entrada por pieza: id = bloqueId). */
-  function _loadBaseStore(){try{return JSON.parse(localStorage.getItem(BASE_KEY)||'{}');}catch(e){return{};}}
-
   /** Guarda el trazo actual como la base que se usará automáticamente la próxima
    *  vez que se abra esta misma pieza (camisa-trasera, camisa-delantera, franela, etc.)
-   *  desde el asistente/wizard, en lugar de regenerarla desde las fórmulas NH. */
+   *  desde el asistente/wizard, en lugar de regenerarla desde las fórmulas NH.
+   *  Se persiste vía PAT.PieceBases (Firestore + localStorage), igual que notas y perfiles. */
   function _saveAsBase(){
     if(!_pieceBloqueId){
       if(PAT.App)PAT.App.toast('⚠ Esta pieza no tiene un ID de bloque reconocido (no viene del asistente) — no se puede fijar como base','error');
@@ -2811,33 +2818,41 @@ PAT.DrafterUI = (function () {
       return;
     }
     if(!confirm(`Esto guardará tu ajuste actual como la base de "${_pieceName}".\nLa próxima vez que abras esta pieza desde el asistente se cargará TU versión en vez de la generada automáticamente.\n¿Continuar?`))return;
-    const store=_loadBaseStore();
-    store[_pieceBloqueId]={
-      bloqueId:_pieceBloqueId,
+    const data={
       name:_pieceName,
       points:JSON.parse(JSON.stringify(_points)),
       lines:JSON.parse(JSON.stringify(_lines)),
       ptCtr:_ptCtr,
       medidas:_pieceMedidas?JSON.parse(JSON.stringify(_pieceMedidas)):null,
-      savedAt:new Date().toISOString(),
     };
-    localStorage.setItem(BASE_KEY,JSON.stringify(store));
-    if(PAT.App)PAT.App.toast('📌 "'+_pieceName+'" fijado como base — se cargará así la próxima vez','success');
-    else alert('📌 "'+_pieceName+'" fijado como base.');
+    if(PAT.PieceBases){
+      PAT.PieceBases.guardar(_pieceBloqueId,data);
+      if(PAT.App)PAT.App.toast('📌 "'+_pieceName+'" fijado como base — se cargará así la próxima vez (sincronizado a tu cuenta)','success');
+      else alert('📌 "'+_pieceName+'" fijado como base.');
+    } else {
+      // Respaldo si el módulo no cargó por alguna razón
+      const store=JSON.parse(localStorage.getItem(BASE_KEY)||'{}');
+      store[_pieceBloqueId]=Object.assign({bloqueId:_pieceBloqueId,savedAt:new Date().toISOString()},data);
+      localStorage.setItem(BASE_KEY,JSON.stringify(store));
+      if(PAT.App)PAT.App.toast('📌 "'+_pieceName+'" fijado como base (solo local)','success');
+    }
   }
 
   /** Si existe una base personalizada guardada para este bloqueId, la devuelve
    *  (null si no hay ninguna o no aplica). */
   function _getBaseOverride(bloqueId){
     if(!bloqueId)return null;
-    const store=_loadBaseStore();
-    return store[bloqueId]||null;
+    if(PAT.PieceBases)return PAT.PieceBases.obtener(bloqueId);
+    try{return JSON.parse(localStorage.getItem(BASE_KEY)||'{}')[bloqueId]||null;}catch(e){return null;}
   }
 
   /** Quita la base personalizada de una pieza (vuelve a generarse desde NH). */
   function _clearBaseOverride(bloqueId){
-    const store=_loadBaseStore();
-    if(store[bloqueId]){delete store[bloqueId];localStorage.setItem(BASE_KEY,JSON.stringify(store));}
+    if(PAT.PieceBases){PAT.PieceBases.eliminar(bloqueId);return;}
+    try{
+      const store=JSON.parse(localStorage.getItem(BASE_KEY)||'{}');
+      if(store[bloqueId]){delete store[bloqueId];localStorage.setItem(BASE_KEY,JSON.stringify(store));}
+    }catch(e){}
   }
 
   function _refreshSaved(){
@@ -3618,6 +3633,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/wizard.js"></script>
 <script src="js/notas-usuario.js"></script>
 <script src="js/measurement-profiles.js"></script>
+<script src="js/piece-bases.js"></script>
 <script src="js/pizarra.js"></script>
 <script src="js/pizarra-ui.js"></script>
 <script src="js/sistemas/sistemas-ui.js"></script>
