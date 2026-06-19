@@ -2334,7 +2334,14 @@ PAT.DrafterUI = (function () {
     });
 
     // ── Relleno (solo líneas de contorno, excluye construction) ──────────────
+    // IMPORTANTE: las líneas no siempre están en el array en orden de cadena
+    // continua (el usuario puede trazarlas en cualquier orden en el editor).
+    // Por eso se rastrea "desde dónde quedó el lápiz" (_lastTo) y, si el
+    // siguiente segmento no continúa desde ahí, se levanta el lápiz (M en vez
+    // de L) — así se evita dibujar una diagonal espuria entre puntos que no
+    // son consecutivos en el contorno real.
     let d='';
+    let _lastTo=null;
     _lines.forEach(ln=>{
       // El doblez (fold) SÍ es un tramo real del contorno de la pieza (conecta
       // dos segmentos de la silueta) — excluirlo rompía la continuidad del
@@ -2343,9 +2350,11 @@ PAT.DrafterUI = (function () {
       // internas (dart), que no forman parte del borde exterior.
       if(ln.type==='construction'||ln.type==='dart')return; // excluir del relleno
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
-      if(!d)d=`M ${a.x} ${a.y}`;
+      if(!d){d=`M ${a.x} ${a.y}`;}
+      else if(_lastTo!==ln.from){d+=` M ${a.x} ${a.y}`;} // no conecta: levantar lápiz, no diagonal
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
       else d+=` L ${b.x} ${b.y}`;
+      _lastTo=ln.to;
     });
     if(d){const f=document.createElementNS(NS,'path');f.setAttribute('d',d);f.setAttribute('fill','rgba(139,92,246,.06)');f.setAttribute('stroke','none');f.setAttribute('pointer-events','none');_linesG.appendChild(f);}
 
