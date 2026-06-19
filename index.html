@@ -2032,10 +2032,16 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           _tempLine.setAttribute('opacity','0');
           _instr(_toolMsg());
         } else {
+          // Clic en el mismo punto que ya está armado como inicio: cancela
+          // el trazo en curso (igual que Esc) pero deja claro qué pasó —
+          // antes esto era silencioso y parecía que el punto "no respondía"
+          // (sobre todo en el punto recién creado al encadenar, que queda
+          // armado automáticamente). El usuario debe hacer un 2º clic para
+          // iniciar una línea nueva desde ese punto.
           _lnStart = null;
           _tempLine.setAttribute('opacity','0');
           _renderAll();
-          _instr(_toolMsg());
+          _instr(`✋ Trazo cancelado. Clic de nuevo en ${_points[near].name} para iniciar una línea nueva.`);
         }
       } else if (!_lnStart) {
         // No estamos a mitad de trazar una línea. Si el clic cayó justo
