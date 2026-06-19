@@ -1965,7 +1965,19 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const rawMm = _screenToMm(e.clientX, e.clientY);
     const mm    = _snap(rawMm);
     const threshMm = 8 / (_zoom * SC);
-    const near = _nearest(mm, threshMm);
+    let near = _nearest(mm, threshMm);
+
+    // Si el clic está geométricamente más cerca del trazo de una línea que
+    // del punto "más cercano" (frecuente con zoom bajo, donde el radio de
+    // detección de puntos en mm es grande y "tapa" líneas largas entre
+    // puntos espaciados), priorizar la línea — si no, nunca se puede
+    // seleccionar una línea cuando hay un punto dentro del umbral aunque
+    // el clic esté visualmente sobre el trazo, no sobre el punto.
+    if (near) {
+      const ptDist = Math.hypot(_points[near].x - mm.x, _points[near].y - mm.y);
+      const lineHit = _nearestLineBody(mm, threshMm);
+      if (lineHit.idx !== -1 && lineHit.dist < ptDist) near = null;
+    }
 
     // ¿Clic en punto de control de curva? Solo si NO hay un punto normal
     // más cerca — antes el control de curva (diamante) "robaba" el clic
@@ -2014,9 +2026,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         // editarla / marcarla como estructura) en vez de crear un punto
         // nuevo encima — eso era lo que impedía "tocar" las líneas estando
         // en modo unificado (el modo por defecto al abrir el editor).
-        const lineIdx = _nearestLineBody(mm, threshMm);
-        if (lineIdx !== -1) {
-          _selectLine(lineIdx);
+        const lineHit = _nearestLineBody(mm, threshMm);
+        if (lineHit.idx !== -1) {
+          _selectLine(lineHit.idx);
           _refreshPanel();
           return;
         }
@@ -2053,9 +2065,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         // advertencia — así también se puede "tocar" una línea con estas
         // herramientas activas, no solo con "Seleccionar".
         if (!_lnStart) {
-          const lineIdx = _nearestLineBody(mm, threshMm);
-          if (lineIdx !== -1) {
-            _selectLine(lineIdx);
+          const lineHit = _nearestLineBody(mm, threshMm);
+          if (lineHit.idx !== -1) {
+            _selectLine(lineHit.idx);
             _refreshPanel();
             return;
           }
@@ -2091,10 +2103,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         // ¿Clic directamente sobre el trazo de una línea (recta, doblez,
         // pinza, estructura, o el cuerpo de una curva)? Selecciónala —
         // así no es necesario buscarla en la lista del panel lateral.
-        const lineIdx = _nearestLineBody(mm, threshMm);
-        if (lineIdx !== -1) {
+        const lineHit = _nearestLineBody(mm, threshMm);
+        if (lineHit.idx !== -1) {
           _deselectPt();
-          _selectLine(lineIdx);
+          _selectLine(lineHit.idx);
           _refreshPanel();
           return;
         }
@@ -2413,7 +2425,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       }
       if(d<bestD){bestD=d;best=i;}
     });
-    return best;
+    return {idx:best, dist:bestD};
   }
 
   function _showNota(pt){
