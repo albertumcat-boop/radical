@@ -19,9 +19,71 @@ PAT.PDFExport = (function() {
       PAT.App.toast('⚠ Librería PDF no cargada. Recarga la página.', 'error');
       return;
     }
+
+    PAT.App.toast('⏳ Generando PDF…', 'info');
+
+    // jsPDF de base NO sabe dibujar SVG directamente con addImage('SVG', ...)
+    // — eso requiere el plugin svg2pdf.js, que no está cargado en este
+    // proyecto. En vez de agregar esa dependencia, rasterizamos el SVG a un
+    // canvas en alta resolución (suficiente para imprimir nítido a escala
+    // 1:1) y luego usamos addImage('PNG', ...) recortando por página —
+    // eso SÍ lo soporta jsPDF sin plugins adicionales.
+    _rasterizeSVG(patternData.svgEl, patternData.bounds).then((bigCanvas) => {
+      _buildPDFFromCanvas(bigCanvas, patternData, params);
+    }).catch((err) => {
+      console.error('[PDFExport] Error rasterizando SVG', err);
+      PAT.App.toast('⚠ No se pudo generar el PDF: ' + err.message, 'error');
+    });
+  }
+
+  // ── Rasteriza el SVG completo a un <canvas> en alta resolución ─────
+  function _rasterizeSVG(svgEl, bounds) {
+    return new Promise((resolve, reject) => {
+      const PXPERMM = 8; // ≈ 203 dpi a escala 1:1 — nítido para coser
+
+      const clone = svgEl.cloneNode(true);
+      const bg = clone.querySelector('#svg-bg');
+      if (bg) bg.setAttribute('fill', '#ffffff');
+
+      // Adaptar colores oscuros del editor a tinta legible en blanco
+      clone.querySelectorAll('[fill="rgba(255,255,255,0.025)"]').forEach(e => e.setAttribute('fill', 'none'));
+      clone.querySelectorAll('path[stroke="#e2e8f0"],line[stroke="#e2e8f0"],polyline[stroke="#e2e8f0"]').forEach(e => e.setAttribute('stroke', '#111111'));
+      clone.querySelectorAll('text').forEach(e => {
+        const f = e.getAttribute('fill') || '';
+        if (f.startsWith('#9') || f.startsWith('#6') || f.startsWith('#e2')) {
+          e.setAttribute('fill', '#333333');
+        }
+      });
+
+      const w = bounds.w, h = bounds.h;
+      clone.setAttribute('width',  w + 'mm');
+      clone.setAttribute('height', h + 'mm');
+      if (!clone.getAttribute('viewBox')) clone.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+      const svgString  = new XMLSerializer().serializeToString(clone);
+      const svgDataURL = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.max(1, Math.round(w * PXPERMM));
+        canvas.height = Math.max(1, Math.round(h * PXPERMM));
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas._pxPerMm = PXPERMM;
+        resolve(canvas);
+      };
+      img.onerror = () => reject(new Error('No se pudo renderizar el SVG del patrón'));
+      img.src = svgDataURL;
+    });
+  }
+
+  // ── Arma el PDF tile por tile, recortando del canvas ya rasterizado ──
+  function _buildPDFFromCanvas(bigCanvas, patternData, params) {
     const { jsPDF } = window.jspdf;
 
-    // ── VERIFICACIÓN DE TIER ────────────────────────────────────
     const tierId    = PAT.AuthTier.getTierId();
     const needsMark = PAT.AuthTier.needsWatermark();
     const affiliate = PAT.Affiliate.getActiveAffiliate();
@@ -47,11 +109,7 @@ PAT.PDFExport = (function() {
       format: params.paper || 'letter',
     });
 
-    const svgEl   = patternData.svgEl;
-    const vbParts = svgEl.getAttribute('viewBox').split(' ').map(Number);
-    const svgPhysW = parseFloat(svgEl.getAttribute('width'))  || vbParts[2];
-    const svgPhysH = parseFloat(svgEl.getAttribute('height')) || vbParts[3];
-
+    const pxPerMm = bigCanvas._pxPerMm || 8;
     let pageNum = 0;
 
     for (let row = 0; row < rows; row++) {
@@ -74,11 +132,9 @@ PAT.PDFExport = (function() {
         // Marcas de registro
         drawRegistrationMarks(pdf, margin, printW, printH);
 
-        // Contenido del patrón
-        drawSVGTileDirect(pdf, svgEl, {
-          tilePatX, tilePatY, tileW, tileH,
-          margin, svgPhysW, svgPhysH,
-          svgViewW: vbParts[2], svgViewH: vbParts[3],
+        // Contenido del patrón — recortado del canvas rasterizado
+        drawCanvasTile(pdf, bigCanvas, {
+          tilePatX, tilePatY, tileW, tileH, margin, pxPerMm,
         });
 
         // ── MARCA DE AGUA DEMO (tier free) ─────────────────────
@@ -125,6 +181,27 @@ PAT.PDFExport = (function() {
     pdf.save(filename);
 
     PAT.App.toast(`✅ PDF exportado: ${totalPages} páginas${needsMark ? ' (DEMO)' : ''}`, 'success');
+  }
+
+  // ── Recorta un tile del canvas grande (en px) y lo agrega al PDF (en mm) ──
+  function drawCanvasTile(pdf, bigCanvas, opts) {
+    const { tilePatX, tilePatY, tileW, tileH, margin, pxPerMm } = opts;
+
+    const sx = Math.round(tilePatX * pxPerMm);
+    const sy = Math.round(tilePatY * pxPerMm);
+    const sw = Math.max(1, Math.round(tileW * pxPerMm));
+    const sh = Math.max(1, Math.round(tileH * pxPerMm));
+
+    const tileCanvas = document.createElement('canvas');
+    tileCanvas.width  = sw;
+    tileCanvas.height = sh;
+    const ctx = tileCanvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, sw, sh);
+    ctx.drawImage(bigCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    const dataURL = tileCanvas.toDataURL('image/png');
+    pdf.addImage(dataURL, 'PNG', margin.left, margin.top, tileW, tileH);
   }
 
   // ── MARCA DE AGUA DEMO ──────────────────────────────────────────
@@ -210,33 +287,6 @@ PAT.PDFExport = (function() {
     pdf.setTextColor(255, 255, 255);
     const tierLabel = { free: 'FREE', pro: '⭐ PRO', expert: '👑 EXPERT' };
     pdf.text(tierLabel[tierId] || 'FREE', bandX + bandW - 14.5, bandY + 7, { align: 'center' });
-  }
-
-  // ── SVG a PDF ──────────────────────────────────────────────────
-  function drawSVGTileDirect(pdf, svgEl, opts) {
-    const { tilePatX, tilePatY, tileW, tileH, margin, svgViewW, svgViewH, svgPhysW, svgPhysH } = opts;
-
-    const clone = svgEl.cloneNode(true);
-    clone.setAttribute('viewBox', `${tilePatX} ${tilePatY} ${tileW} ${tileH}`);
-    clone.setAttribute('width',  `${tileW}mm`);
-    clone.setAttribute('height', `${tileH}mm`);
-
-    const bg = clone.querySelector('#svg-bg');
-    if (bg) bg.setAttribute('fill', '#ffffff');
-
-    // Adaptar colores para impresión en blanco
-    clone.querySelectorAll('[fill="rgba(255,255,255,0.025)"]').forEach(e => e.setAttribute('fill','none'));
-    clone.querySelectorAll('path[stroke="#e2e8f0"],line[stroke="#e2e8f0"],polyline[stroke="#e2e8f0"]').forEach(e => e.setAttribute('stroke','#111111'));
-    clone.querySelectorAll('text').forEach(e => {
-      const f = e.getAttribute('fill') || '';
-      if (f.startsWith('#9') || f.startsWith('#6') || f.startsWith('#e2')) {
-        e.setAttribute('fill','#333333');
-      }
-    });
-
-    const svgString  = new XMLSerializer().serializeToString(clone);
-    const svgDataURL = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
-    pdf.addImage(svgDataURL, 'SVG', margin.left, margin.top, tileW, tileH);
   }
 
   function drawRegistrationMarks(pdf, margin, printW, printH) {
