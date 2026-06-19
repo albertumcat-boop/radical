@@ -522,6 +522,6 @@ PAT.Wizard = (function () {
     init();
   }
 
-  return { open, close };
+  return { open, close, CAMPOS_INFO };
 
 })();

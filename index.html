@@ -2958,6 +2958,64 @@ PAT.DrafterUI = (function () {
     }
   }
 
+  /** Muestra un formulario con campos ETIQUETADOS (Busto, Cuello, Hombro...)
+   *  para que el usuario escriba las medidas con las que trazó/ajustó la
+   *  pieza actual. Aquí es exactamente el momento donde tú le dices al
+   *  sistema "este número es el busto" — al escribirlo en la casilla que
+   *  dice "Busto". Devuelve una Promise con el objeto de medidas, o null
+   *  si el usuario cancela. */
+  function _promptMedidasModal(prefill){
+    return new Promise(resolve=>{
+      const CAMPOS = (PAT.Wizard && PAT.Wizard.CAMPOS_INFO) || {
+        bust:{label:'Busto / Pecho'}, neck:{label:'Cuello (circunf.)'},
+        shoulder:{label:'Ancho de Espalda'}, waist:{label:'Cintura'},
+        hip:{label:'Cadera'}, hipDepth:{label:'Cadera desde cintura'},
+        backLength:{label:'Talle Espalda'}, frontLength:{label:'Talle Delantero'},
+        totalLength:{label:'Largo Total'}, sleeveLength:{label:'Largo Manga'},
+        sleeveShort:{label:'Largo Manga Corta'}, armCirc:{label:'Circunf. Brazo'},
+        wrist:{label:'Muñeca'},
+      };
+      const claves = ['bust','neck','shoulder','waist','hip','hipDepth','backLength','frontLength','totalLength','sleeveLength','sleeveShort','armCirc','wrist'];
+      let overlay = document.getElementById('dv6-medidas-overlay');
+      if (overlay) overlay.remove();
+      overlay = document.createElement('div');
+      overlay.id = 'dv6-medidas-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);';
+      const camposHtml = claves.map(k=>{
+        const info = CAMPOS[k] || {label:k};
+        const val = (prefill && prefill[k]!=null) ? prefill[k] : '';
+        return `<div style="margin-bottom:10px">
+          <label style="display:block;font-size:.78rem;color:#94a3b8;margin-bottom:4px">${info.label}</label>
+          <input type="number" step="0.5" min="0" max="400" data-key="${k}" value="${val}"
+            style="width:100%;background:#0c0c18;border:1px solid rgba(255,255,255,.12);color:#e2e8f0;border-radius:7px;padding:8px 10px;font-size:.92rem;box-sizing:border-box">
+        </div>`;
+      }).join('');
+      overlay.innerHTML = `
+        <div style="background:#13131f;border:1px solid rgba(139,92,246,.35);border-radius:16px;width:min(420px,92vw);max-height:85vh;overflow-y:auto;padding:22px 24px;box-shadow:0 24px 80px rgba(0,0,0,.7)">
+          <h3 style="margin:0 0 6px;color:#e2e8f0;font-size:1.05rem">📊 Medidas de esta muestra</h3>
+          <p style="margin:0 0 16px;color:#64748b;font-size:.8rem">Escribe solo las medidas que usaste para trazar/ajustar esta pieza. Deja en blanco las que no apliquen.</p>
+          <div id="dv6-medidas-campos">${camposHtml}</div>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button id="dv6-medidas-cancel" style="flex:1;background:none;border:1px solid rgba(255,255,255,.14);color:#94a3b8;border-radius:8px;padding:10px;cursor:pointer">Cancelar</button>
+            <button id="dv6-medidas-ok" style="flex:1;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:none;color:#fff;border-radius:8px;padding:10px;font-weight:700;cursor:pointer">Guardar muestra</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      function cerrar(result){ overlay.remove(); resolve(result); }
+      overlay.addEventListener('click', e=>{ if (e.target===overlay) cerrar(null); });
+      document.getElementById('dv6-medidas-cancel').onclick = ()=>cerrar(null);
+      document.getElementById('dv6-medidas-ok').onclick = ()=>{
+        const out={};
+        overlay.querySelectorAll('input[data-key]').forEach(inp=>{
+          const v=parseFloat(inp.value);
+          if (Number.isFinite(v) && v>0) out[inp.dataset.key]=v;
+        });
+        if (Object.keys(out).length===0){ alert('Escribe al menos una medida.'); return; }
+        cerrar(out);
+      };
+    });
+  }
+
   /** Guarda el trazo actual + sus medidas como una "muestra" para entrenar
    *  la graduación automática de esta pieza (PAT.Grading). Cada muestra debe
    *  tener las MISMAS medidas con las que fue trazada esta versión — por
@@ -2965,28 +3023,18 @@ PAT.DrafterUI = (function () {
    *  Con 2+ muestras de la misma pieza (con medidas distintas), el asistente
    *  podrá generar esta pieza para CUALQUIER medida nueva usando un modelo
    *  de graduación real, no solo un reescalado proporcional. */
-  function _addSample(){
+  async function _addSample(){
     if(!_pieceBloqueId){
       const elegido=_pickBloqueId();
       if(!elegido)return;
       _pieceBloqueId=elegido;
     }
-    let medidas=_pieceMedidas;
-    if(!medidas||Object.keys(medidas).length===0){
-      const txt=window.prompt('¿Con qué medidas trazaste esta pieza? Escribe pares clave=valor separados por coma.\nEj: bust=88,neck=36,shoulder=38,totalLength=68','');
-      if(txt===null)return;
-      medidas={};
-      txt.split(',').forEach(par=>{
-        const [k,v]=par.split('=').map(s=>s.trim());
-        const n=parseFloat(v);
-        if(k&&Number.isFinite(n))medidas[k]=n;
-      });
-      if(Object.keys(medidas).length===0){
-        if(PAT.App)PAT.App.toast('⚠ No se reconocieron medidas válidas, no se guardó la muestra','error');
-        return;
-      }
-      _pieceMedidas=medidas;
-    }
+    // Siempre se confirma/edita en el formulario etiquetado — aquí es
+    // exactamente el momento donde tú le dices al sistema "este número es
+    // el busto", escribiéndolo en la casilla "Busto".
+    const medidas = await _promptMedidasModal(_pieceMedidas);
+    if(!medidas)return;
+    _pieceMedidas=medidas;
     if(!PAT.PieceBases){
       if(PAT.App)PAT.App.toast('⚠ Módulo de graduación no disponible','error');
       return;
