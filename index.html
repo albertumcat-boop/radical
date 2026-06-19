@@ -1170,8 +1170,10 @@ PAT.DrafterUI = (function () {
   padding:8px 14px 4px;display:flex;align-items:center;justify-content:space-between}
 .dv6-prow{display:flex;align-items:center;gap:8px;padding:4px 14px}
 .dv6-plb{font-size:11px;color:#5a5678;width:58px;flex-shrink:0}
-.dv6-pi{flex:1;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:6px;
-  padding:4px 8px;font-size:11px;font-family:monospace;outline:none;transition:border-color .15s}
+.dv6-pi{flex:1;min-width:0;max-width:100%;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:6px;
+  padding:4px 8px;font-size:11px;font-family:monospace;outline:none;transition:border-color .15s;
+  text-overflow:ellipsis;overflow:hidden;white-space:nowrap;box-sizing:border-box}
+select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al control cerrado, solo evita overflow del contenedor */
 .dv6-pi:focus{border-color:#8b5cf6}
 .dv6-fv{font-size:10px;color:#a78bfa;font-family:monospace;padding:0 14px 6px}
 .dv6-unit-btn{background:#141420;border:1.5px solid #2e2e45;color:#9491c4;border-radius:6px;
@@ -1381,7 +1383,7 @@ PAT.DrafterUI = (function () {
             <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600">🧩 CONSTRUCTOR DE FÓRMULA</div>
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
               <select class="dv6-pi" id="dv6-fb-medida" style="flex:1"></select>
-              <input type="number" class="dv6-pi" id="dv6-fb-valor" step="0.5" style="width:62px" placeholder="cm" title="Valor de esta medida, en cm">
+              <input type="number" class="dv6-pi" id="dv6-fb-valor" step="0.5" style="width:62px;flex:none" placeholder="cm" title="Valor de esta medida, en cm">
             </div>
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
               <select class="dv6-pi" id="dv6-fb-div" style="flex:1">
@@ -1395,12 +1397,12 @@ PAT.DrafterUI = (function () {
                 <option value="10">Décima (÷10)</option>
                 <option value="12">Doceava (÷12)</option>
               </select>
-              <select class="dv6-pi" id="dv6-fb-sign" style="width:54px">
+              <select class="dv6-pi" id="dv6-fb-sign" style="width:54px;flex:none">
                 <option value="+">+</option>
                 <option value="-">−</option>
                 <option value="">·</option>
               </select>
-              <input type="number" class="dv6-pi" id="dv6-fb-const" value="0" step="0.1" style="width:60px" placeholder="cm">
+              <input type="number" class="dv6-pi" id="dv6-fb-const" value="0" step="0.1" style="width:60px;flex:none" placeholder="cm">
             </div>
             <div id="dv6-fb-preview" style="font-size:11px;color:#34d399;padding:4px 2px;font-weight:600">= —</div>
             <div class="dv6-prow" style="padding:4px 0 0;gap:6px">
@@ -1426,12 +1428,12 @@ PAT.DrafterUI = (function () {
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
               <span class="dv6-plb" style="width:18px">B</span>
               <select class="dv6-pi" id="dv6-fb2-pointB" style="flex:1">
-                <option value="">— ninguno (solo subir/bajar/meter/sacar) —</option>
+                <option value="">— ninguno —</option>
               </select>
             </div>
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
-              <span class="dv6-plb" style="flex:1;font-size:10px">cm sobre la línea A→B</span>
-              <input type="number" class="dv6-pi" id="dv6-fb2-dist" value="0" step="0.1" style="width:60px" placeholder="cm">
+              <span class="dv6-plb" style="flex:1;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="Distancia recorrida sobre la línea A→B, en cm">cm sobre línea A→B</span>
+              <input type="number" class="dv6-pi" id="dv6-fb2-dist" value="0" step="0.1" style="width:60px;flex:none" placeholder="cm">
             </div>
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
               <select class="dv6-pi" id="dv6-fb2-dir" style="flex:1">
@@ -1440,7 +1442,7 @@ PAT.DrafterUI = (function () {
                 <option value="in">Meter (←)</option>
                 <option value="out" selected>Sacar (→)</option>
               </select>
-              <input type="number" class="dv6-pi" id="dv6-fb2-cm" value="0" step="0.1" style="width:60px" placeholder="cm">
+              <input type="number" class="dv6-pi" id="dv6-fb2-cm" value="0" step="0.1" style="width:60px;flex:none" placeholder="cm">
             </div>
             <div id="dv6-fb2-preview" style="font-size:11px;color:#34d399;padding:4px 2px;font-weight:600">= —</div>
             <div class="dv6-prow" style="padding:4px 0 0">
@@ -2365,10 +2367,14 @@ PAT.DrafterUI = (function () {
 
     _snapshot();
     _clearAll();
-    const A=_addPt(0,0,'A','0');
-    const B=_addPt(W,0,'B',`Ancho=${(W/10).toFixed(1)}cm`);
-    const C=_addPt(W,H,'C',`Alto=${(H/10).toFixed(1)}cm`);
-    const D=_addPt(0,H,'D',`Alto=${(H/10).toFixed(1)}cm`);
+    // Nota: NO se pasa texto descriptivo como fórmula (fx/fy) — ese campo
+    // se evalúa como expresión matemática real; un texto tipo "Ancho=28cm"
+    // ahí lo invalida y se desborda en el panel. Estos 4 puntos son
+    // coordenadas fijas del rectángulo base, sin fórmula.
+    const A=_addPt(0,0,'A');
+    const B=_addPt(W,0,'B');
+    const C=_addPt(W,H,'C');
+    const D=_addPt(0,H,'D');
     _lines=[
       {from:A,to:B,type:'line',ctrl:0},
       {from:B,to:C,type:'line',ctrl:0},
