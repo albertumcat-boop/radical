@@ -2936,8 +2936,17 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const formula=_compose();
       const el=document.getElementById(targetId);
       el.value=formula;
-      if(targetId==='dv6-pfx') _points[_selected].fx=formula;
-      else _points[_selected].fy=formula;
+      const p=_points[_selected];
+      if(targetId==='dv6-pfx') p.fx=formula; else p.fy=formula;
+      // Mover el punto YA a la posición que da la fórmula — antes solo se
+      // guardaba el texto y se mostraba la vista previa, pero el punto se
+      // quedaba donde estuviera trazado a mano hasta que escribieras algo
+      // en el campo de texto. Ahora se aplica al instante, igual que al
+      // escribir la fórmula directamente.
+      const vx=p.fx?_evalF(p.fx):null;
+      const vy=p.fy?_evalF(p.fy):null;
+      if(vx!==null&&p.fx){p.x=vx;document.getElementById('dv6-px').value=_fmtCoord(vx);}
+      if(vy!==null&&p.fy){p.y=vy;document.getElementById('dv6-py').value=_fmtCoord(vy);}
       _updateFVal();_renderAll();
     }
     sel.onchange=()=>{_cargarValorActual();_actualizarPreview();};
@@ -3045,9 +3054,17 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         else if(dir==='out')  fx=A.name+'.x+'+mm;
       }
       p.fx=fx; p.fy=fy;
+      // Aplicar la fórmula YA al punto (no solo guardar el texto) — mismo
+      // fix que en el constructor de medidas: si no se hace esto, el punto
+      // se queda donde estuviera trazado a mano hasta tocar el campo de texto.
+      const vx=_evalF(fx), vy=_evalF(fy);
+      if(vx!=null) p.x=vx;
+      if(vy!=null) p.y=vy;
       document.getElementById('dv6-pfx').value=fx;
       document.getElementById('dv6-pfy').value=fy;
-      _updateForm(); _renderAll();
+      document.getElementById('dv6-px').value=_fmtCoord(p.x);
+      document.getElementById('dv6-py').value=_fmtCoord(p.y);
+      _updateFVal(); _renderAll();
     }
     pointAEl.onchange=_actualizarPreview2;
     pointBEl.onchange=_actualizarPreview2;
