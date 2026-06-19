@@ -4140,40 +4140,80 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     return (ln && ln.seam!=null) ? ln.seam : _seamMm;
   }
 
+  /** Muestrea una línea (recta/curva/curva S) entre sus dos puntos, en el
+   *  sentido pedido (reverse=true va de "to" a "from"). Incluye AMBOS
+   *  extremos (el primero se recorta al unir cadenas, para no duplicar). */
+  function _sampleLinePts(ln, reverse){
+    const a=_points[ln.from], b=_points[ln.to];
+    if(!a||!b) return null;
+    const seam=_effectiveSeam(ln);
+    const pts=[];
+    if(ln.type==='curve'){
+      const{cpx,cpy}=_curveCP(a,b,ln);
+      for(let t=0;t<=12;t++){const u=t/12;pts.push({
+        x:(1-u)*(1-u)*a.x+2*(1-u)*u*cpx+u*u*b.x,
+        y:(1-u)*(1-u)*a.y+2*(1-u)*u*cpy+u*u*b.y,
+        seam,
+      });}
+    }else if(ln.type==='scurve'){
+      const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
+      for(let t=0;t<=12;t++){const u=t/12,v=1-u;pts.push({
+        x:v*v*v*a.x+3*v*v*u*cp1x+3*v*u*u*cp2x+u*u*u*b.x,
+        y:v*v*v*a.y+3*v*v*u*cp1y+3*v*u*u*cp2y+u*u*u*b.y,
+        seam,
+      });}
+    }else{
+      pts.push({x:a.x,y:a.y,seam});
+      pts.push({x:b.x,y:b.y,seam});
+    }
+    if(reverse) pts.reverse();
+    return { pts, startId: reverse?ln.to:ln.from, endId: reverse?ln.from:ln.to };
+  }
+
+  /** Agrupa las líneas del PATRÓN (excluye estructura/pinza) en cadenas
+   *  continuas, siguiendo las CONEXIONES REALES entre puntos (por id), no
+   *  el orden en que las líneas quedaron guardadas en el arreglo _lines
+   *  — el usuario puede haber dibujado/editado las líneas en cualquier
+   *  orden, así que dos líneas se consideran conectadas si comparten un
+   *  punto (from/to), sin importar su posición en la lista. Cada cadena
+   *  indica si quedó cerrada (volvió a su punto de partida) — solo esas se
+   *  pueden offsetear para dibujar el margen de costura. */
   function _buildPatternChains(){
-    const chains=[]; // [{pts:[{x,y,seam}...], closed:bool}]
-    let cur=null, lastTo=null;
-    _lines.forEach(ln=>{
-      if(ln.type==='construction'||ln.type==='dart')return;
-      const a=_points[ln.from], b=_points[ln.to]; if(!a||!b)return;
-      const seam=_effectiveSeam(ln);
-      if(!cur || lastTo!==ln.from){
-        cur=[{x:a.x,y:a.y,seam}];
-        chains.push(cur);
+    const lines = _lines.filter(ln=>ln.type!=='construction' && ln.type!=='dart' && _points[ln.from] && _points[ln.to]);
+    const used = new Array(lines.length).fill(false);
+    const chains=[];
+    for(let i=0;i<lines.length;i++){
+      if(used[i])continue;
+      used[i]=true;
+      const s0=_sampleLinePts(lines[i], false);
+      if(!s0)continue;
+      const startId=s0.startId;
+      let curEndId=s0.endId;
+      let chainPts=s0.pts.slice();
+      let closed=false;
+      let progress=true;
+      while(progress && curEndId!==startId){
+        progress=false;
+        for(let j=0;j<lines.length;j++){
+          if(used[j])continue;
+          const lnj=lines[j];
+          let sj=null;
+          if(lnj.from===curEndId) sj=_sampleLinePts(lnj,false);
+          else if(lnj.to===curEndId) sj=_sampleLinePts(lnj,true);
+          if(sj){
+            used[j]=true;
+            chainPts.pop(); // no duplicar el punto de unión
+            chainPts.push(...sj.pts);
+            curEndId=sj.endId;
+            progress=true;
+            break;
+          }
+        }
       }
-      if(ln.type==='curve'){
-        const{cpx,cpy}=_curveCP(a,b,ln);
-        for(let t=1;t<=12;t++){const u=t/12;cur.push({
-          x:(1-u)*(1-u)*a.x+2*(1-u)*u*cpx+u*u*b.x,
-          y:(1-u)*(1-u)*a.y+2*(1-u)*u*cpy+u*u*b.y,
-          seam,
-        });}
-      }else if(ln.type==='scurve'){
-        const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
-        for(let t=1;t<=12;t++){const u=t/12,v=1-u;cur.push({
-          x:v*v*v*a.x+3*v*v*u*cp1x+3*v*u*u*cp2x+u*u*u*b.x,
-          y:v*v*v*a.y+3*v*v*u*cp1y+3*v*u*u*cp2y+u*u*u*b.y,
-          seam,
-        });}
-      }else{
-        cur.push({x:b.x,y:b.y,seam});
-      }
-      lastTo=ln.to;
-    });
-    return chains.map(pts=>{
-      const closed = pts.length>2 && Math.hypot(pts[0].x-pts[pts.length-1].x, pts[0].y-pts[pts.length-1].y) < 0.6;
-      return {pts, closed};
-    });
+      if(curEndId===startId && chainPts.length>2) closed=true;
+      chains.push({pts:chainPts, closed});
+    }
+    return chains;
   }
 
   /** Offset hacia afuera de un polígono cerrado (puntos en mm), usando la
