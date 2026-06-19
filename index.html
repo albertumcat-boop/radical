@@ -467,6 +467,24 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
         <button class="m-btn" onclick="stepInput('wrist',1)">+</button>
       </div>
     </div>
+    <div class="m-row" id="row-sleeve-short">
+      <div class="m-dot" style="background:#34d399"></div>
+      <label>Manga corta</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('sleeveShort',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="sleeveShort" placeholder="cm" min="5" max="40" step="0.5">
+        <button class="m-btn" onclick="stepInput('sleeveShort',1)">+</button>
+      </div>
+    </div>
+    <div class="m-row" id="row-arm-circ">
+      <div class="m-dot" style="background:#34d399"></div>
+      <label>Contorno de brazo</label>
+      <div class="m-ctrl">
+        <button class="m-btn" onclick="stepInput('armCirc',-1)">−</button>
+        <input class="m-inp" type="number" data-measure="armCirc" placeholder="cm" min="15" max="60" step="0.5">
+        <button class="m-btn" onclick="stepInput('armCirc',1)">+</button>
+      </div>
+    </div>
     <div class="m-row" id="row-skirt-length" style="display:none">
       <div class="m-dot" style="background:#34d399"></div>
       <label>Largo falda</label>
@@ -1354,6 +1372,39 @@ PAT.DrafterUI = (function () {
           <div class="dv6-prow"><span class="dv6-plb">Fórm. X</span><input class="dv6-pi" id="dv6-pfx" style="color:#a78bfa" placeholder="B4, pecho/4+10…"></div>
           <div class="dv6-prow"><span class="dv6-plb">Fórm. Y</span><input class="dv6-pi" id="dv6-pfy" style="color:#a78bfa" placeholder="TALLE_ESP, largo…"></div>
           <div class="dv6-fv" id="dv6-fv">—</div>
+
+          <!-- Constructor visual de fórmulas: evita tener que escribir texto.
+               Elige una medida, una división y una constante (+/- cm), y el
+               botón inserta la fórmula compuesta en X o Y. -->
+          <div style="margin:6px 14px 10px;padding:8px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
+            <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600">🧩 CONSTRUCTOR DE FÓRMULA</div>
+            <div class="dv6-prow" style="padding:2px 0">
+              <select class="dv6-pi" id="dv6-fb-medida" style="flex:1"></select>
+            </div>
+            <div class="dv6-prow" style="padding:2px 0;gap:6px">
+              <select class="dv6-pi" id="dv6-fb-div" style="flex:1">
+                <option value="1">Completa (÷1)</option>
+                <option value="2">Mitad (÷2)</option>
+                <option value="3">Tercio (÷3)</option>
+                <option value="4" selected>Cuarta (÷4)</option>
+                <option value="5">Quinta (÷5)</option>
+                <option value="6">Sexta (÷6)</option>
+                <option value="8">Octava (÷8)</option>
+                <option value="10">Décima (÷10)</option>
+                <option value="12">Doceava (÷12)</option>
+              </select>
+              <select class="dv6-pi" id="dv6-fb-sign" style="width:54px">
+                <option value="+">+</option>
+                <option value="-">−</option>
+                <option value="">·</option>
+              </select>
+              <input type="number" class="dv6-pi" id="dv6-fb-const" value="0" step="0.1" style="width:60px" placeholder="cm">
+            </div>
+            <div class="dv6-prow" style="padding:4px 0 0;gap:6px">
+              <button type="button" class="tb" id="dv6-fb-tox" style="flex:1;justify-content:center;font-size:10px;padding:5px 0">→ Insertar en X</button>
+              <button type="button" class="tb" id="dv6-fb-toy" style="flex:1;justify-content:center;font-size:10px;padding:5px 0">→ Insertar en Y</button>
+            </div>
+          </div>
           <div class="dv6-prow" style="padding-bottom:8px">
             <button class="tb red" id="dv6-dpt" style="width:100%;justify-content:center;font-size:10px;padding:4px 0">🗑 Eliminar punto</button>
           </div>
@@ -1674,6 +1725,7 @@ PAT.DrafterUI = (function () {
     };
     document.getElementById('dv6-pfx').oninput = _applyFormula;
     document.getElementById('dv6-pfy').oninput = _applyFormula;
+    _initFormulaBuilder();
 
     document.getElementById('dv6-csl').oninput = function() {
       const val = parseInt(this.value);
@@ -2742,6 +2794,49 @@ PAT.DrafterUI = (function () {
     });
   }
 
+  /** Constructor visual de fórmulas (dropdowns en vez de texto). Compone
+   *  una fórmula tipo "pecho/4+2" (medida ÷ división ± constante en cm)
+   *  y la inserta en el campo Fórm. X o Fórm. Y del punto seleccionado. */
+  function _initFormulaBuilder(){
+    const sel=document.getElementById('dv6-fb-medida');
+    if(!sel)return;
+    sel.innerHTML='';
+    _MEDIDAS_FORMULA.forEach(m=>{
+      const opt=document.createElement('option');
+      opt.value=m.key; opt.textContent=m.label;
+      sel.appendChild(opt);
+    });
+
+    function _compose(){
+      const medida=sel.value;
+      const div=document.getElementById('dv6-fb-div').value;
+      const sign=document.getElementById('dv6-fb-sign').value;
+      const cm=parseFloat(document.getElementById('dv6-fb-const').value)||0;
+      let f=medida;
+      if(div&&div!=='1') f+='/'+div;
+      if(sign&&cm){
+        // La constante se escribe en cm; las fórmulas trabajan en mm, así
+        // que se multiplica ×10 para que el resultado final quede correcto.
+        f+=sign+(cm*10);
+      }
+      return f;
+    }
+    function _insertar(targetId){
+      if(!_selected||!_points[_selected]){
+        alert('Selecciona primero un punto del patrón.');
+        return;
+      }
+      const formula=_compose();
+      const el=document.getElementById(targetId);
+      el.value=formula;
+      if(targetId==='dv6-pfx') _points[_selected].fx=formula;
+      else _points[_selected].fy=formula;
+      _updateFVal();_renderAll();
+    }
+    document.getElementById('dv6-fb-tox').onclick=()=>_insertar('dv6-pfx');
+    document.getElementById('dv6-fb-toy').onclick=()=>_insertar('dv6-pfy');
+  }
+
   // ════════════════════════════════════════════════════════════
   // GRADACIÓN DE TALLAS
   // ════════════════════════════════════════════════════════════
@@ -2854,15 +2949,41 @@ PAT.DrafterUI = (function () {
   // FÓRMULAS
   // ════════════════════════════════════════════════════════════
   function _getMeasures(){
-    const def={bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,skirtLength:60,hipDepth:20};
+    const def={bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,sleeveShort:20,armCirc:28,wrist:16,skirtLength:60,hipDepth:20};
     const m={};
     document.querySelectorAll('[data-measure]').forEach(el=>{const v=parseFloat(el.value);if(!isNaN(v)&&v>0)m[el.dataset.measure]=v;});
+    // Las medidas propias de la pieza actual (ej. armCirc/sleeveShort que vienen
+    // del formulario del asistente, no del panel global de medidas) también
+    // deben estar disponibles para las fórmulas.
+    if (_pieceMedidas) Object.entries(_pieceMedidas).forEach(([k,v])=>{ if(v!=null && isFinite(v)) m[k]=v; });
     return Object.assign(def,m);
   }
+
+  /** Lista de medidas disponibles para el constructor de fórmulas, con
+   *  etiqueta en español y la clave de variable que usan las fórmulas
+   *  (ya en mm, lista para dividir/sumar). Cubre las medidas de caballero
+   *  y dama que se usan en los sistemas NH. */
+  const _MEDIDAS_FORMULA = [
+    { key:'pecho',    label:'Contorno de Pecho / Busto' },
+    { key:'hombros',  label:'Ancho de Espalda' },
+    { key:'cuello',   label:'Contorno de Cuello' },
+    { key:'talle',    label:'Talle Espalda (trasero)' },
+    { key:'talledel', label:'Talle Delantero' },
+    { key:'largo',    label:'Largo Total / Largo de Camisa' },
+    { key:'cintura',  label:'Contorno de Cintura' },
+    { key:'cadera',   label:'Contorno de Cadera' },
+    { key:'caderaprof', label:'Alto de Cadera (desde cintura)' },
+    { key:'falda',    label:'Largo de Falda' },
+    { key:'manga',    label:'Largo de Manga Larga' },
+    { key:'mangacorta', label:'Largo de Manga Corta' },
+    { key:'brazo',    label:'Contorno de Brazo' },
+    { key:'puno',     label:'Contorno de Puño / Muñeca' },
+  ];
 
   function _buildVarsMap(){
     const m=_getMeasures();
     const b=m.bust*10,w=m.waist*10,h=m.hip*10,sh=m.shoulder*10,nk=m.neck*10;
+    const mangaC=(m.sleeveShort||0)*10, brazoC=(m.armCirc||0)*10, punoC=(m.wrist||0)*10;
     // Mayúsculas (histórico) + alias minúsculas amigables
     return{
       BUSTO:b,CINTURA:w,CADERA:h,ESPALDA:sh,CUELLO:nk,
@@ -2873,8 +2994,9 @@ PAT.DrafterUI = (function () {
       W4:w/4,H4:h/4,E2:sh/2,
       // Alias minúsculas: pecho/cintura/cadera/hombros/cuello/talle/largo/manga/falda
       pecho:b,cintura:w,cadera:h,hombros:sh,cuello:nk,
-      talle:m.backLength*10,largo:m.totalLength*10,
-      manga:m.sleeveLength*10,falda:m.skirtLength*10,
+      talle:m.backLength*10,talledel:m.frontLength*10,largo:m.totalLength*10,
+      manga:m.sleeveLength*10,falda:m.skirtLength*10,caderaprof:m.hipDepth*10,
+      mangacorta:mangaC,brazo:brazoC,puno:punoC,
     };
   }
 
