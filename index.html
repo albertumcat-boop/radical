@@ -1498,12 +1498,27 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
              de la línea se mueve para que la línea mida exactamente eso. -->
         <div id="dv6-line-info" style="display:none;margin:4px 8px;padding:6px 8px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.35);border-radius:6px;font-size:11px;color:#93c5fd;font-family:monospace">
           <span id="dv6-line-info-txt">—</span>
+          <!-- Nombre personalizado de la línea (en vez de "Punto1→Punto2") -->
+          <div style="display:flex;align-items:center;gap:5px;margin-top:5px">
+            <span style="color:#5a5678;white-space:nowrap">🏷 Nombre</span>
+            <input type="text" id="dv6-line-name" placeholder="(auto)" style="flex:1;min-width:0;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:5px;padding:3px 6px;font-size:11px;font-family:monospace;outline:none">
+          </div>
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px">
             <input type="number" id="dv6-line-len-cm" step="0.1" min="0" style="width:62px;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:5px;padding:3px 6px;font-size:11px;font-family:monospace;outline:none">
             <span style="color:#5a5678">cm</span>
             <input type="number" id="dv6-line-len-mm" step="1" min="0" style="width:62px;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:5px;padding:3px 6px;font-size:11px;font-family:monospace;outline:none">
             <span style="color:#5a5678">mm</span>
           </div>
+          <!-- Fórmula de longitud en lenguaje natural: "completa", "media",
+               "cuarta", "sexta" de una medida (pecho, cintura, B4, etc.), o
+               cualquier expresión válida de _evalF. Se aplica a la longitud
+               de la línea sin importar el tipo de trazado (línea/curva/
+               curva S/doblez/pinza). -->
+          <div style="display:flex;align-items:center;gap:5px;margin-top:5px">
+            <span style="color:#5a5678;white-space:nowrap">∑ Fórmula</span>
+            <input type="text" id="dv6-line-formula" placeholder="ej: media de pecho" style="flex:1;min-width:0;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:5px;padding:3px 6px;font-size:11px;font-family:monospace;outline:none">
+          </div>
+          <div id="dv6-line-formula-err" style="display:none;color:#f87171;font-size:9.5px;margin-top:2px"></div>
           <!-- Interruptor estructura/patrón: la misma herramienta "Línea" se usa
                para ambas cosas, así que el tipo no alcanza para distinguirlas
                solo — se marca a mano cuál es cuál. Afecta qué se manda a la
@@ -1892,6 +1907,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const mm=parseFloat(this.value);
       if(Number.isFinite(mm)&&mm>0) _applyLineLength(mm);
     };
+    document.getElementById('dv6-line-name').oninput = _applyLineName;
+    document.getElementById('dv6-line-formula').oninput = _applyLineFormula;
     document.getElementById('dv6-pfx').oninput = _applyFormula;
     document.getElementById('dv6-pfy').oninput = _applyFormula;
     _initFormulaBuilder();
@@ -2532,9 +2549,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if(type==='scurve'){
       // Curva en S: dos puntos de control independientes, con signo opuesto
       // por defecto (uno cóncavo, el otro convexo) — eso es lo que la hace "S".
-      _lines.push({from:fromId,to:toId,type,ctrl1:20,ctrl2:-20,cpx:null,cpy:null});
+      _lines.push({from:fromId,to:toId,type,ctrl1:20,ctrl2:-20,cpx:null,cpy:null,name:null,formula:null});
     }else{
-      _lines.push({from:fromId,to:toId,type,ctrl:20,cpx:null,cpy:null});
+      _lines.push({from:fromId,to:toId,type,ctrl:20,cpx:null,cpy:null,name:null,formula:null});
     }
     // Historial de construcción
     const a=_points[fromId],b=_points[toId];
@@ -2651,10 +2668,16 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const cm=(mm/10).toFixed(2);
     const esEstructura=ln.type==='construction';
     const tipo=esEstructura?'estructura':ln.type==='curve'?'curva':ln.type==='scurve'?'curva S':ln.type==='fold'?'doblez':ln.type==='dart'?'pinza':'recta';
-    txt.textContent=`📏 ${a.name}→${b.name} (${tipo}):`;
+    txt.textContent=ln.name?`📏 "${ln.name}" (${a.name}→${b.name}, ${tipo}):`:`📏 ${a.name}→${b.name} (${tipo}):`;
     // No pisar el campo si el usuario lo tiene enfocado (está escribiendo en él)
     if(cmInp && document.activeElement!==cmInp) cmInp.value=cm;
     if(mmInp && document.activeElement!==mmInp) mmInp.value=Math.round(mm);
+    const nameInp=document.getElementById('dv6-line-name');
+    if(nameInp && document.activeElement!==nameInp) nameInp.value=ln.name||'';
+    const formInp=document.getElementById('dv6-line-formula');
+    const formErr=document.getElementById('dv6-line-formula-err');
+    if(formInp && document.activeElement!==formInp) formInp.value=ln.formula||'';
+    if(formErr) formErr.style.display='none';
     box.style.display='';
     const sbtn=document.getElementById('dv6-line-struct-btn');
     if(sbtn){
@@ -2706,6 +2729,37 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     b.x=a.x+ux*newMm;
     b.y=a.y+uy*newMm;
     _snapshot();_renderAll();
+  }
+
+  /** Guarda el nombre personalizado de la línea seleccionada (independiente
+   *  del tipo de trazado: línea/curva/curva S/doblez/pinza). */
+  function _applyLineName(){
+    if(_selectedLine==null||!_lines[_selectedLine])return;
+    const ln=_lines[_selectedLine];
+    const v=document.getElementById('dv6-line-name').value.trim();
+    ln.name=v||null;
+    _refreshPanel();
+  }
+
+  /** Aplica la fórmula de longitud (lenguaje natural: "media de pecho",
+   *  "cuarta de B4", etc.) a la línea seleccionada — recalcula su longitud
+   *  y mueve el punto final, sin importar el tipo de trazado. Si la
+   *  fórmula no es evaluable, muestra el error y no toca la línea. */
+  function _applyLineFormula(){
+    if(_selectedLine==null||!_lines[_selectedLine])return;
+    const ln=_lines[_selectedLine];
+    const txt=document.getElementById('dv6-line-formula').value.trim();
+    const errBox=document.getElementById('dv6-line-formula-err');
+    ln.formula=txt||null;
+    if(!txt){ if(errBox)errBox.style.display='none'; return; }
+    const mm=_parseLineFormula(txt);
+    if(mm==null||!Number.isFinite(mm)||mm<=0){
+      if(errBox){errBox.textContent='⚠ No se pudo interpretar la fórmula';errBox.style.display='';}
+      return;
+    }
+    if(errBox)errBox.style.display='none';
+    _applyLineLength(mm);
+    _updateLineInfo();
   }
 
   // ════════════════════════════════════════════════════════════
@@ -3220,8 +3274,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const col=ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':ln.type==='curve'?'#60a5fa':ln.type==='scurve'?'#34d399':'#e2e8f0';
       const bg=ln.type==='fold'?'repeating-linear-gradient(90deg,#f87171 0,#f87171 4px,transparent 4px,transparent 8px)':ln.type==='dart'?'repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 4px,transparent 4px,transparent 8px)':col;
       const lenCm=(_lineLengthMm(ln)/10).toFixed(1);
+      const escName=ln.name?String(ln.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):null;
+      const label=escName||`${a.name}→${b.name}`;
       const div=document.createElement('div');div.className='dv6-lni'+(i===_selectedLine?' on':'');
-      div.innerHTML=`<div class="dv6-lbar" style="background:${bg}"></div><span class="dv6-llb">${a.name}→${b.name} <span style="color:#3d3d58">(${ln.type}) ${lenCm}cm</span></span><button class="dv6-ldel">✕</button>`;
+      div.innerHTML=`<div class="dv6-lbar" style="background:${bg}"></div><span class="dv6-llb">${label} <span style="color:#3d3d58">(${ln.type}) ${lenCm}cm</span></span><button class="dv6-ldel">✕</button>`;
       div.addEventListener('click',e=>{if(e.target.classList.contains('dv6-ldel'))return;_selectLine(i===_selectedLine?null:i);_refreshPanel();});
       div.querySelector('.dv6-ldel').addEventListener('click',()=>{_snapshot();_lines.splice(i,1);if(_selectedLine===i)_selectLine(null);_renderAll();});
       lnlist.appendChild(div);
@@ -3730,6 +3786,55 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     Object.entries(vars).forEach(([k,v])=>{c=c.replace(new RegExp('\\b'+k+'\\b','g'),v.toFixed(4));});
     if(!/^[\d\s+\-*/().]+$/.test(c))return null;
     try{return Function('"use strict";return('+c+')')();}catch(e){return null;}
+  }
+
+  /** Convierte una fórmula de LÍNEA en lenguaje natural ("media de pecho",
+   *  "cuarta parte de B4", "sexta de cintura + 2cm") a milímetros, usando
+   *  las mismas variables que _evalF (medidas, B4/B6/..., referencias a
+   *  puntos). Aplica a cualquier tipo de trazado (línea/curva/curva S/
+   *  doblez/pinza) porque solo calcula un número de mm — quien la use
+   *  decide qué hacer con ese número (mover el punto "to", por ejemplo). */
+  function _parseLineFormula(txt){
+    let expr=String(txt||'').trim();
+    if(!expr)return null;
+    const REGLAS=[
+      // Fracciones en palabras → multiplicador. Van primero las formas
+      // "parte de" (más explícitas) y luego las cortas ("media de X").
+      [/\b(?:la\s+)?(?:completa|entera|completo|entero)\s*(?:de\s+)?/gi,''],
+      [/\b(?:la\s+)?mitad\s+(?:de[l]?\s+)?/gi,            '(1/2)*'],
+      [/\b(?:la\s+)?media\s+(?:de\s+)?/gi,                '(1/2)*'],
+      [/\b(?:la\s+)?tercera\s+parte\s+(?:de[l]?\s+)?/gi,  '(1/3)*'],
+      [/\b(?:la\s+)?tercia\s+(?:de\s+)?/gi,               '(1/3)*'],
+      [/\b(?:la\s+)?cuarta\s+parte\s+(?:de[l]?\s+)?/gi,   '(1/4)*'],
+      [/\b(?:la\s+)?cuarta\s+(?:de\s+)?/gi,               '(1/4)*'],
+      [/\b(?:la\s+)?quinta\s+parte\s+(?:de[l]?\s+)?/gi,   '(1/5)*'],
+      [/\b(?:la\s+)?quinta\s+(?:de\s+)?/gi,               '(1/5)*'],
+      [/\b(?:la\s+)?sexta\s+parte\s+(?:de[l]?\s+)?/gi,    '(1/6)*'],
+      [/\b(?:la\s+)?sexta\s+(?:de\s+)?/gi,                '(1/6)*'],
+      [/\b(?:la\s+)?octava\s+parte\s+(?:de[l]?\s+)?/gi,   '(1/8)*'],
+      [/\b(?:la\s+)?octava\s+(?:de\s+)?/gi,               '(1/8)*'],
+      [/\b(?:la\s+)?doceava\s+(?:de\s+)?/gi,              '(1/12)*'],
+      // Operadores en palabras
+      [/\bdividid[oa]\s+entre\s+|\bentre\s+/gi, '/'],
+      [/\bmás\s+|\bmas\s+/gi,                    '+'],
+      [/\bmenos\s+/gi,                            '-'],
+      [/\bpor\s+/gi,                              '*'],
+      // cm → mm
+      [/(\d+(?:\.\d+)?)\s*cm\b/gi,(_,n)=>String(parseFloat(n)*10)],
+      [/(\d+(?:\.\d+)?)\s*mm\b/gi,'$1'],
+      // Alias de medidas en español (mismos nombres que el constructor de fórmulas)
+      [/\bpecho\b|\btórax?\b|\bbusto\b/gi,'pecho'],
+      [/\bcadera\b/gi,'cadera'],
+      [/\bcintura\b/gi,'cintura'],
+      [/\bcuello\b/gi,'cuello'],
+      [/\bhombros?\b/gi,'hombros'],
+    ];
+    REGLAS.forEach(([from,to])=>{
+      expr=(typeof to==='function')?expr.replace(from,to):expr.replace(from,to);
+    });
+    expr=expr.trim();
+    if(!expr)return null;
+    return _evalF(expr);
   }
 
   /** Reevalúa todas las fórmulas (de medida o de referencia a otro punto)
