@@ -1409,13 +1409,29 @@ PAT.DrafterUI = (function () {
             </div>
           </div>
 
-          <!-- Constructor "desde otro punto": para líneas estructurales que
-               no corresponden a una medida del cuerpo, sino que se ubican
-               relativo a un punto ya trazado (ej. "desde B, sube 3cm"). -->
+          <!-- Constructor "desde otro punto / sobre una línea": para líneas
+               estructurales que no corresponden a una medida del cuerpo,
+               sino que se ubican relativo a puntos ya trazados. Punto A es
+               obligatorio; Punto B es opcional y define la dirección de la
+               línea A→B (si la línea es horizontal o vertical, esto cubre
+               ambos casos). Ej: "punto A y punto B, 5cm sobre la línea, y
+               sube 1cm" → recorre 5cm desde A hacia B, y luego se desplaza
+               1cm perpendicular. -->
           <div style="margin:6px 14px 10px;padding:8px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
-            <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600">📍 DESDE OTRO PUNTO</div>
-            <div class="dv6-prow" style="padding:2px 0">
-              <select class="dv6-pi" id="dv6-fb2-point" style="flex:1"></select>
+            <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600">📍 DESDE OTRO PUNTO / SOBRE UNA LÍNEA</div>
+            <div class="dv6-prow" style="padding:2px 0;gap:6px">
+              <span class="dv6-plb" style="width:18px">A</span>
+              <select class="dv6-pi" id="dv6-fb2-pointA" style="flex:1"></select>
+            </div>
+            <div class="dv6-prow" style="padding:2px 0;gap:6px">
+              <span class="dv6-plb" style="width:18px">B</span>
+              <select class="dv6-pi" id="dv6-fb2-pointB" style="flex:1">
+                <option value="">— ninguno (solo subir/bajar/meter/sacar) —</option>
+              </select>
+            </div>
+            <div class="dv6-prow" style="padding:2px 0;gap:6px">
+              <span class="dv6-plb" style="flex:1;font-size:10px">cm sobre la línea A→B</span>
+              <input type="number" class="dv6-pi" id="dv6-fb2-dist" value="0" step="0.1" style="width:60px" placeholder="cm">
             </div>
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
               <select class="dv6-pi" id="dv6-fb2-dir" style="flex:1">
@@ -2940,69 +2956,96 @@ PAT.DrafterUI = (function () {
    *  igual que mover el punto a mano — si el punto de referencia se mueve
    *  después, este no se recalcula solo. */
   function _initPointRefBuilder(){
-    const pointSel=document.getElementById('dv6-fb2-point');
+    const pointAEl=document.getElementById('dv6-fb2-pointA');
+    const pointBEl=document.getElementById('dv6-fb2-pointB');
+    const distEl=document.getElementById('dv6-fb2-dist');
     const dirSel=document.getElementById('dv6-fb2-dir');
     const cmEl=document.getElementById('dv6-fb2-cm');
     const previewEl=document.getElementById('dv6-fb2-preview');
-    if(!pointSel) return {refresh:()=>{}};
+    if(!pointAEl) return {refresh:()=>{}};
 
     function _refresh(){
-      pointSel.innerHTML='';
+      const prevA=pointAEl.value, prevB=pointBEl.value;
+      pointAEl.innerHTML='';
+      pointBEl.innerHTML='<option value="">— ninguno (solo subir/bajar/meter/sacar) —</option>';
       Object.keys(_points).forEach(id=>{
         if(id===_selected) return; // no puede referenciarse a sí mismo
         const pt=_points[id];
-        const opt=document.createElement('option');
-        opt.value=id; opt.textContent=pt.name+' ('+_fmtCoord(pt.x)+', '+_fmtCoord(pt.y)+' '+_coordUnit+')';
-        pointSel.appendChild(opt);
+        const label=pt.name+' ('+_fmtCoord(pt.x)+', '+_fmtCoord(pt.y)+' '+_coordUnit+')';
+        const optA=document.createElement('option');optA.value=id;optA.textContent=label;
+        pointAEl.appendChild(optA);
+        const optB=document.createElement('option');optB.value=id;optB.textContent=label;
+        pointBEl.appendChild(optB);
       });
+      if(prevA&&_points[prevA]&&prevA!==_selected) pointAEl.value=prevA;
+      if(prevB&&_points[prevB]&&prevB!==_selected) pointBEl.value=prevB;
       _actualizarPreview2();
     }
-    function _actualizarPreview2(){
-      const ref=_points[pointSel.value];
-      const cm=parseFloat(cmEl.value)||0;
-      if(!ref){previewEl.textContent='= —';return;}
-      const mm=cm*10;
-      let x=ref.x, y=ref.y;
+
+    /** Calcula {x,y} en mm según el modo activo (con o sin Punto B). */
+    function _calcular(){
+      const A=_points[pointAEl.value];
+      if(!A) return null;
       const dir=dirSel.value;
-      if(dir==='up') y-=mm;
-      else if(dir==='down') y+=mm;
-      else if(dir==='in') x-=mm;
-      else if(dir==='out') x+=mm;
-      previewEl.textContent='= X='+_fmtCoord(x)+_coordUnit+', Y='+_fmtCoord(y)+_coordUnit;
+      const offMM=(parseFloat(cmEl.value)||0)*10;
+      const B=pointBEl.value?_points[pointBEl.value]:null;
+      let x,y;
+      if(B){
+        const dx=B.x-A.x, dy=B.y-A.y;
+        const L=Math.sqrt(dx*dx+dy*dy);
+        if(L<1e-6) return null; // A y B coinciden, sin dirección de línea
+        const distMM=(parseFloat(distEl.value)||0)*10;
+        x=A.x+(dx/L)*distMM; y=A.y+(dy/L)*distMM;
+      } else {
+        x=A.x; y=A.y;
+      }
+      if(dir==='up') y-=offMM;
+      else if(dir==='down') y+=offMM;
+      else if(dir==='in') x-=offMM;
+      else if(dir==='out') x+=offMM;
+      return {x,y};
+    }
+    function _actualizarPreview2(){
+      const r=_calcular();
+      previewEl.textContent=r?('= X='+_fmtCoord(r.x)+_coordUnit+', Y='+_fmtCoord(r.y)+_coordUnit):'= —';
     }
     function _ubicar(){
       if(!_selected||!_points[_selected]){
         alert('Selecciona primero el punto que quieres ubicar.');
         return;
       }
-      const ref=_points[pointSel.value];
-      if(!ref){
-        alert('Elige el punto de referencia.');
-        return;
-      }
-      if(!ref.name){
-        alert('El punto de referencia necesita un nombre (ej. "B") para poder citarlo en la fórmula.');
-        return;
-      }
-      const cm=parseFloat(cmEl.value)||0;
-      const mm=cm*10;
+      const A=_points[pointAEl.value];
+      if(!A){alert('Elige el punto A de referencia.');return;}
+      if(!A.name){alert('El punto A necesita un nombre (ej. "B") para poder citarlo en la fórmula.');return;}
       const dir=dirSel.value;
+      const offCm=parseFloat(cmEl.value)||0;
+      const B=pointBEl.value?_points[pointBEl.value]:null;
       const p=_points[_selected];
-      // Fórmula VIVA (no un número fijo): si el punto de referencia se
-      // recalcula al cambiar de medidas/talla, este punto se mueve con él.
-      // Subir/Bajar afectan Y; Meter/Sacar afectan X. El eje que no se
-      // mueve simplemente copia la coordenada del punto de referencia.
-      let fx=ref.name+'.x', fy=ref.name+'.y';
-      if(dir==='up')   fy=ref.name+'.y-'+mm;
-      else if(dir==='down') fy=ref.name+'.y+'+mm;
-      else if(dir==='in')   fx=ref.name+'.x-'+mm;
-      else if(dir==='out')  fx=ref.name+'.x+'+mm;
+      let fx,fy;
+      if(B){
+        if(!B.name){alert('El punto B necesita un nombre para poder citarlo en la fórmula.');return;}
+        const distCm=parseFloat(distEl.value)||0;
+        // Fórmula VIVA: recorre distCm cm sobre la línea A→B y luego se
+        // desplaza offCm cm perpendicular (subir/bajar/meter/sacar). Si A
+        // o B se recalculan al cambiar de medidas/talla, este punto los sigue.
+        fx='LINEA_X('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
+        fy='LINEA_Y('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
+      } else {
+        const mm=offCm*10;
+        fx=A.name+'.x'; fy=A.name+'.y';
+        if(dir==='up')   fy=A.name+'.y-'+mm;
+        else if(dir==='down') fy=A.name+'.y+'+mm;
+        else if(dir==='in')   fx=A.name+'.x-'+mm;
+        else if(dir==='out')  fx=A.name+'.x+'+mm;
+      }
       p.fx=fx; p.fy=fy;
       document.getElementById('dv6-pfx').value=fx;
       document.getElementById('dv6-pfy').value=fy;
       _updateForm(); _renderAll();
     }
-    pointSel.onchange=_actualizarPreview2;
+    pointAEl.onchange=_actualizarPreview2;
+    pointBEl.onchange=_actualizarPreview2;
+    distEl.oninput=_actualizarPreview2;
     dirSel.onchange=_actualizarPreview2;
     cmEl.oninput=_actualizarPreview2;
     document.getElementById('dv6-fb2-go').onclick=_ubicar;
@@ -3190,10 +3233,39 @@ PAT.DrafterUI = (function () {
     return (typeof raw==='number')?raw:null;
   }
 
+  /** LINEA_X(A,B,dist,dir,off) / LINEA_Y(...) — punto ubicado recorriendo
+   *  "dist" cm sobre la línea que va de A hacia B (sirve para líneas
+   *  horizontales, verticales o diagonales), y luego desplazado "off" cm
+   *  perpendicularmente (dir: subir/bajar/meter/sacar). Vivo: si A o B se
+   *  recalculan (por fórmula propia), este punto se recalcula con ellos. */
+  function _evalLinea(axis,aName,bName,distCm,dir,offCm,_depth){
+    const ax=_coordDePunto(aName,'x',_depth), ay=_coordDePunto(aName,'y',_depth);
+    const bx=_coordDePunto(bName,'x',_depth), by=_coordDePunto(bName,'y',_depth);
+    if(ax==null||ay==null||bx==null||by==null) return null;
+    const dx=bx-ax, dy=by-ay;
+    const L=Math.sqrt(dx*dx+dy*dy);
+    if(L<1e-6) return null; // A y B son el mismo punto, no hay dirección de línea
+    const ux=dx/L, uy=dy/L;
+    const distMM=distCm*10;
+    let x=ax+ux*distMM, y=ay+uy*distMM;
+    const offMM=offCm*10;
+    if(dir==='up') y-=offMM;
+    else if(dir==='down') y+=offMM;
+    else if(dir==='in') x-=offMM;
+    else if(dir==='out') x+=offMM;
+    return axis==='x'?x:y;
+  }
+
   function _evalF(expr,_depth){
     _depth=_depth||0;
     if(!expr||expr==='0')return 0;
     let c=String(expr).trim();
+    // LINEA_X(...) / LINEA_Y(...): punto sobre la línea A→B + desplazamiento
+    const mLinea=c.match(/^LINEA_(X|Y)\(([^,]+),([^,]+),([^,]+),([^,]+),([^)]+)\)$/);
+    if(mLinea){
+      const[,axisU,a,b,dist,dir,off]=mLinea;
+      return _evalLinea(axisU.toLowerCase(),a.trim(),b.trim(),parseFloat(dist),dir.trim(),parseFloat(off),(_depth||0)+1);
+    }
     // Primero las referencias a otros puntos: NombrePunto.x / NombrePunto.y
     let refError=false;
     c=c.replace(/\b([A-Za-zÁÉÍÓÚÑáéíóúñ_][\wÁÉÍÓÚÑáéíóúñ]*)\.(x|y)\b/g,(m,name,axis)=>{
