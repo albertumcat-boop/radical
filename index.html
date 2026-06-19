@@ -2181,14 +2181,25 @@ PAT.DrafterUI = (function () {
   // ════════════════════════════════════════════════════════════
   function _insertRect(){
     const m=_getMeasures();
-    const W=m.bust/4*10;    // B4 en mm
-    const H=m.backLength*10; // TALLE_ESP en mm
+    const defW=m.bust/4*10;    // B4 en mm, sugerido
+    const defH=m.backLength*10; // TALLE_ESP en mm, sugerido
+
+    const wStr=window.prompt(`Ancho del rectángulo (cm)\n(sugerido: pecho/4 = ${(defW/10).toFixed(1)}cm)`, (defW/10).toFixed(1));
+    if (wStr===null) return; // canceló
+    const hStr=window.prompt(`Alto del rectángulo (cm)\n(sugerido: largo de espalda = ${(defH/10).toFixed(1)}cm)`, (defH/10).toFixed(1));
+    if (hStr===null) return; // canceló
+
+    const wNum=parseFloat(wStr.replace(',','.'));
+    const hNum=parseFloat(hStr.replace(',','.'));
+    const W = (Number.isFinite(wNum) && wNum>0) ? wNum*10 : defW;
+    const H = (Number.isFinite(hNum) && hNum>0) ? hNum*10 : defH;
+
     _snapshot();
     _clearAll();
     const A=_addPt(0,0,'A','0');
-    const B=_addPt(W,0,'B','B4');
-    const C=_addPt(W,H,'C','TALLE_ESP');
-    const D=_addPt(0,H,'D','TALLE_ESP');
+    const B=_addPt(W,0,'B',`Ancho=${(W/10).toFixed(1)}cm`);
+    const C=_addPt(W,H,'C',`Alto=${(H/10).toFixed(1)}cm`);
+    const D=_addPt(0,H,'D',`Alto=${(H/10).toFixed(1)}cm`);
     _lines=[
       {from:A,to:B,type:'line',ctrl:0},
       {from:B,to:C,type:'line',ctrl:0},
