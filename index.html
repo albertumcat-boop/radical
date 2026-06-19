@@ -3810,7 +3810,25 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const list = document.getElementById('dv6-muestras-list');
       if(!list) return;
       if(muestras.length === 0){
-        list.innerHTML = `<div style="font-size:12px;color:#9490b0;text-align:center;padding:20px 0">Aún no hay muestras guardadas para esta pieza.</div>`;
+        // No hay muestras bajo el bloqueId ACTUAL — antes de decir "no hay
+        // nada", revisamos si existen muestras guardadas bajo OTRO bloqueId
+        // (normalmente porque, al guardar, se eligió un número distinto de
+        // la lista "¿a cuál pieza corresponde?" al que se está usando ahora).
+        const todos = (PAT.PieceBases.listar ? PAT.PieceBases.listar() : [])
+          .map(id => ({ id, n: (PAT.PieceBases.obtenerMuestras(id)||[]).length, name: (PAT.PieceBases.obtener(id)||{}).name || id }))
+          .filter(x => x.n > 0);
+        let extra = '';
+        if (todos.length) {
+          extra = `
+            <div style="margin-top:14px;padding-top:12px;border-top:1px solid #2a2547">
+              <div style="font-size:11px;color:#fbbf24;margin-bottom:8px">
+                ⚠ No encontré muestras con el ID actual (<code>${_pieceBloqueId}</code>), pero sí hay muestras guardadas bajo otras piezas.
+                Esto pasa cuando, al guardar, se elige un número distinto de la lista al que se usa ahora.
+              </div>
+              ${todos.map(x => `<div style="font-size:11.5px;color:#b9b6cf;padding:4px 0">📌 <b>${x.name}</b> <span style="color:#7c7aa8">(${x.id})</span> — ${x.n} muestra${x.n===1?'':'s'}</div>`).join('')}
+            </div>`;
+        }
+        list.innerHTML = `<div style="font-size:12px;color:#9490b0;text-align:center;padding:20px 0">Aún no hay muestras guardadas para esta pieza.</div>${extra}`;
         return;
       }
       list.innerHTML = muestras.map((m, idx) => {
