@@ -1930,14 +1930,28 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           _renderAll();
           _instr(_toolMsg());
         }
+      } else if (!_lnStart) {
+        // No estamos a mitad de trazar una línea. Si el clic cayó justo
+        // sobre el trazo de una línea existente, selecciónala (para poder
+        // editarla / marcarla como estructura) en vez de crear un punto
+        // nuevo encima — eso era lo que impedía "tocar" las líneas estando
+        // en modo unificado (el modo por defecto al abrir el editor).
+        const lineIdx = _nearestLineBody(mm, threshMm);
+        if (lineIdx !== -1) {
+          _selectLine(lineIdx);
+          _refreshPanel();
+          return;
+        }
+        // Clic realmente en vacío: agregar punto nuevo
+        _snapshot();
+        _addPt(mm.x, mm.y);
       } else {
-        // Clic en vacío: agregar punto y continuar la línea si hay inicio
+        // Hay una línea a medio trazar: el clic en vacío agrega un punto y
+        // continúa encadenando desde ahí.
         _snapshot();
         const newId = _addPt(mm.x, mm.y);
-        if (_lnStart) {
-          _addLn(_lnStart, newId, _tool);
-          _lnStart = newId; // encadenar: el nuevo punto es el siguiente inicio
-        }
+        _addLn(_lnStart, newId, _tool);
+        _lnStart = newId; // encadenar: el nuevo punto es el siguiente inicio
       }
       return;
     }
@@ -1956,6 +1970,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
     if (_tool === 'addLine' || _tool === 'addCurve' || _tool === 'addSCurve' || _tool === 'addFold') {
       if (!near) {
+        // Si no hay línea a medio trazar y el clic cayó sobre el trazo de
+        // una línea existente, selecciónala en vez de solo mostrar la
+        // advertencia — así también se puede "tocar" una línea con estas
+        // herramientas activas, no solo con "Seleccionar".
+        if (!_lnStart) {
+          const lineIdx = _nearestLineBody(mm, threshMm);
+          if (lineIdx !== -1) {
+            _selectLine(lineIdx);
+            _refreshPanel();
+            return;
+          }
+        }
         _instr('⚠️ Haz clic exactamente sobre un punto existente (círculo morado)');
         return;
       }
