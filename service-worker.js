@@ -4,8 +4,8 @@
  * Versión: debe actualizarse en cada deploy para invalidar caché.
  */
 
-const CACHE_NAME   = 'patronai-v2';
-const CACHE_STATIC = 'patronai-static-v2';
+const CACHE_NAME   = 'patronai-v3';
+const CACHE_STATIC = 'patronai-static-v3';
 
 // Assets que se cachean en la instalación
 const STATIC_ASSETS = [
@@ -84,7 +84,8 @@ self.addEventListener('activate', event => {
   );
 });
 
-// ── Fetch: cache-first para estáticos, network-only para API ─────
+// ── Fetch: network-first para HTML/JS/CSS (siempre código fresco),
+//          cache-first solo como respaldo si la red falla ──────────
 self.addEventListener('fetch', event => {
   const url = event.request.url;
 
@@ -97,12 +98,36 @@ self.addEventListener('fetch', event => {
   // Solo cachear GET
   if (event.request.method !== 'GET') return;
 
+  const isCodeAsset = event.request.destination === 'document' ||
+    /\.(js|css)(\?.*)?$/.test(url);
+
+  if (isCodeAsset) {
+    // Network-first: siempre intenta traer la versión nueva primero.
+    // Solo cae a caché si no hay conexión (modo offline).
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.status === 200 && response.type !== 'opaque') {
+          const clone = response.clone();
+          caches.open(CACHE_STATIC).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => {
+        return caches.match(event.request).then(cached => {
+          if (cached) return cached;
+          if (event.request.destination === 'document') return caches.match('/index.html');
+        });
+      })
+    );
+    return;
+  }
+
+  // Resto de assets (imágenes, fuentes, etc.): cache-first está bien,
+  // cambian poco entre deploys.
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
 
       return fetch(event.request).then(response => {
-        // Solo cachear respuestas válidas
         if (!response || response.status !== 200 || response.type === 'opaque') {
           return response;
         }
@@ -110,7 +135,6 @@ self.addEventListener('fetch', event => {
         caches.open(CACHE_STATIC).then(cache => cache.put(event.request, clone));
         return response;
       }).catch(() => {
-        // Offline fallback: si no hay caché ni red, devolver index.html
         if (event.request.destination === 'document') {
           return caches.match('/index.html');
         }
