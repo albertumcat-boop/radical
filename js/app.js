@@ -64,10 +64,33 @@ PAT.App = (function () {
         $$('.garment-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
         state.garment = g;
+        _syncGarmentDropdown(this);
+        $('garment-grid')?.classList.remove('open');
+        $('garment-dd-btn')?.classList.remove('open');
         showHideRows();
         generate(80);
       });
     });
+
+    // Desplegable: el botón resumen abre/cierra la lista de prendas.
+    const ddBtn = $('garment-dd-btn');
+    if (ddBtn) {
+      ddBtn.addEventListener('click', () => {
+        $('garment-grid')?.classList.toggle('open');
+        ddBtn.classList.toggle('open');
+      });
+      // Sincroniza el resumen con la prenda activa al cargar (por defecto o desde un patrón cargado).
+      const activo = document.querySelector('.garment-btn.active') || document.querySelector('.garment-btn');
+      if (activo) _syncGarmentDropdown(activo);
+    }
+  }
+
+  function _syncGarmentDropdown(btn) {
+    const icon = btn.querySelector('.g-icon')?.textContent || '';
+    const label = btn.querySelector('.g-label')?.textContent || '';
+    const ddIcon = $('garment-dd-icon'), ddLabel = $('garment-dd-label');
+    if (ddIcon) ddIcon.textContent = icon;
+    if (ddLabel) ddLabel.textContent = label;
   }
 
   // ─── INPUTS ────────────────────────────────────────────────────
@@ -535,6 +558,8 @@ if (overrides && overrides[overrideKey]) {
     $$('.garment-btn').forEach(b =>
       b.classList.toggle('active', b.dataset.garment === state.garment)
     );
+    const activo = document.querySelector('.garment-btn.active');
+    if (activo) _syncGarmentDropdown(activo);
     showHideRows();
     generate();
     closeModal('modal-load');

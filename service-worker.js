@@ -4,8 +4,8 @@
  * Versión: debe actualizarse en cada deploy para invalidar caché.
  */
 
-const CACHE_NAME   = 'patronai-v23';
-const CACHE_STATIC = 'patronai-static-v23';
+const CACHE_NAME   = 'patronai-v24';
+const CACHE_STATIC = 'patronai-static-v24';
 
 // Assets que se cachean en la instalación
 const STATIC_ASSETS = [
