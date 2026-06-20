@@ -1805,18 +1805,31 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   }
 
   function _snap(mm) {
-    if (!_snapEnabled) return mm;
-    let x = Math.round(mm.x / _snapSize) * _snapSize;
-    let y = Math.round(mm.y / _snapSize) * _snapSize;
+    let x = mm.x, y = mm.y;
+    if (_snapEnabled) {
+      x = Math.round(mm.x / _snapSize) * _snapSize;
+      y = Math.round(mm.y / _snapSize) * _snapSize;
+    }
 
-    // Si hay un punto seleccionado, snap también a su X e Y (escuadra)
-    if (_selected && _points[_selected]) {
-      const sp = _points[_selected];
+    // ESCUADRA: al trazar una línea desde un punto (_lnStart) o al mover
+    // un punto seleccionado (_selected), si el cursor pasa cerca de la
+    // misma altura (Y) o el mismo X de ese punto de referencia, se ajusta
+    // automáticamente a esa posición exacta — así sale perfectamente
+    // horizontal o vertical respecto al punto de origen. Si el usuario
+    // sigue moviendo el mouse más allá del umbral, deja de aplicarse y
+    // puede ubicar el punto donde quiera (no es un valor forzado, es una
+    // ayuda que se puede "salir" de ella moviéndose lo suficiente).
+    // Es independiente del snap a grilla (_snapEnabled) porque es una
+    // ayuda geométrica distinta: alinearse con UN punto, no con la
+    // cuadrícula general.
+    const refId = _lnStart || _selected;
+    if (refId && _points[refId]) {
+      const rp = _points[refId];
       const svgCur = _mmToSvg(mm.x, mm.y);
-      const svgSel = _mmToSvg(sp.x, sp.y);
+      const svgRef = _mmToSvg(rp.x, rp.y);
       const GUIDE_THRESH = 12; // px de pantalla
-      if (Math.abs(svgCur.y - svgSel.y) < GUIDE_THRESH) y = sp.y; // snap a misma altura
-      if (Math.abs(svgCur.x - svgSel.x) < GUIDE_THRESH) x = sp.x; // snap a mismo X
+      if (Math.abs(svgCur.y - svgRef.y) < GUIDE_THRESH) y = rp.y; // misma altura
+      if (Math.abs(svgCur.x - svgRef.x) < GUIDE_THRESH) x = rp.x; // mismo X
     }
     return { x, y };
   }
@@ -2271,12 +2284,16 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       sc.setAttribute('opacity', '0');
     }
 
-    // ESCUADRA — mostrar guías horizontales y verticales desde el punto seleccionado
+    // ESCUADRA — mostrar guías horizontales y verticales desde el punto de
+    // referencia: el punto de inicio de la línea que se está trazando
+    // (_lnStart) tiene prioridad sobre el punto seleccionado (_selected),
+    // así la guía aparece mientras se traza, no solo al editar.
     const guideH = document.getElementById('dv6-guide-h');
     const guideV = document.getElementById('dv6-guide-v');
     if (guideH && guideV) {
-      if (_selected && _points[_selected]) {
-        const sp = _points[_selected];
+      const refId = _lnStart || _selected;
+      if (refId && _points[refId]) {
+        const sp = _points[refId];
         const svgSel = _mmToSvg(sp.x, sp.y);
         const wrap2 = document.getElementById('dv6-wrap');
         const wW = wrap2 ? wrap2.clientWidth : 1200;
