@@ -38,6 +38,9 @@ PAT.PatternEngine = (function () {
 
     let pieces = [];
     try {
+      if (typeof garmentType === 'string' && garmentType.indexOf('custom:') === 0) {
+        pieces = (PAT.CustomGarments && PAT.CustomGarments.generate(garmentType, m)) || [];
+      } else
       switch (garmentType) {
         case 'franela':        pieces = PAT.Patterns.Franela.generate(m, seam);  break;
         case 'blusa':          pieces = PAT.Patterns.Blusa.generate(m, seam);    break;

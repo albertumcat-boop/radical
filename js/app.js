@@ -36,6 +36,7 @@ PAT.App = (function () {
 
     PAT.PatternEngine.init($('pattern-svg'));
 
+    _injectCustomGarmentButtons();
     setupGarmentButtons();
     setupInputs();
     setupViewSwitcher();
@@ -84,6 +85,39 @@ PAT.App = (function () {
       if (activo) _syncGarmentDropdown(activo);
     }
   }
+
+  // ─── PRENDAS PERSONALIZADAS (Mis Sistemas / "💾 Guardar" del editor) ──
+  function _injectCustomGarmentButtons() {
+    const grid = $('garment-grid');
+    if (!grid || !PAT.CustomGarments) return;
+    const piezas = PAT.CustomGarments.list();
+    // Quitar botones custom previos para no duplicar al recargar datos
+    grid.querySelectorAll('.garment-btn[data-custom="1"]').forEach(b => b.remove());
+    piezas.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'garment-btn';
+      btn.dataset.garment = p.id;
+      btn.dataset.custom = '1';
+      btn.innerHTML = `<span class="g-icon">🧵</span><span class="g-label">${p.label}</span>`;
+      btn.addEventListener('click', function () {
+        $$('.garment-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        state.garment = p.id;
+        _syncGarmentDropdown(this);
+        $('garment-grid')?.classList.remove('open');
+        $('garment-dd-btn')?.classList.remove('open');
+        showHideRows();
+        generate(80);
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  // Re-inyectar cuando termine de cargar la cuenta (Mis Sistemas / patrones guardados
+  // se sincronizan async desde Firestore tras el login).
+  document.addEventListener('pat:authChanged', () => {
+    setTimeout(_injectCustomGarmentButtons, 900);
+  });
 
   function _syncGarmentDropdown(btn) {
     const icon = btn.querySelector('.g-icon')?.textContent || '';
@@ -480,10 +514,17 @@ if (overrides && overrides[overrideKey]) {
     const demo = PAT.AuthTier?.needsWatermark?.()
       ? ' <span style="background:rgba(248,113,113,.12);color:#f87171;padding:1px 8px;border-radius:20px;font-size:10px;border:1px solid rgba(248,113,113,.25)">DEMO</span>'
       : '';
+    const isCustom = typeof state.garment === 'string' && state.garment.indexOf('custom:') === 0;
+    const nombre = isCustom
+      ? (PAT.CustomGarments ? PAT.CustomGarments.getLabel(state.garment) : 'Mi pieza')
+      : (names[state.garment] || state.garment);
+    const cuenta = isCustom
+      ? (PAT.CustomGarments ? PAT.CustomGarments.getCount(state.garment) : 1)
+      : (counts[state.garment] || '?');
     const pi = $('pattern-info');
-    if (pi) pi.innerHTML = `${names[state.garment] || state.garment} · ${state.measures.bust}cm${demo}`;
+    if (pi) pi.innerHTML = `${nombre} · ${state.measures.bust}cm${demo}`;
     const pc = $('piece-count');
-    if (pc) pc.textContent = `${counts[state.garment] || '?'} piezas`;
+    if (pc) pc.textContent = `${cuenta} piezas`;
   }
 
   // ─── FILAS CONDICIONALES ────────────────────────────────────────
@@ -588,6 +629,9 @@ if (overrides && overrides[overrideKey]) {
   // ─── ARRANQUE ──────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', init);
 
-  return { toast, fitScreen, setZoom, generate, applyTierUI, getState: () => ({ ...state }) };
+  return {
+    toast, fitScreen, setZoom, generate, applyTierUI, getState: () => ({ ...state }),
+    refreshCustomGarments: _injectCustomGarmentButtons,
+  };
 
 })();

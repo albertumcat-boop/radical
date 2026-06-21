@@ -4008,7 +4008,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if(PAT.SavedPatterns){
       PAT.SavedPatterns.guardar(_curSave,data).then(id=>{
         _curSave=id;_refreshSaved();
-        if(PAT.App)PAT.App.toast('💾 "'+_pieceName+'" guardado (sincronizado a tu cuenta)','success');
+        if(PAT.App){PAT.App.toast('💾 "'+_pieceName+'" guardado (sincronizado a tu cuenta)','success');if(PAT.App.refreshCustomGarments)PAT.App.refreshCustomGarments();}
       });
     } else {
       // Respaldo si el módulo no cargó por alguna razón
@@ -4330,7 +4330,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       });
       div.querySelector('.dv6-sdel').addEventListener('click',e=>{
         e.stopPropagation();if(!confirm('¿Eliminar "'+item.name+'"?'))return;
-        if(PAT.SavedPatterns){PAT.SavedPatterns.eliminar(id).then(()=>_refreshSaved());}
+        if(PAT.SavedPatterns){PAT.SavedPatterns.eliminar(id).then(()=>{_refreshSaved();if(PAT.App&&PAT.App.refreshCustomGarments)PAT.App.refreshCustomGarments();});}
         else{delete store[id];localStorage.setItem(MK,JSON.stringify(store));_refreshSaved();}
       });
       list.appendChild(div);
@@ -5442,6 +5442,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/measurement-profiles.js"></script>
 <script src="js/piece-bases.js"></script>
 <script src="js/saved-patterns.js"></script>
+<script src="js/custom-garments.js"></script>
 <script src="js/pattern-grading.js"></script>
 <script src="js/pizarra.js"></script>
 <script src="js/pizarra-ui.js"></script>

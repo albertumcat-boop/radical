@@ -58,7 +58,7 @@ PAT.AuthTier = (function () {
   function getTierId()  { return _currentTier; }
   function getTiers()   { return TIERS; }
   function getPatternPrice(g) { return PATTERN_PRICES[g] || 1.99; }
-  function canUseGarment(g)   { return TIERS[_currentTier].allowedGarments.includes(g); }
+  function canUseGarment(g)   { return (typeof g === 'string' && g.indexOf('custom:') === 0) || TIERS[_currentTier].allowedGarments.includes(g); }
   function needsWatermark()   { return TIERS[_currentTier].pdfWatermark; }
   function hasAtelierPanel()  { return TIERS[_currentTier].atelierPanel; }
   function hasCustomSeam()    { return TIERS[_currentTier].customSeam; }

@@ -4,8 +4,8 @@
  * Versión: debe actualizarse en cada deploy para invalidar caché.
  */
 
-const CACHE_NAME   = 'patronai-v27';
-const CACHE_STATIC = 'patronai-static-v27';
+const CACHE_NAME   = 'patronai-v28';
+const CACHE_STATIC = 'patronai-static-v28';
 
 // Assets que se cachean en la instalación
 const STATIC_ASSETS = [
@@ -19,6 +19,7 @@ const STATIC_ASSETS = [
   '/js/instructions.js',
   '/js/share.js',
   '/js/pattern-engine.js',
+  '/js/custom-garments.js',
   '/js/pdf-export.js',
   '/js/mannequin-3d.js',
   '/js/atelier.js',

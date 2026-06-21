@@ -561,7 +561,7 @@ PAT.MisSistemasUI = (function () {
       PAT.MisSistemas.registrarEnMemoria({ id, ...opts });
       PAT.WizardCustom && PAT.WizardCustom.recargar();
       await _cargarLista();
-      if (PAT.App) PAT.App.toast('✅ Sistema guardado', 'success');
+      if (PAT.App) { PAT.App.toast('✅ Sistema guardado', 'success'); PAT.App.refreshCustomGarments && PAT.App.refreshCustomGarments(); }
     } catch(e) { alert('Error guardando: ' + e.message); }
   }
 
@@ -575,6 +575,7 @@ PAT.MisSistemasUI = (function () {
       document.getElementById('ms-panel').innerHTML = '<div class="ms-welcome"><div class="ms-welcome-icon">✂️</div><span>Sistema eliminado.</span></div>';
       document.getElementById('ms-footer').style.display = 'none';
       await _cargarLista();
+      if (PAT.App && PAT.App.refreshCustomGarments) PAT.App.refreshCustomGarments();
     } catch(e) { alert('Error eliminando: ' + e.message); }
   }
 
