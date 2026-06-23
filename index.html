@@ -630,14 +630,21 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
       Generar patrón
     </button>
     <button class="sb-btn gold" id="btn-ai-studio">✦ Estudio de Diseño IA</button>
-    <div class="sb-btn-grid">
-      <button class="sb-btn ghost" id="btn-drafter">✏ Trazar</button>
-      <button class="sb-btn ghost" id="btn-export-pdf">📄 PDF</button>
-    </div>
-    <div class="sb-btn-grid">
-      <button class="sb-btn ghost" id="btn-save">💾 Guardar</button>
-      <button class="sb-btn ghost" id="btn-load">📂 Cargar</button>
-      <button class="sb-btn ghost" id="btn-share">🔗 Compartir</button>
+    <button class="sb-btn ghost" id="btn-drafter">✏ Trazar</button>
+
+    <!-- Menú: Archivo (Guardar/Cargar/PDF/Compartir) -->
+    <button class="sb-dd-toggle" data-dd="dd-archivo" style="border-color:rgba(148,163,184,.35);color:#cbd5e1">
+      📁 Archivo <span class="sb-dd-car">▾</span>
+    </button>
+    <div class="sb-dd-panel" id="dd-archivo">
+      <div class="sb-btn-grid">
+        <button class="sb-btn ghost" id="btn-save">💾 Guardar</button>
+        <button class="sb-btn ghost" id="btn-load">📂 Cargar</button>
+      </div>
+      <div class="sb-btn-grid">
+        <button class="sb-btn ghost" id="btn-export-pdf">📄 PDF</button>
+        <button class="sb-btn ghost" id="btn-share">🔗 Compartir</button>
+      </div>
     </div>
 
     <!-- Menú: Patronaje avanzado -->
@@ -1389,20 +1396,37 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <input type="file" id="dv6-bgimg-file" accept="image/*" style="display:none">
   </div>
 
-  <!-- Panel de control de imagen de fondo (oculto hasta cargar una imagen) -->
-  <div id="dv6-bgimg-panel" style="display:none;position:absolute;top:46px;right:10px;z-index:50;background:#1a1622;border:1px solid rgba(124,58,237,.4);border-radius:8px;padding:10px 12px;font-size:12px;color:#e5e0f0;min-width:230px;box-shadow:0 4px 16px rgba(0,0,0,.4)">
-    <div style="font-weight:600;margin-bottom:6px;color:#7c3aed">🖼️ Imagen de referencia</div>
-    <label style="display:block;margin-bottom:6px">
-      Ancho real de la imagen (cm):
-      <input type="number" id="dv6-bgimg-width" min="1" step="0.1" value="50" style="width:100%;margin-top:2px;background:#0f0c16;color:#e5e0f0;border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:3px 6px">
-    </label>
-    <label style="display:block;margin-bottom:6px">
-      Opacidad: <span id="dv6-bgimg-op-val">60%</span>
-      <input type="range" id="dv6-bgimg-op" min="10" max="100" value="60" style="width:100%">
-    </label>
-    <div style="display:flex;gap:6px;margin-top:4px">
-      <button class="tb" id="dv6-bgimg-lock" title="Bloquear/desbloquear posición de la imagen" style="flex:1">🔒 Fijar</button>
-      <button class="tb red" id="dv6-bgimg-rm" style="flex:1">🗑 Quitar</button>
+  <!-- Panel de imagen de fondo: biblioteca de búsqueda + controles (un solo botón los abre) -->
+  <div id="dv6-bgimg-panel" style="display:none;position:absolute;top:46px;right:10px;z-index:50;background:#1a1622;border:1px solid rgba(124,58,237,.4);border-radius:8px;padding:10px 12px;font-size:12px;color:#e5e0f0;min-width:250px;max-width:280px;box-shadow:0 4px 16px rgba(0,0,0,.4)">
+    <div style="font-weight:600;margin-bottom:6px;color:#7c3aed;display:flex;justify-content:space-between;align-items:center">
+      🖼️ Imagen de referencia
+      <span id="dv6-bgimg-close" style="cursor:pointer;opacity:.6">✕</span>
+    </div>
+
+    <!-- Buscar / subir nueva -->
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <input type="text" id="dv6-bgimg-search" placeholder="Buscar en mis imágenes…" style="flex:1;background:#0f0c16;color:#e5e0f0;border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:3px 6px">
+      <button class="tb" id="dv6-bgimg-upload-btn" title="Subir nueva imagen">⬆</button>
+    </div>
+    <input type="file" id="dv6-bgimg-file" accept="image/*" style="display:none">
+
+    <!-- Lista de imágenes guardadas -->
+    <div id="dv6-bgimg-list" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:6px"></div>
+
+    <!-- Controles de la imagen activa (solo si hay una colocada en el lienzo) -->
+    <div id="dv6-bgimg-controls" style="display:none;border-top:1px solid rgba(255,255,255,.1);padding-top:6px;margin-top:2px">
+      <label style="display:block;margin-bottom:6px">
+        Ancho real de la imagen (cm):
+        <input type="number" id="dv6-bgimg-width" min="1" step="0.1" value="50" style="width:100%;margin-top:2px;background:#0f0c16;color:#e5e0f0;border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:3px 6px">
+      </label>
+      <label style="display:block;margin-bottom:6px">
+        Opacidad: <span id="dv6-bgimg-op-val">60%</span>
+        <input type="range" id="dv6-bgimg-op" min="10" max="100" value="60" style="width:100%">
+      </label>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="tb" id="dv6-bgimg-lock" title="Bloquear/desbloquear posición de la imagen" style="flex:1">🔒 Fijar</button>
+        <button class="tb red" id="dv6-bgimg-rm" style="flex:1">🗑 Quitar</button>
+      </div>
     </div>
     <div style="margin-top:6px;opacity:.7;font-size:11px">Es solo una guía visual — arrastra/escala para calibrar, luego traza tus puntos y líneas encima como siempre.</div>
   </div>
@@ -1861,21 +1885,34 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   // (solo ayuda visual: no toca puntos, líneas, fx/fy ni nada del
   // flujo normal de trazado — funciona exactamente igual con o sin ella)
   // ════════════════════════════════════════════════════════════
-  let _bgImg = null; // { gEl, imgEl, x, y, widthMm, heightMm, locked }
+  let _bgImg = null; // { gEl, imgEl, x, y, widthMm, heightMm, locked, libId, natW, natH }
+  let _bgImgLib = [];   // caché de la biblioteca de imágenes del usuario
 
   function _initBgImage() {
-    const btn   = document.getElementById('dv6-bgimg-btn');
-    const file  = document.getElementById('dv6-bgimg-file');
-    const panel = document.getElementById('dv6-bgimg-panel');
-    const wInp  = document.getElementById('dv6-bgimg-width');
-    const opInp = document.getElementById('dv6-bgimg-op');
-    const opVal = document.getElementById('dv6-bgimg-op-val');
-    const lockBtn = document.getElementById('dv6-bgimg-lock');
-    const rmBtn   = document.getElementById('dv6-bgimg-rm');
-    const gRoot   = document.getElementById('dv6-bgimg');
+    const btn       = document.getElementById('dv6-bgimg-btn');
+    const file      = document.getElementById('dv6-bgimg-file');
+    const uploadBtn = document.getElementById('dv6-bgimg-upload-btn');
+    const closeBtn  = document.getElementById('dv6-bgimg-close');
+    const panel     = document.getElementById('dv6-bgimg-panel');
+    const searchInp = document.getElementById('dv6-bgimg-search');
+    const listEl    = document.getElementById('dv6-bgimg-list');
+    const controls  = document.getElementById('dv6-bgimg-controls');
+    const wInp      = document.getElementById('dv6-bgimg-width');
+    const opInp     = document.getElementById('dv6-bgimg-op');
+    const opVal     = document.getElementById('dv6-bgimg-op-val');
+    const lockBtn   = document.getElementById('dv6-bgimg-lock');
+    const rmBtn     = document.getElementById('dv6-bgimg-rm');
+    const gRoot     = document.getElementById('dv6-bgimg');
     if (!btn || !file || !gRoot) return;
 
-    btn.onclick = () => file.click();
+    btn.onclick = () => {
+      const opening = panel.style.display === 'none';
+      panel.style.display = opening ? 'block' : 'none';
+      if (opening) _refreshLib();
+    };
+    closeBtn.onclick = () => { panel.style.display = 'none'; };
+
+    uploadBtn.onclick = () => file.click();
 
     file.onchange = () => {
       const f = file.files && file.files[0];
@@ -1884,9 +1921,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       reader.onload = (ev) => {
         const dataUrl = ev.target.result;
         const probe = new Image();
-        probe.onload = () => {
-          _createBgImage(dataUrl, probe.naturalWidth, probe.naturalHeight);
-          panel.style.display = 'block';
+        probe.onload = async () => {
+          _createBgImage(dataUrl, probe.naturalWidth, probe.naturalHeight, 50, null);
+          // Guardar automáticamente en la biblioteca del usuario, para buscarla luego
+          try {
+            const nombre = (f.name || 'Imagen').replace(/\.[^.]+$/, '');
+            const saved = await PAT.ImageLibrary.guardar(dataUrl, nombre, 50);
+            if (_bgImg) _bgImg.libId = saved.id;
+            _refreshLib();
+          } catch (e) { console.warn('[BgImage] No se pudo guardar en biblioteca:', e); }
         };
         probe.src = dataUrl;
       };
@@ -1894,11 +1937,60 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       file.value = '';
     };
 
-    function _createBgImage(dataUrl, natW, natH) {
+    async function _refreshLib() {
+      try {
+        _bgImgLib = await PAT.ImageLibrary.listar();
+      } catch (e) { console.warn('[BgImage] No se pudo listar biblioteca:', e); _bgImgLib = []; }
+      _renderLib(searchInp.value || '');
+    }
+
+    function _renderLib(filtro) {
+      listEl.innerHTML = '';
+      const f = filtro.trim().toLowerCase();
+      const items = _bgImgLib.filter(it => !f || (it.nombre || '').toLowerCase().includes(f));
+      if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.opacity = '.6'; empty.style.fontSize = '11px'; empty.style.padding = '4px 0';
+        empty.textContent = f ? 'Sin resultados.' : 'Todavía no tienes imágenes guardadas.';
+        listEl.appendChild(empty);
+        return;
+      }
+      items.forEach(it => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px;border-radius:4px';
+        row.onmouseenter = () => row.style.background = 'rgba(124,58,237,.15)';
+        row.onmouseleave = () => row.style.background = 'transparent';
+        const thumb = document.createElement('img');
+        thumb.src = it.dataUrl;
+        thumb.style.cssText = 'width:32px;height:32px;object-fit:cover;border-radius:3px;border:1px solid rgba(255,255,255,.15)';
+        const label = document.createElement('span');
+        label.textContent = it.nombre || 'Sin nombre';
+        label.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        const del = document.createElement('span');
+        del.textContent = '🗑'; del.title = 'Eliminar de la biblioteca';
+        del.style.cssText = 'opacity:.5;font-size:11px';
+        del.onclick = async (e) => {
+          e.stopPropagation();
+          if (!confirm('¿Eliminar "' + (it.nombre || 'esta imagen') + '" de tu biblioteca?')) return;
+          await PAT.ImageLibrary.eliminar(it.id);
+          _refreshLib();
+        };
+        row.appendChild(thumb); row.appendChild(label); row.appendChild(del);
+        row.onclick = () => {
+          const probe = new Image();
+          probe.onload = () => _createBgImage(it.dataUrl, probe.naturalWidth, probe.naturalHeight, it.anchoCm || 50, it.id);
+          probe.src = it.dataUrl;
+        };
+        listEl.appendChild(row);
+      });
+    }
+
+    searchInp.oninput = () => _renderLib(searchInp.value);
+
+    function _createBgImage(dataUrl, natW, natH, widthCm, libId) {
       // Quitar imagen anterior si existía
       while (gRoot.firstChild) gRoot.removeChild(gRoot.firstChild);
 
-      const widthCm = parseFloat(wInp.value) || 50;
       const widthMm = widthCm * 10;
       const heightMm = widthMm * (natH / natW);
 
@@ -1924,8 +2016,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       gRoot.style.display = '';
       gRoot.setAttribute('opacity', (parseFloat(opInp.value) || 60) / 100);
 
-      _bgImg = { gEl: inner, imgEl, x: x0, y: y0, widthMm, heightMm, natW, natH, locked: false };
+      _bgImg = { gEl: inner, imgEl, x: x0, y: y0, widthMm, heightMm, natW, natH, locked: false, libId };
       lockBtn.textContent = '🔒 Fijar';
+      wInp.value = widthCm;
+      controls.style.display = 'block';
 
       // Arrastrar para reposicionar (mientras no esté bloqueada)
       let dragging = false, startPx = null, startPos = null;
@@ -1957,6 +2051,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _bgImg.heightMm = heightMm;
       _bgImg.imgEl.setAttribute('width', widthMm);
       _bgImg.imgEl.setAttribute('height', heightMm);
+      // Recordar la calibración para la próxima vez que se use esta imagen
+      if (_bgImg.libId) PAT.ImageLibrary.actualizarAncho(_bgImg.libId, widthCm).catch(() => {});
     };
 
     opInp.oninput = () => {
@@ -1977,7 +2073,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       while (gRoot.firstChild) gRoot.removeChild(gRoot.firstChild);
       gRoot.style.display = 'none';
       _bgImg = null;
-      panel.style.display = 'none';
+      controls.style.display = 'none';
     };
   }
 
@@ -5581,6 +5677,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/bloques.js"></script>
 <script src="js/bloques-ui.js"></script>
 <script src="js/mis-sistemas.js"></script>
+<script src="js/image-library.js"></script>
 <script src="js/mis-sistemas-ui.js"></script>
 <script src="js/entrevista-sistema.js"></script>
 <script src="js/materiales.js"></script>
