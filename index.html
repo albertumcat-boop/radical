@@ -1384,6 +1384,27 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <div class="dv6-sep"></div>
     <button class="tb" id="dv6-demo" style="border-color:rgba(52,211,153,.4);color:#34d399" title="Trazar espalda básica automáticamente">▶ Demo Espalda</button>
     <button class="tb" id="dv6-sistemas" style="border-color:rgba(251,191,36,.4);color:#fbbf24" title="Cargar desde sistema de patronaje registrado">🧵 Sistemas</button>
+    <div class="dv6-sep"></div>
+    <button class="tb" id="dv6-bgimg-btn" style="border-color:rgba(124,58,237,.4);color:#7c3aed" title="Trazar sobre una imagen de referencia">🖼️ Imagen</button>
+    <input type="file" id="dv6-bgimg-file" accept="image/*" style="display:none">
+  </div>
+
+  <!-- Panel de control de imagen de fondo (oculto hasta cargar una imagen) -->
+  <div id="dv6-bgimg-panel" style="display:none;position:absolute;top:46px;right:10px;z-index:50;background:#1a1622;border:1px solid rgba(124,58,237,.4);border-radius:8px;padding:10px 12px;font-size:12px;color:#e5e0f0;min-width:230px;box-shadow:0 4px 16px rgba(0,0,0,.4)">
+    <div style="font-weight:600;margin-bottom:6px;color:#7c3aed">🖼️ Imagen de referencia</div>
+    <label style="display:block;margin-bottom:6px">
+      Ancho real de la imagen (cm):
+      <input type="number" id="dv6-bgimg-width" min="1" step="0.1" value="50" style="width:100%;margin-top:2px;background:#0f0c16;color:#e5e0f0;border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:3px 6px">
+    </label>
+    <label style="display:block;margin-bottom:6px">
+      Opacidad: <span id="dv6-bgimg-op-val">60%</span>
+      <input type="range" id="dv6-bgimg-op" min="10" max="100" value="60" style="width:100%">
+    </label>
+    <div style="display:flex;gap:6px;margin-top:4px">
+      <button class="tb" id="dv6-bgimg-lock" title="Bloquear/desbloquear posición de la imagen" style="flex:1">🔒 Fijar</button>
+      <button class="tb red" id="dv6-bgimg-rm" style="flex:1">🗑 Quitar</button>
+    </div>
+    <div style="margin-top:6px;opacity:.7;font-size:11px">Es solo una guía visual — arrastra/escala para calibrar, luego traza tus puntos y líneas encima como siempre.</div>
   </div>
 
   <div class="dv6-body">
@@ -1412,6 +1433,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             <line x1="0" y1="-9999" x2="0" y2="9999" stroke="rgba(139,92,246,.18)" stroke-width=".4"/>
             <circle cx="0" cy="0" r="1" fill="rgba(139,92,246,.5)"/>
           </g>
+          <g id="dv6-bgimg" opacity="0.6" style="display:none"></g>
           <g id="dv6-dims"></g>
           <g id="dv6-lines"></g>
           <g id="dv6-ctrls"></g>
@@ -1835,6 +1857,131 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   }
 
   // ════════════════════════════════════════════════════════════
+  // IMAGEN DE FONDO — trazar sobre una foto de referencia
+  // (solo ayuda visual: no toca puntos, líneas, fx/fy ni nada del
+  // flujo normal de trazado — funciona exactamente igual con o sin ella)
+  // ════════════════════════════════════════════════════════════
+  let _bgImg = null; // { gEl, imgEl, x, y, widthMm, heightMm, locked }
+
+  function _initBgImage() {
+    const btn   = document.getElementById('dv6-bgimg-btn');
+    const file  = document.getElementById('dv6-bgimg-file');
+    const panel = document.getElementById('dv6-bgimg-panel');
+    const wInp  = document.getElementById('dv6-bgimg-width');
+    const opInp = document.getElementById('dv6-bgimg-op');
+    const opVal = document.getElementById('dv6-bgimg-op-val');
+    const lockBtn = document.getElementById('dv6-bgimg-lock');
+    const rmBtn   = document.getElementById('dv6-bgimg-rm');
+    const gRoot   = document.getElementById('dv6-bgimg');
+    if (!btn || !file || !gRoot) return;
+
+    btn.onclick = () => file.click();
+
+    file.onchange = () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target.result;
+        const probe = new Image();
+        probe.onload = () => {
+          _createBgImage(dataUrl, probe.naturalWidth, probe.naturalHeight);
+          panel.style.display = 'block';
+        };
+        probe.src = dataUrl;
+      };
+      reader.readAsDataURL(f);
+      file.value = '';
+    };
+
+    function _createBgImage(dataUrl, natW, natH) {
+      // Quitar imagen anterior si existía
+      while (gRoot.firstChild) gRoot.removeChild(gRoot.firstChild);
+
+      const widthCm = parseFloat(wInp.value) || 50;
+      const widthMm = widthCm * 10;
+      const heightMm = widthMm * (natH / natW);
+
+      // Posición inicial: centrada en la vista actual
+      const startMm = _screenToMm(
+        (document.getElementById('dv6-wrap').clientWidth  || 600) / 2,
+        (document.getElementById('dv6-wrap').clientHeight || 400) / 2
+      );
+      const x0 = startMm.x - widthMm / 2;
+      const y0 = startMm.y - heightMm / 2;
+
+      const inner = document.createElementNS(NS, 'g');
+      inner.setAttribute('transform', `translate(${x0},${y0})`);
+      const imgEl = document.createElementNS(NS, 'image');
+      imgEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', dataUrl);
+      imgEl.setAttribute('href', dataUrl);
+      imgEl.setAttribute('width', widthMm);
+      imgEl.setAttribute('height', heightMm);
+      imgEl.setAttribute('preserveAspectRatio', 'none');
+      imgEl.style.cursor = 'move';
+      inner.appendChild(imgEl);
+      gRoot.appendChild(inner);
+      gRoot.style.display = '';
+      gRoot.setAttribute('opacity', (parseFloat(opInp.value) || 60) / 100);
+
+      _bgImg = { gEl: inner, imgEl, x: x0, y: y0, widthMm, heightMm, natW, natH, locked: false };
+      lockBtn.textContent = '🔒 Fijar';
+
+      // Arrastrar para reposicionar (mientras no esté bloqueada)
+      let dragging = false, startPx = null, startPos = null;
+      imgEl.addEventListener('pointerdown', (e) => {
+        if (!_bgImg || _bgImg.locked) return;
+        dragging = true;
+        startPx = { x: e.clientX, y: e.clientY };
+        startPos = { x: _bgImg.x, y: _bgImg.y };
+        e.stopPropagation();
+        e.preventDefault();
+      });
+      window.addEventListener('pointermove', (e) => {
+        if (!dragging || !_bgImg) return;
+        const dxMm = (e.clientX - startPx.x) / (_zoom * SC);
+        const dyMm = (e.clientY - startPx.y) / (_zoom * SC);
+        _bgImg.x = startPos.x + dxMm;
+        _bgImg.y = startPos.y + dyMm;
+        _bgImg.gEl.setAttribute('transform', `translate(${_bgImg.x},${_bgImg.y})`);
+      });
+      window.addEventListener('pointerup', () => { dragging = false; });
+    }
+
+    wInp.oninput = () => {
+      if (!_bgImg) return;
+      const widthCm = parseFloat(wInp.value) || 1;
+      const widthMm = widthCm * 10;
+      const heightMm = widthMm * (_bgImg.natH / _bgImg.natW);
+      _bgImg.widthMm = widthMm;
+      _bgImg.heightMm = heightMm;
+      _bgImg.imgEl.setAttribute('width', widthMm);
+      _bgImg.imgEl.setAttribute('height', heightMm);
+    };
+
+    opInp.oninput = () => {
+      const v = parseFloat(opInp.value) || 60;
+      opVal.textContent = v + '%';
+      gRoot.setAttribute('opacity', v / 100);
+    };
+
+    lockBtn.onclick = () => {
+      if (!_bgImg) return;
+      _bgImg.locked = !_bgImg.locked;
+      lockBtn.textContent = _bgImg.locked ? '🔓 Desbloquear' : '🔒 Fijar';
+      _bgImg.imgEl.style.cursor = _bgImg.locked ? 'default' : 'move';
+      _bgImg.imgEl.style.pointerEvents = _bgImg.locked ? 'none' : 'auto';
+    };
+
+    rmBtn.onclick = () => {
+      while (gRoot.firstChild) gRoot.removeChild(gRoot.firstChild);
+      gRoot.style.display = 'none';
+      _bgImg = null;
+      panel.style.display = 'none';
+    };
+  }
+
+  // ════════════════════════════════════════════════════════════
   // HISTORIA — undo / redo
   // ════════════════════════════════════════════════════════════
   function _snapshot() {
@@ -1970,6 +2117,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-demo').onclick = _runDemo;
     document.getElementById('dv6-sistemas').onclick = () => { if(PAT.SistemasUI) PAT.SistemasUI.open(); };
     document.getElementById('dv6-dpt').onclick  = _delSelected;
+
+    _initBgImage();
 
     document.getElementById('dv6-snap').onclick = function() {
       _snapEnabled = !_snapEnabled;
