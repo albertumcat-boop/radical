@@ -123,6 +123,16 @@ PAT.PatternEngine = (function () {
     const vbW = curX + PAD;
     const vbH = curY + rowH + PAD;
 
+    // Leyenda de tipos de línea (esquina superior derecha, en español)
+    try {
+      if (PAT.SVGUtils && PAT.SVGUtils.legend) {
+        const legendW = 70;
+        _content.appendChild(PAT.SVGUtils.legend(vbW - legendW - PAD, PAD));
+      }
+    } catch (e) {
+      console.warn('[Engine] No se pudo dibujar la leyenda:', e);
+    }
+
     _svg.setAttribute('viewBox', '0 0 ' + vbW + ' ' + vbH);
     _svg.setAttribute('width',  vbW + 'mm');
     _svg.setAttribute('height', vbH + 'mm');

@@ -21,6 +21,7 @@ PAT.Patterns.Camisa = (function() {
   const P = U.P;
   const C = PAT.COLORS;
   const NS = U.NS;
+  const n = U.n;
 
   function generate(m, seam, gender = 'dama') {
     const s = seam;
@@ -100,6 +101,8 @@ PAT.Patterns.Camisa = (function() {
       g.appendChild(U.foldLine(s, s+neckD_b, s, s+TL));
       g.appendChild(U.grainLine(s+bW*0.5, s+adepth+20, TL-adepth-40));
       g.appendChild(U.notch(ahM[0], ahM[1], 90, 3));
+      g.appendChild(U.dimLine(s, s+adepth, s+bW, s+adepth, `Ancho espalda: ${m.bust/4}cm`, -14));
+      g.appendChild(U.dimLine(s, s+neckD_b, s, s+TL, `Largo: ${m.totalLength}cm`, -14));
       g.appendChild(U.pieceLabel(s+10, s+adepth+50, `ESPALDA — CAMISA ${isLady?'DAMA':'CABALLERO'}`, [
         '1 pieza (doble tela)', `Busto/Pecho: ${m.bust}cm`
       ]));
@@ -152,6 +155,8 @@ PAT.Patterns.Camisa = (function() {
 
       g.appendChild(U.grainLine(s+botonW+bW*0.5, s+adepth+20, TL-adepth-40));
       g.appendChild(U.notch(ahMF[0], ahMF[1], 90, 3));
+      g.appendChild(U.dimLine(s+botonW, s+adepth, s+botonW+bW, s+adepth, `Ancho frente: ${m.bust/4}cm`, -14));
+      g.appendChild(U.dimLine(s+botonW+bW, s+neckD_f, s+botonW+bW, s+TL, `Largo: ${m.totalLength}cm`, 14));
       g.appendChild(U.pieceLabel(s+botonW+10, s+adepth+50, `FRENTE — CAMISA`, [
         '2 piezas (no en doblez)', `Incluye 2cm botonadura`
       ]));
@@ -165,6 +170,7 @@ PAT.Patterns.Camisa = (function() {
       g.appendChild(U.el('rect', { x:n(s), y:n(s), width:n(cW), height:n(canesuH+neckD_b), fill:C.fill, stroke:C.cutLine, 'stroke-width':'0.8' }));
       g.appendChild(U.foldLine(s, s, s, s+canesuH+neckD_b, 'DOBLAR'));
       g.appendChild(U.grainLine(s+cW*0.5, s+10, canesuH+neckD_b-20));
+      g.appendChild(U.dimLine(s, s, s+cW, s, `Hombro: ${m.shoulder}cm`, -10));
       g.appendChild(U.pieceLabel(s+8, s+30, 'CANESÚ', ['2 piezas (doble tela)', `Largo hombro: ${m.shoulder}cm`]));
       pieces.push({ group:g, bounds:{x:0,y:0,w:s+cW+s,h:s+canesuH+neckD_b+s}, name:'Canesú' });
     }
@@ -200,6 +206,7 @@ PAT.Patterns.Camisa = (function() {
         g.appendChild(U.notch(s+collarLen, s, 0, 3));
         g.appendChild(U.notch(s, s, 0, 3));
 
+        g.appendChild(U.dimLine(s, s, s+collarLen, s, `Cuello: ${m.neck}cm`, -10));
         g.appendChild(U.pieceLabel(s+10, s+collarH+10, 'PALA DE CUELLO', [
           '4 piezas (2 externas + 2 entretela)',
           `Cuello: ${m.neck}cm`,
@@ -225,6 +232,7 @@ PAT.Patterns.Camisa = (function() {
         g.appendChild(U.el('path', { d, fill:C.fill, stroke:C.cutLine, 'stroke-width':'0.8' }));
         g.appendChild(U.grainLine(s+bandLen*0.5, s+curveDrop+8, bandH-16));
         g.appendChild(U.notch(s+bandLen, s+curveDrop+bandH/2, 0, 3));
+        g.appendChild(U.dimLine(s, s+curveDrop+bandH, s+bandLen, s+curveDrop+bandH, `Cuello: ${m.neck}cm`, 10));
         g.appendChild(U.pieceLabel(s+8, s+curveDrop+bandH+12, 'PIE DE CUELLO', [
           '4 piezas (2 externas + 2 entretela)',
         ]));
@@ -279,6 +287,7 @@ PAT.Patterns.Camisa = (function() {
       g.appendChild(U.notch(nx, ny, 315, 3));
       g.appendChild(U.notch(s+sleeveTopW*0.65, ny, 45, 3));
       g.appendChild(U.notch(s+sleeveTopW*0.5, s+sleeveCapH*0.2, 0, 3));
+      g.appendChild(U.dimLine(s+sleeveTopW+8, s, s+sleeveTopW+8, s+SL, `Largo manga: ${m.sleeveLength}cm`, 12));
 
       g.appendChild(U.pieceLabel(s+10, s+sleeveCapH+40, 'MANGA — CAMISA', [
         '2 piezas iguales', `Largo: ${m.sleeveLength}cm`,
@@ -308,6 +317,7 @@ PAT.Patterns.Camisa = (function() {
       g.appendChild(U.grainLine(s+cuffLen*0.4, s+8, cuffH-16));
       g.appendChild(U.notch(s, s+cuffH/4, 180, 3));
       g.appendChild(U.notch(s, s+cuffH*3/4, 180, 3));
+      g.appendChild(U.dimLine(s, s+cuffH, s+cuffLen, s+cuffH, `Muñeca: ${m.wrist}cm`, 10));
 
       g.appendChild(U.pieceLabel(s+8, s+cuffH+12, 'PUÑO', [
         '4 piezas (2 ext. + 2 entretela)',

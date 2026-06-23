@@ -23,6 +23,7 @@ PAT.Patterns.Franela = (function() {
   const P = U.P;
   const C = PAT.COLORS;
   const NS = U.NS;
+  const n = U.n;
 
   /**
    * @param {Object} m - medidas en cm

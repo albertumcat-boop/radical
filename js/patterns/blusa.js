@@ -17,6 +17,7 @@ PAT.Patterns.Blusa = (function() {
   const P = U.P;
   const C = PAT.COLORS;
   const NS = U.NS;
+  const n = U.n;
 
   function generate(m, seam) {
     const s = seam;

@@ -264,8 +264,90 @@ PAT.SVGUtils = (function() {
     };
   }
 
+  // ─── Cota con flechas (línea de dimensión + medida en español) ───────
+  // Dibuja una línea de cota paralela al segmento (x1,y1)-(x2,y2), desplazada
+  // `offset` mm hacia un lado, con líneas de prolongación, flechas en ambos
+  // extremos y la etiqueta (ej. "Pecho: 96cm") centrada sobre la línea.
+  function dimLine(x1, y1, x2, y2, label, offset) {
+    offset = offset == null ? 15 : offset;
+    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+    const ox = -(dy / len) * offset, oy = (dx / len) * offset;
+    const ax1 = x1 + ox, ay1 = y1 + oy, ax2 = x2 + ox, ay2 = y2 + oy;
+    const col = PAT.COLORS.dimLine;
+    const g = el('g', { class: 'dim-line' });
+
+    // Líneas de prolongación (del contorno hasta la línea de cota)
+    g.appendChild(el('line', { x1: n(x1), y1: n(y1), x2: n(ax1), y2: n(ay1), stroke: col, 'stroke-width': '0.25' }));
+    g.appendChild(el('line', { x1: n(x2), y1: n(y2), x2: n(ax2), y2: n(ay2), stroke: col, 'stroke-width': '0.25' }));
+
+    // Línea de cota
+    g.appendChild(el('line', { x1: n(ax1), y1: n(ay1), x2: n(ax2), y2: n(ay2), stroke: col, 'stroke-width': '0.3' }));
+
+    // Flechas en ambos extremos
+    const ang = Math.atan2(ay2 - ay1, ax2 - ax1);
+    const arrSize = 2.6;
+    [[ax1, ay1, ang], [ax2, ay2, ang + Math.PI]].forEach(([px, py, a]) => {
+      const a1 = a + Math.PI * 0.82, a2 = a - Math.PI * 0.82;
+      const pts = `${n(px)},${n(py)} ${n(px + Math.cos(a1) * arrSize)},${n(py + Math.sin(a1) * arrSize)} ${n(px + Math.cos(a2) * arrSize)},${n(py + Math.sin(a2) * arrSize)}`;
+      g.appendChild(el('polygon', { points: pts, fill: col }));
+    });
+
+    // Etiqueta centrada, legible (no al revés) sobre la línea de cota
+    const mx = (ax1 + ax2) / 2, my = (ay1 + ay2) / 2;
+    let rotDeg = ang * 180 / Math.PI;
+    if (rotDeg > 90 || rotDeg < -90) rotDeg += 180;
+    const t = el('text', {
+      x: n(mx), y: n(my - 1.4), 'font-size': '3.2', fill: col,
+      'text-anchor': 'middle', 'font-family': 'Arial, sans-serif',
+      transform: `rotate(${rotDeg.toFixed(1)} ${n(mx)} ${n(my)})`,
+    });
+    t.textContent = label;
+    g.appendChild(t);
+
+    return g;
+  }
+
+  // ─── Leyenda de tipos de línea (en español) ──────────────────────────
+  function legend(x, y) {
+    const items = [
+      { label: 'Línea de corte',              stroke: PAT.COLORS.cutLine,  dash: null },
+      { label: 'Línea de costura',            stroke: PAT.COLORS.seamLine, dash: '4,2' },
+      { label: 'Línea de doblez (en tela)',    stroke: PAT.COLORS.foldLine, dash: '8,3,2,3' },
+      { label: 'Cota / medida',               stroke: PAT.COLORS.dimLine,  dash: '2,2' },
+    ];
+    const W = 70, rowH = 7, PADTOP = 9, H = items.length * rowH + PADTOP + 3;
+    const g = el('g', { class: 'pattern-legend' });
+
+    g.appendChild(el('rect', {
+      x: n(x), y: n(y), width: n(W), height: n(H),
+      fill: '#fffdf8', stroke: PAT.COLORS.cutLine, 'stroke-width': '0.4', opacity: '0.95',
+    }));
+
+    const title = el('text', {
+      x: n(x + 3), y: n(y + 5.5), 'font-size': '3.6', 'font-weight': 'bold',
+      fill: PAT.COLORS.cutLine, 'font-family': 'Arial, sans-serif',
+    });
+    title.textContent = 'LEYENDA';
+    g.appendChild(title);
+
+    items.forEach((it, i) => {
+      const ly = y + PADTOP + i * rowH + 3;
+      const lineAttrs = { x1: n(x + 3), y1: n(ly), x2: n(x + 17), y2: n(ly), stroke: it.stroke, 'stroke-width': '0.9' };
+      if (it.dash) lineAttrs['stroke-dasharray'] = it.dash;
+      g.appendChild(el('line', lineAttrs));
+      const t = el('text', {
+        x: n(x + 20), y: n(ly + 1.2), 'font-size': '3', fill: PAT.COLORS.seamLine,
+        'font-family': 'Arial, sans-serif',
+      });
+      t.textContent = it.label;
+      g.appendChild(t);
+    });
+
+    return g;
+  }
+
   return { el, n, P, path, text, notch, grainLine, foldLine,
            calibrationSquare, pieceLabel, seamAllowanceRect,
-           bbox, translatePath, perpPoint,
+           bbox, translatePath, perpPoint, dimLine, legend,
            quadBezierPoint, cubicBezierLength, NS };
 })();
