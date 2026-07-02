@@ -61,10 +61,10 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
 .collapse-btn:hover{background:var(--bg2);color:var(--tx)}
 
 /* ── Sidebar sections ── */
-.sb-sec{padding:13px 16px;border-bottom:1px solid var(--brd)}
+.sb-sec{padding:9px 14px;border-bottom:1px solid var(--brd)}
 .sec-title{
   font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--tx3);margin-bottom:10px;display:flex;align-items:center;gap:6px;
+  color:var(--tx3);margin-bottom:8px;display:flex;align-items:center;gap:6px;
 }
 .step-num{
   width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;
@@ -108,20 +108,22 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
 .radio-opt input{accent-color:var(--acc)}
 
 /* ── Measure rows ── */
-.m-group-title{font-size:10px;font-weight:600;color:var(--acc2);margin:9px 0 5px;letter-spacing:.3px}
+.m-group-title{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin:0 0 4px;display:flex;align-items:center;gap:5px}
 .m-row{
   display:flex;align-items:center;gap:6px;
-  padding:4px 0;border-bottom:1px solid rgba(0,0,0,.05);
+  padding:3px 0;border-bottom:1px solid rgba(0,0,0,.04);
 }
 .m-row:last-child{border-bottom:none}
-.m-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.m-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .m-row label{font-size:11px;color:var(--tx2);flex:1}
 .m-ctrl{display:flex;align-items:center;gap:2px;flex-shrink:0}
 .m-btn{
-  width:22px;height:24px;background:var(--inp);border:1px solid var(--brd);
-  color:var(--tx2);border-radius:5px;cursor:pointer;font-size:14px;font-weight:700;
+  width:20px;height:22px;background:var(--inp);border:1px solid var(--brd);
+  color:var(--tx3);border-radius:4px;cursor:pointer;font-size:13px;font-weight:700;
   display:flex;align-items:center;justify-content:center;transition:all .12s;
+  opacity:0;transition:opacity .15s,background .12s,border-color .12s,color .12s;
 }
+.m-row:hover .m-btn,.m-row:focus-within .m-btn{opacity:1}
 .m-btn:hover{background:var(--accbg);border-color:var(--acc2);color:var(--acc)}
 .m-inp{
   width:46px;background:var(--inp);border:1px solid var(--brd);color:var(--tx);
@@ -130,6 +132,48 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
 }
 .m-inp::-webkit-inner-spin-button{display:none}
 .m-inp:focus{border-color:var(--acc2);background:var(--surface)}
+
+/* ── Acordeón de medidas ── */
+.m-accord{border:1px solid var(--brd);border-radius:8px;overflow:hidden;margin-bottom:5px}
+.m-accord+.m-accord{margin-top:0}
+.m-accord summary{
+  list-style:none;display:flex;align-items:center;gap:7px;
+  padding:7px 10px;cursor:pointer;font-size:10px;font-weight:700;
+  color:var(--tx2);background:var(--bg2);user-select:none;
+}
+.m-accord summary::-webkit-details-marker{display:none}
+.m-accord summary .m-ac-car{margin-left:auto;font-size:9px;color:var(--tx3);transition:.2s}
+.m-accord[open] summary .m-ac-car{transform:rotate(180deg)}
+.m-accord summary:hover{background:var(--accbg)}
+.m-accord-body{padding:5px 10px 6px}
+
+/* ── Perfil de medidas mini ── */
+.m-profile-bar{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 8px;background:var(--bg2);border:1px solid var(--brd);
+  border-radius:7px;margin-bottom:8px;
+}
+.m-profile-bar select{
+  flex:1;background:transparent;border:none;color:var(--tx2);
+  font-size:11px;font-family:var(--font);outline:none;cursor:pointer;min-width:0;
+}
+.m-profile-bar button{
+  background:var(--inp);border:1px solid var(--brd);color:var(--tx3);
+  border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;white-space:nowrap;
+  transition:all .12s;flex-shrink:0;
+}
+.m-profile-bar button:hover{border-color:var(--acc2);color:var(--acc)}
+
+/* ── Parámetros e impresión colapsables ── */
+.sb-details summary{
+  list-style:none;display:flex;align-items:center;gap:6px;
+  cursor:pointer;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--tx3);padding:2px 0 6px;user-select:none;
+}
+.sb-details summary::-webkit-details-marker{display:none}
+.sb-details summary .sb-det-car{margin-left:auto;font-size:9px;transition:.2s}
+.sb-details[open] summary .sb-det-car{transform:rotate(180deg)}
+.sb-details summary:hover{color:var(--tx2)}
 
 /* ── Params ── */
 .p-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
@@ -378,249 +422,275 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
       <span class="badge-u">cm</span>
     </div>
 
-    <!-- Perfiles de medidas: guardar/cargar el set de medidas de un cliente,
-         o exportarlo/importarlo como archivo .json (tipo SeamlyME). -->
-    <div class="m-profiles" style="display:flex;flex-direction:column;gap:5px;margin:4px 0 10px;padding:8px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.18);border-radius:8px">
-      <div style="font-size:10px;color:#9490b0;font-weight:700;letter-spacing:.03em">👤 PERFIL DE MEDIDAS</div>
-      <select id="mp-select" style="width:100%;background:#13111c;color:#ede9fe;border:1px solid #2a2640;border-radius:6px;padding:5px 6px;font-size:11px">
-        <option value="">— Sin perfil (medidas manuales) —</option>
+    <!-- Perfil de medidas: barra compacta — acciones en modal -->
+    <div class="m-profile-bar">
+      <span style="font-size:11px">👤</span>
+      <select id="mp-select" style="flex:1;background:transparent;border:none;color:var(--tx2);font-size:11px;font-family:var(--font);outline:none;cursor:pointer;min-width:0">
+        <option value="">Sin perfil</option>
       </select>
-      <div style="display:flex;gap:4px;flex-wrap:wrap">
-        <button id="mp-save"   class="m-btn" style="flex:1;font-size:10px;padding:4px 6px;width:auto">💾 Guardar</button>
-        <button id="mp-del"    class="m-btn" style="flex:1;font-size:10px;padding:4px 6px;width:auto">🗑 Eliminar</button>
-        <button id="mp-export" class="m-btn" style="flex:1;font-size:10px;padding:4px 6px;width:auto">⬇ Exportar</button>
-        <button id="mp-import" class="m-btn" style="flex:1;font-size:10px;padding:4px 6px;width:auto">⬆ Importar</button>
-      </div>
-      <input type="file" id="mp-import-file" accept="application/json" style="display:none">
+      <button id="mp-save"   style="background:var(--inp);border:1px solid var(--brd);color:var(--tx3);border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;transition:all .12s" title="Guardar perfil">💾</button>
+      <button id="mp-del"    style="background:var(--inp);border:1px solid var(--brd);color:var(--tx3);border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;transition:all .12s" title="Eliminar perfil">🗑</button>
+      <button id="mp-export" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx3);border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;transition:all .12s" title="Exportar JSON">⬇</button>
+      <button id="mp-import" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx3);border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;transition:all .12s" title="Importar JSON">⬆</button>
     </div>
+    <input type="file" id="mp-import-file" accept="application/json" style="display:none">
 
-    <div class="m-group-title">📏 Contornos</div>
-    <div class="m-row">
-      <div class="m-dot" style="background:#f59e0b"></div>
-      <label>Busto / Pecho</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('bust',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="bust" placeholder="cm" min="50" max="200" step="0.5">
-        <button class="m-btn" onclick="stepInput('bust',1)">+</button>
+    <details class="m-accord" open>
+      <summary>
+        <span style="color:#f59e0b">●</span> Contornos
+        <span class="m-ac-car">▾</span>
+      </summary>
+      <div class="m-accord-body">
+        <div class="m-row">
+          <div class="m-dot" style="background:#f59e0b"></div>
+          <label>Busto / Pecho</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('bust',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="bust" placeholder="cm" min="50" max="200" step="0.5">
+            <button class="m-btn" onclick="stepInput('bust',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row">
+          <div class="m-dot" style="background:#f59e0b"></div>
+          <label>Cintura</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('waist',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="waist" placeholder="cm" min="40" max="180" step="0.5">
+            <button class="m-btn" onclick="stepInput('waist',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row">
+          <div class="m-dot" style="background:#f59e0b"></div>
+          <label>Cadera</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('hip',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="hip" placeholder="cm" min="50" max="220" step="0.5">
+            <button class="m-btn" onclick="stepInput('hip',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row">
+          <div class="m-dot" style="background:#60a5fa"></div>
+          <label>Hombros</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('shoulder',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="shoulder" placeholder="cm" min="25" max="60" step="0.5">
+            <button class="m-btn" onclick="stepInput('shoulder',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row">
+          <div class="m-dot" style="background:#60a5fa"></div>
+          <label>Cuello</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('neck',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="neck" placeholder="cm" min="28" max="60" step="0.5">
+            <button class="m-btn" onclick="stepInput('neck',1)">+</button>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="m-row">
-      <div class="m-dot" style="background:#f59e0b"></div>
-      <label>Cintura</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('waist',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="waist" placeholder="cm" min="40" max="180" step="0.5">
-        <button class="m-btn" onclick="stepInput('waist',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row">
-      <div class="m-dot" style="background:#f59e0b"></div>
-      <label>Cadera</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('hip',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="hip" placeholder="cm" min="50" max="220" step="0.5">
-        <button class="m-btn" onclick="stepInput('hip',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row">
-      <div class="m-dot" style="background:#60a5fa"></div>
-      <label>Hombros</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('shoulder',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="shoulder" placeholder="cm" min="25" max="60" step="0.5">
-        <button class="m-btn" onclick="stepInput('shoulder',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row">
-      <div class="m-dot" style="background:#60a5fa"></div>
-      <label>Cuello</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('neck',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="neck" placeholder="cm" min="28" max="60" step="0.5">
-        <button class="m-btn" onclick="stepInput('neck',1)">+</button>
-      </div>
-    </div>
+    </details>
 
-    <div class="m-group-title">📐 Largos</div>
-    <div class="m-row">
-      <div class="m-dot" style="background:#34d399"></div>
-      <label>Largo espalda</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('backLength',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="backLength" placeholder="cm" min="25" max="60" step="0.5">
-        <button class="m-btn" onclick="stepInput('backLength',1)">+</button>
+    <details class="m-accord" open>
+      <summary>
+        <span style="color:#34d399">●</span> Largos
+        <span class="m-ac-car">▾</span>
+      </summary>
+      <div class="m-accord-body">
+        <div class="m-row">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo espalda</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('backLength',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="backLength" placeholder="cm" min="25" max="60" step="0.5">
+            <button class="m-btn" onclick="stepInput('backLength',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo frente</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('frontLength',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="frontLength" placeholder="cm" min="25" max="65" step="0.5">
+            <button class="m-btn" onclick="stepInput('frontLength',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo total</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('totalLength',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="totalLength" placeholder="cm" min="30" max="160" step="0.5">
+            <button class="m-btn" onclick="stepInput('totalLength',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row" id="row-sleeve-length">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo manga</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('sleeveLength',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="sleeveLength" placeholder="cm" min="10" max="80" step="0.5">
+            <button class="m-btn" onclick="stepInput('sleeveLength',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row" id="row-wrist" style="display:none">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Muñeca</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('wrist',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="wrist" placeholder="cm" min="12" max="30" step="0.5">
+            <button class="m-btn" onclick="stepInput('wrist',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row" id="row-sleeve-short">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Manga corta</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('sleeveShort',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="sleeveShort" placeholder="cm" min="5" max="40" step="0.5">
+            <button class="m-btn" onclick="stepInput('sleeveShort',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row" id="row-arm-circ">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Contorno brazo</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('armCirc',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="armCirc" placeholder="cm" min="15" max="60" step="0.5">
+            <button class="m-btn" onclick="stepInput('armCirc',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row" id="row-skirt-length" style="display:none">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Largo falda</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('skirtLength',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="skirtLength" placeholder="cm" min="25" max="120" step="0.5">
+            <button class="m-btn" onclick="stepInput('skirtLength',1)">+</button>
+          </div>
+        </div>
+        <div class="m-row">
+          <div class="m-dot" style="background:#34d399"></div>
+          <label>Prof. cadera</label>
+          <div class="m-ctrl">
+            <button class="m-btn" onclick="stepInput('hipDepth',-1)">−</button>
+            <input class="m-inp" type="number" data-measure="hipDepth" placeholder="cm" min="14" max="30" step="0.5">
+            <button class="m-btn" onclick="stepInput('hipDepth',1)">+</button>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="m-row">
-      <div class="m-dot" style="background:#34d399"></div>
-      <label>Largo frente</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('frontLength',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="frontLength" placeholder="cm" min="25" max="65" step="0.5">
-        <button class="m-btn" onclick="stepInput('frontLength',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row">
-      <div class="m-dot" style="background:#34d399"></div>
-      <label>Largo total</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('totalLength',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="totalLength" placeholder="cm" min="30" max="160" step="0.5">
-        <button class="m-btn" onclick="stepInput('totalLength',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row" id="row-sleeve-length">
-      <div class="m-dot" style="background:#34d399"></div>
-      <label>Largo manga</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('sleeveLength',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="sleeveLength" placeholder="cm" min="10" max="80" step="0.5">
-        <button class="m-btn" onclick="stepInput('sleeveLength',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row" id="row-wrist" style="display:none">
-      <div class="m-dot" style="background:#34d399"></div>
-      <label>Muñeca</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('wrist',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="wrist" placeholder="cm" min="12" max="30" step="0.5">
-        <button class="m-btn" onclick="stepInput('wrist',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row" id="row-sleeve-short">
-      <div class="m-dot" style="background:#34d399"></div>
-      <label>Manga corta</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('sleeveShort',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="sleeveShort" placeholder="cm" min="5" max="40" step="0.5">
-        <button class="m-btn" onclick="stepInput('sleeveShort',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row" id="row-arm-circ">
-      <div class="m-dot" style="background:#34d399"></div>
-      <label>Contorno de brazo</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('armCirc',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="armCirc" placeholder="cm" min="15" max="60" step="0.5">
-        <button class="m-btn" onclick="stepInput('armCirc',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row" id="row-skirt-length" style="display:none">
-      <div class="m-dot" style="background:#34d399"></div>
-      <label>Largo falda</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('skirtLength',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="skirtLength" placeholder="cm" min="25" max="120" step="0.5">
-        <button class="m-btn" onclick="stepInput('skirtLength',1)">+</button>
-      </div>
-    </div>
-    <div class="m-row">
-      <div class="m-dot" style="background:#34d399"></div>
-      <label>Prof. cadera</label>
-      <div class="m-ctrl">
-        <button class="m-btn" onclick="stepInput('hipDepth',-1)">−</button>
-        <input class="m-inp" type="number" data-measure="hipDepth" placeholder="cm" min="14" max="30" step="0.5">
-        <button class="m-btn" onclick="stepInput('hipDepth',1)">+</button>
-      </div>
-    </div>
+    </details>
 
-    <!-- Medidas pantalón / short (ocultas por defecto) -->
+    <!-- Pantalón / Short (oculto por defecto, visible cuando corresponde) -->
     <div id="grp-pants" style="display:none">
-      <div class="m-group-title">🩲 Pantalón / Short</div>
-      <div class="m-row">
-        <div class="m-dot" style="background:#a78bfa"></div>
-        <label>Tiro (rise)</label>
-        <div class="m-ctrl">
-          <button class="m-btn" onclick="stepInput('rise',-1)">−</button>
-          <input class="m-inp" type="number" data-measure="rise" placeholder="cm" min="18" max="45" step="0.5">
-          <button class="m-btn" onclick="stepInput('rise',1)">+</button>
+      <details class="m-accord" open>
+        <summary>
+          <span style="color:#a78bfa">●</span> Pantalón / Short
+          <span class="m-ac-car">▾</span>
+        </summary>
+        <div class="m-accord-body">
+          <div class="m-row">
+            <div class="m-dot" style="background:#a78bfa"></div>
+            <label>Tiro (rise)</label>
+            <div class="m-ctrl">
+              <button class="m-btn" onclick="stepInput('rise',-1)">−</button>
+              <input class="m-inp" type="number" data-measure="rise" placeholder="cm" min="18" max="45" step="0.5">
+              <button class="m-btn" onclick="stepInput('rise',1)">+</button>
+            </div>
+          </div>
+          <div class="m-row">
+            <div class="m-dot" style="background:#a78bfa"></div>
+            <label>Entrepierna</label>
+            <div class="m-ctrl">
+              <button class="m-btn" onclick="stepInput('inseam',-1)">−</button>
+              <input class="m-inp" type="number" data-measure="inseam" placeholder="cm" min="30" max="100" step="0.5">
+              <button class="m-btn" onclick="stepInput('inseam',1)">+</button>
+            </div>
+          </div>
+          <div class="m-row" id="row-outseam">
+            <div class="m-dot" style="background:#a78bfa"></div>
+            <label>Lateral total</label>
+            <div class="m-ctrl">
+              <button class="m-btn" onclick="stepInput('outseam',-1)">−</button>
+              <input class="m-inp" type="number" data-measure="outseam" placeholder="cm" min="50" max="130" step="0.5">
+              <button class="m-btn" onclick="stepInput('outseam',1)">+</button>
+            </div>
+          </div>
+          <div class="m-row">
+            <div class="m-dot" style="background:#a78bfa"></div>
+            <label>Muslo</label>
+            <div class="m-ctrl">
+              <button class="m-btn" onclick="stepInput('thigh',-1)">−</button>
+              <input class="m-inp" type="number" data-measure="thigh" placeholder="cm" min="35" max="90" step="0.5">
+              <button class="m-btn" onclick="stepInput('thigh',1)">+</button>
+            </div>
+          </div>
+          <div class="m-row" id="row-knee">
+            <div class="m-dot" style="background:#a78bfa"></div>
+            <label>Rodilla</label>
+            <div class="m-ctrl">
+              <button class="m-btn" onclick="stepInput('knee',-1)">−</button>
+              <input class="m-inp" type="number" data-measure="knee" placeholder="cm" min="25" max="65" step="0.5">
+              <button class="m-btn" onclick="stepInput('knee',1)">+</button>
+            </div>
+          </div>
+          <div class="m-row" id="row-ankle">
+            <div class="m-dot" style="background:#a78bfa"></div>
+            <label>Tobillo</label>
+            <div class="m-ctrl">
+              <button class="m-btn" onclick="stepInput('ankle',-1)">−</button>
+              <input class="m-inp" type="number" data-measure="ankle" placeholder="cm" min="18" max="45" step="0.5">
+              <button class="m-btn" onclick="stepInput('ankle',1)">+</button>
+            </div>
+          </div>
+          <div class="m-row" id="row-shortLength">
+            <div class="m-dot" style="background:#a78bfa"></div>
+            <label>Largo short</label>
+            <div class="m-ctrl">
+              <button class="m-btn" onclick="stepInput('shortLength',-1)">−</button>
+              <input class="m-inp" type="number" data-measure="shortLength" value="45" min="20" max="70" step="0.5">
+              <button class="m-btn" onclick="stepInput('shortLength',1)">+</button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="m-row">
-        <div class="m-dot" style="background:#a78bfa"></div>
-        <label>Entrepierna</label>
-        <div class="m-ctrl">
-          <button class="m-btn" onclick="stepInput('inseam',-1)">−</button>
-          <input class="m-inp" type="number" data-measure="inseam" placeholder="cm" min="30" max="100" step="0.5">
-          <button class="m-btn" onclick="stepInput('inseam',1)">+</button>
-        </div>
-      </div>
-      <div class="m-row" id="row-outseam">
-        <div class="m-dot" style="background:#a78bfa"></div>
-        <label>Lateral total</label>
-        <div class="m-ctrl">
-          <button class="m-btn" onclick="stepInput('outseam',-1)">−</button>
-          <input class="m-inp" type="number" data-measure="outseam" placeholder="cm" min="50" max="130" step="0.5">
-          <button class="m-btn" onclick="stepInput('outseam',1)">+</button>
-        </div>
-      </div>
-      <div class="m-row">
-        <div class="m-dot" style="background:#a78bfa"></div>
-        <label>Muslo</label>
-        <div class="m-ctrl">
-          <button class="m-btn" onclick="stepInput('thigh',-1)">−</button>
-          <input class="m-inp" type="number" data-measure="thigh" placeholder="cm" min="35" max="90" step="0.5">
-          <button class="m-btn" onclick="stepInput('thigh',1)">+</button>
-        </div>
-      </div>
-      <div class="m-row" id="row-knee">
-        <div class="m-dot" style="background:#a78bfa"></div>
-        <label>Rodilla</label>
-        <div class="m-ctrl">
-          <button class="m-btn" onclick="stepInput('knee',-1)">−</button>
-          <input class="m-inp" type="number" data-measure="knee" placeholder="cm" min="25" max="65" step="0.5">
-          <button class="m-btn" onclick="stepInput('knee',1)">+</button>
-        </div>
-      </div>
-      <div class="m-row" id="row-ankle">
-        <div class="m-dot" style="background:#a78bfa"></div>
-        <label>Tobillo</label>
-        <div class="m-ctrl">
-          <button class="m-btn" onclick="stepInput('ankle',-1)">−</button>
-          <input class="m-inp" type="number" data-measure="ankle" placeholder="cm" min="18" max="45" step="0.5">
-          <button class="m-btn" onclick="stepInput('ankle',1)">+</button>
-        </div>
-      </div>
-      <div class="m-row" id="row-shortLength">
-        <div class="m-dot" style="background:#a78bfa"></div>
-        <label>Largo short</label>
-        <div class="m-ctrl">
-          <button class="m-btn" onclick="stepInput('shortLength',-1)">−</button>
-          <input class="m-inp" type="number" data-measure="shortLength" value="45" min="20" max="70" step="0.5">
-          <button class="m-btn" onclick="stepInput('shortLength',1)">+</button>
-        </div>
-      </div>
+      </details>
     </div>
   </div>
 
-  <!-- 3. Parámetros -->
+  <!-- 3. Parámetros (colapsable) -->
   <div class="sb-sec">
-    <div class="sec-title">
-      <span class="step-num" style="background:var(--sage)">3</span>Parámetros
-    </div>
-    <div class="p-row">
-      <label>Margen costura <span class="badge-u">mm</span></label>
-      <input class="p-inp" id="p-seam" type="number" data-param="seam" value="10" min="5" max="25">
-    </div>
-    <div class="p-row">
-      <label>Facilidad <span class="badge-u">cm</span></label>
-      <input class="p-inp" type="number" data-param="ease" value="6" min="0" max="20" step="0.5">
-    </div>
-    <div class="p-row">
-      <label>Papel</label>
-      <select class="p-sel" data-param="paper">
-        <option value="letter">Carta</option>
-        <option value="a4">A4</option>
-      </select>
-    </div>
+    <details class="sb-details">
+      <summary>
+        <span class="step-num" style="background:var(--sage)">3</span>Parámetros
+        <span class="sb-det-car">▾</span>
+      </summary>
+      <div style="padding-top:6px">
+        <div class="p-row">
+          <label>Margen costura <span class="badge-u">mm</span></label>
+          <input class="p-inp" id="p-seam" type="number" data-param="seam" value="10" min="5" max="25">
+        </div>
+        <div class="p-row">
+          <label>Facilidad <span class="badge-u">cm</span></label>
+          <input class="p-inp" type="number" data-param="ease" value="6" min="0" max="20" step="0.5">
+        </div>
+        <div class="p-row">
+          <label>Papel</label>
+          <select class="p-sel" data-param="paper">
+            <option value="letter">Carta</option>
+            <option value="a4">A4</option>
+          </select>
+        </div>
+      </div>
+    </details>
   </div>
 
-  <!-- Selector de talla -->
+  <!-- Talla base (colapsable) -->
   <div class="sb-sec">
-    <div class="sec-title" style="margin-bottom:7px">
-      <span class="step-num" style="background:var(--acc)">T</span>Talla base
-    </div>
-    <div id="grading-selector"></div>
+    <details class="sb-details">
+      <summary>
+        <span class="step-num" style="background:var(--acc)">T</span>Talla base
+        <span class="sb-det-car">▾</span>
+      </summary>
+      <div style="padding-top:6px" id="grading-selector"></div>
+    </details>
   </div>
 
   <!-- Acciones -->
@@ -633,7 +703,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
     <button class="sb-btn ghost" id="btn-drafter">✏ Trazar</button>
 
     <!-- Menú: Archivo (Guardar/Cargar/PDF/Compartir) -->
-    <button class="sb-dd-toggle" data-dd="dd-archivo" style="border-color:rgba(148,163,184,.35);color:#cbd5e1">
+    <button class="sb-dd-toggle" data-dd="dd-archivo">
       📁 Archivo <span class="sb-dd-car">▾</span>
     </button>
     <div class="sb-dd-panel" id="dd-archivo">
@@ -648,7 +718,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
     </div>
 
     <!-- Menú: Patronaje avanzado -->
-    <button class="sb-dd-toggle" data-dd="dd-avanzado" style="border-color:rgba(139,92,246,.4);color:#a78bfa">
+    <button class="sb-dd-toggle" data-dd="dd-avanzado">
       🧩 Patronaje avanzado <span class="sb-dd-car">▾</span>
     </button>
     <div class="sb-dd-panel" id="dd-avanzado">
@@ -657,7 +727,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
     </div>
 
     <!-- Menú: Recursos -->
-    <button class="sb-dd-toggle" data-dd="dd-recursos" style="border-color:rgba(52,211,153,.3);color:#34d399">
+    <button class="sb-dd-toggle" data-dd="dd-recursos">
       🎓 Recursos <span class="sb-dd-car">▾</span>
     </button>
     <div class="sb-dd-panel" id="dd-recursos">
@@ -667,7 +737,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
     </div>
 
     <!-- Menú: Mi Equipo / Atelier -->
-    <button class="sb-dd-toggle" data-dd="dd-equipo" style="border-color:rgba(196,152,48,.3);color:var(--gold)">
+    <button class="sb-dd-toggle" data-dd="dd-equipo">
       🏢 Mi Equipo / Atelier <span class="sb-dd-car">▾</span>
     </button>
     <div class="sb-dd-panel" id="dd-equipo">
