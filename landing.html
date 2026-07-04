@@ -359,7 +359,7 @@ footer a:hover{color:var(--tx2)}
   <div class="orb orb3"></div>
 
   <div class="hero-badge">
-    <span></span> Nuevo — Editor Visual v6 · Split View
+    <span></span> Nuevo — Editor Visual v6 · Trazar sobre imagen
   </div>
 
   <h1 class="hero-headline">
@@ -370,7 +370,7 @@ footer a:hover{color:var(--tx2)}
 
   <p class="hero-sub">
     Del trazo a la tela. Sistema paramétrico de patronaje con IA,
-    visualización 3D en tiempo real y exportación PDF a escala 1:1.
+    traza sobre imagen de referencia y exporta PDF a escala 1:1.
   </p>
 
   <div class="hero-actions">
@@ -472,19 +472,19 @@ footer a:hover{color:var(--tx2)}
     <div class="marquee-track">
       <span class="marquee-item">Patronaje paramétrico</span>
       <span class="marquee-item">Exportación PDF 1:1</span>
-      <span class="marquee-item">Vista 3D en tiempo real</span>
+      <span class="marquee-item">Trazar sobre imagen</span>
       <span class="marquee-item">Sistema Müller & Sohn</span>
       <span class="marquee-item">Gradación de tallas</span>
-      <span class="marquee-item">Editor visual CLO-style</span>
+      <span class="marquee-item">Editor visual interactivo</span>
       <span class="marquee-item">Panel de atelier</span>
       <span class="marquee-item">Pinzas y sisas</span>
       <span class="marquee-item">Curvas Bézier</span>
       <span class="marquee-item">Patronaje paramétrico</span>
       <span class="marquee-item">Exportación PDF 1:1</span>
-      <span class="marquee-item">Vista 3D en tiempo real</span>
+      <span class="marquee-item">Trazar sobre imagen</span>
       <span class="marquee-item">Sistema Müller & Sohn</span>
       <span class="marquee-item">Gradación de tallas</span>
-      <span class="marquee-item">Editor visual CLO-style</span>
+      <span class="marquee-item">Editor visual interactivo</span>
       <span class="marquee-item">Panel de atelier</span>
       <span class="marquee-item">Pinzas y sisas</span>
       <span class="marquee-item">Curvas Bézier</span>
@@ -512,9 +512,10 @@ footer a:hover{color:var(--tx2)}
         <p class="feat-desc">Las piezas se generan automáticamente desde tus medidas. Cambia el busto de 88 a 92cm y todo el patrón se recalcula. Fórmulas tipo B4, TALLE_ESP, E2.</p>
       </div>
       <div class="feat-card">
-        <span class="feat-icon">🎭</span>
-        <div class="feat-name">Vista 3D + Split View</div>
-        <p class="feat-desc">Maniquí 3D realista con selección de género: Mujer, Hombre, Niña, Niño. Vista split CLO-style: patrón 2D + simulación 3D lado a lado.</p>
+        <span class="feat-icon">🖼️</span>
+        <div class="feat-name">Trazar sobre imagen</div>
+        <p class="feat-desc">Sube una foto de referencia o una prenda existente directamente al canvas. Ajusta opacidad y escala real en cm, y traza encima con precisión milimétrica.</p>
+        <div class="feat-tag">NUEVO v6</div>
       </div>
       <div class="feat-card">
         <span class="feat-icon">📌</span>
@@ -551,43 +552,55 @@ footer a:hover{color:var(--tx2)}
   </div>
 </section>
 
-<!-- SPLIT DEMO -->
+<!-- TRAZAR SOBRE IMAGEN DEMO -->
 <section class="split-demo">
   <div class="container">
     <div class="split-demo-inner">
       <div class="split-text">
-        <div class="section-tag">Split View</div>
-        <h2 class="section-title">Patrón y maniquí<br><em>al mismo tiempo</em></h2>
-        <p>Activa la vista split y trabaja con el patrón 2D en la izquierda mientras ves la prenda en el maniquí 3D en tiempo real, exactamente como en CLO 3D.</p>
+        <div class="section-tag">Imagen de referencia</div>
+        <h2 class="section-title">Tu referencia<br><em>dentro del canvas</em></h2>
+        <p>Sube cualquier foto — una prenda, un patrón impreso, una ilustración técnica — y traza directamente sobre ella. La imagen se ancla al canvas y se mueve con el zoom y el pan.</p>
         <ul>
-          <li>Patrón 2D editable a la izquierda</li>
-          <li>Maniquí 3D con la prenda a la derecha</li>
-          <li>Paredes de fondo para contexto espacial</li>
-          <li>Medidas del cuerpo con líneas amarillas al hover</li>
-          <li>Simular caída de la tela con animación</li>
+          <li>Calibra el ancho real en cm para escala exacta</li>
+          <li>Ajusta la opacidad para ver el trazo con claridad</li>
+          <li>Biblioteca de imágenes guardadas por proyecto</li>
+          <li>La imagen se guarda en tu cuenta y se restaura al volver</li>
+          <li>Traza encima con puntos, líneas y curvas Bézier</li>
         </ul>
       </div>
       <div class="split-visual">
-        <div class="split-visual-inner">
-          <div class="sv-left">
-            <div class="sv-label">Patrón 2D</div>
-            <div class="sv-pattern-mini">
-              <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10,10 L60,10 L60,70 L10,70 Z" stroke="#8b5cf6" stroke-width="1.5" fill="rgba(139,92,246,.08)"/>
-                <path d="M10,10 Q 5,25 15,45" stroke="#60a5fa" stroke-width="1.5" fill="none"/>
-                <path d="M10,10 Q 25,5 35,12" stroke="#a78bfa" stroke-width="1.5" fill="none"/>
-                <line x1="10" y1="10" x2="10" y2="70" stroke="#f87171" stroke-width="1" stroke-dasharray="4,2"/>
-                <circle cx="10" cy="10" r="2.5" fill="#8b5cf6"/>
-                <circle cx="60" cy="10" r="2.5" fill="#8b5cf6"/>
-                <circle cx="60" cy="70" r="2.5" fill="#8b5cf6"/>
-                <circle cx="10" cy="70" r="2.5" fill="#8b5cf6"/>
-              </svg>
-            </div>
+        <div class="split-visual-inner" style="flex-direction:column;gap:0;border-radius:12px;overflow:hidden;background:#0d0d1a;border:1px solid rgba(139,92,246,.25)">
+          <!-- Canvas simulado con imagen de fondo + trazo encima -->
+          <div style="padding:8px 12px;background:#12121f;border-bottom:1px solid rgba(139,92,246,.15);display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:#9490b0;font-family:monospace">🖼️ blusa-referencia.jpg</span>
+            <span style="margin-left:auto;font-size:10px;color:#6b6890;background:rgba(139,92,246,.15);padding:2px 8px;border-radius:10px">40cm · opacidad 60%</span>
           </div>
-          <div style="width:2px;background:rgba(139,92,246,.3)"></div>
-          <div class="sv-right">
-            <div class="sv-label">Vista 3D</div>
-            <div class="sv-mannequin">🧍‍♀️</div>
+          <div style="position:relative;padding:16px;flex:1;display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:260px">
+              <!-- Imagen de referencia simulada (rectángulo semitransparente con silueta de prenda) -->
+              <rect x="30" y="10" width="140" height="140" rx="4" fill="rgba(139,92,246,.06)" stroke="rgba(139,92,246,.15)" stroke-width="1"/>
+              <!-- Silueta de prenda (imagen de fondo) -->
+              <path d="M70,20 L55,40 L45,38 L50,60 L60,58 L60,140 L140,140 L140,58 L150,60 L155,38 L145,40 L130,20 Q100,30 70,20Z" fill="rgba(139,92,246,.10)" stroke="rgba(139,92,246,.20)" stroke-width="0.8" stroke-dasharray="3,2"/>
+              <!-- Trazo encima (líneas de patronaje) -->
+              <path d="M70,20 L130,20" stroke="#8b5cf6" stroke-width="1.5" fill="none"/>
+              <path d="M70,20 Q60,35 60,60" stroke="#8b5cf6" stroke-width="1.5" fill="none"/>
+              <path d="M130,20 Q140,35 140,60" stroke="#8b5cf6" stroke-width="1.5" fill="none"/>
+              <path d="M60,60 L60,140" stroke="#8b5cf6" stroke-width="1.5" fill="none"/>
+              <path d="M140,60 L140,140" stroke="#8b5cf6" stroke-width="1.5" fill="none"/>
+              <path d="M60,140 L140,140" stroke="#8b5cf6" stroke-width="1.5" fill="none"/>
+              <!-- Puntos de control -->
+              <circle cx="70" cy="20" r="3" fill="#8b5cf6"/>
+              <circle cx="130" cy="20" r="3" fill="#8b5cf6"/>
+              <circle cx="60" cy="60" r="3" fill="#a78bfa"/>
+              <circle cx="140" cy="60" r="3" fill="#a78bfa"/>
+              <circle cx="60" cy="140" r="3" fill="#8b5cf6"/>
+              <circle cx="140" cy="140" r="3" fill="#8b5cf6"/>
+              <!-- Cota de ancho -->
+              <line x1="60" y1="152" x2="140" y2="152" stroke="#60a5fa" stroke-width="1"/>
+              <line x1="60" y1="148" x2="60" y2="156" stroke="#60a5fa" stroke-width="1"/>
+              <line x1="140" y1="148" x2="140" y2="156" stroke="#60a5fa" stroke-width="1"/>
+              <text x="100" y="149" text-anchor="middle" font-size="8" fill="#60a5fa" font-family="monospace">40.0 cm</text>
+            </svg>
           </div>
         </div>
       </div>
@@ -691,7 +704,7 @@ footer a:hover{color:var(--tx2)}
         <div class="tier-divider"></div>
         <div class="tier-feat">Franela básica y falda</div>
         <div class="tier-feat">Editor visual completo</div>
-        <div class="tier-feat">Vista 3D (mujer)</div>
+        <div class="tier-feat">Trazar sobre imagen</div>
         <div class="tier-feat">PDF con marca de agua</div>
         <div class="tier-feat">Undo / Redo 10 pasos</div>
         <a href="index.html" class="tier-btn outline">Comenzar gratis</a>
@@ -703,7 +716,7 @@ footer a:hover{color:var(--tx2)}
         <div class="tier-divider"></div>
         <div class="tier-feat hi">Todas las prendas</div>
         <div class="tier-feat hi">PDF limpio sin marca</div>
-        <div class="tier-feat hi">Todos los géneros 3D</div>
+        <div class="tier-feat hi">Biblioteca de imágenes ilimitada</div>
         <div class="tier-feat hi">Gradación de tallas</div>
         <div class="tier-feat hi">Verificación de patrón</div>
         <div class="tier-feat">Undo / Redo 60 pasos</div>
