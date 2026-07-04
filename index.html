@@ -1463,6 +1463,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <button class="tb" id="dv6-sistemas" style="border-color:rgba(251,191,36,.4);color:#fbbf24" title="Cargar desde sistema de patronaje registrado">🧵 Sistemas</button>
     <div class="dv6-sep"></div>
     <button class="tb" id="dv6-bgimg-btn" style="border-color:rgba(124,58,237,.4);color:#7c3aed" title="Trazar sobre una imagen de referencia">🖼️ Imagen</button>
+    <button class="tb" id="dv6-help-btn" style="border-color:rgba(251,191,36,.4);color:#fbbf24" title="Ver tutoriales y guía de uso">❓ Ayuda</button>
     <input type="file" id="dv6-bgimg-file" accept="image/*" style="display:none">
   </div>
 
@@ -2282,6 +2283,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-mirror').onclick = _mirrorSelected;
     document.getElementById('dv6-demo').onclick = _runDemo;
     document.getElementById('dv6-sistemas').onclick = () => { if(PAT.SistemasUI) PAT.SistemasUI.open(); };
+    document.getElementById('dv6-help-btn').onclick = () => { if(PAT.HelpPanel) PAT.HelpPanel.open(); };
     document.getElementById('dv6-dpt').onclick  = _delSelected;
 
     _initBgImage();
