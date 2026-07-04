@@ -16,11 +16,35 @@ PAT.AtelierPanel = (function () {
   let _clients = [];
   let _panelEl = null;
 
+  function _fsCol() {
+    try {
+      const uid = window.firebase?.auth?.()?.currentUser?.uid;
+      if (!uid || !window.firebase?.firestore) return null;
+      return firebase.firestore().collection('users').doc(uid).collection('atelierClients');
+    } catch (e) { return null; }
+  }
+
   // ─────────────────────────────────────────────────────────────────
   // INIT
   // ─────────────────────────────────────────────────────────────────
   function init() {
     _clients = _loadClients();
+    document.addEventListener('pat:authChanged', (e) => {
+      if (e.detail) _loadFromFirestore();
+      else _clients = _loadClients();
+    });
+  }
+
+  async function _loadFromFirestore() {
+    const col = _fsCol();
+    if (!col) return;
+    try {
+      const snap = await col.orderBy('updatedAt', 'desc').get();
+      if (!snap.empty) {
+        _clients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_clients)); } catch (e) {}
+      }
+    } catch (e) { console.warn('[AtelierPanel] Firestore load error:', e.message); }
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -367,10 +391,17 @@ PAT.AtelierPanel = (function () {
   }
 
   function _saveClients() {
-    // HOOK DE PRODUCCIÓN: sincronizar con Firestore
-    // db.collection(`users/${PAT.AuthTier.getUserId()}/clients`).set(...)
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_clients)); }
-    catch (e) { console.error('[AtelierPanel] Error al guardar:', e); }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_clients)); } catch (e) {}
+    _syncToFirestore();
+  }
+
+  function _syncToFirestore() {
+    const col = _fsCol();
+    if (!col) return;
+    const ts = firebase.firestore.FieldValue.serverTimestamp();
+    _clients.forEach(c => {
+      col.doc(c.id || c.name).set({ ...c, updatedAt: ts }, { merge: true }).catch(() => {});
+    });
   }
 
   function getClients() { return [..._clients]; }

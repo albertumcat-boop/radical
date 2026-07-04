@@ -1,16 +1,13 @@
 /**
  * drafter-ui.js v6.0 — Editor Visual de Patronaje
- * _esc(): escapa HTML para evitar XSS al insertar datos de Firestore en innerHTML.
+ * FIXES: línea temporal fuera del canvas, undo/redo, distancia en tiempo real,
+ * curvas ajustables arrastrando, snap a grilla, gradación de tallas.
  */
 function _escDU(s) {
   return String(s ?? '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
- * FIXES: línea temporal fuera del canvas (coords SVG directas),
- * undo/redo, distancia en tiempo real, curvas ajustables arrastrando,
- * snap a grilla, gradación de tallas
- */
 'use strict';
 window.PAT = window.PAT || {};
 
@@ -1246,9 +1243,12 @@ PAT.DrafterUI = (function () {
   // ════════════════════════════════════════════════════════════
   function _save(){
     const id=_curSave||('sv6_'+Date.now());
+    const data={id,name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr,savedAt:new Date().toISOString()};
     const store=_loadStore();
-    store[id]={id,name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr,savedAt:new Date().toISOString()};
+    store[id]=data;
     localStorage.setItem(MK,JSON.stringify(store));
+    // Sync con SavedPatterns para que Firestore también quede actualizado
+    if(PAT.SavedPatterns)PAT.SavedPatterns.guardar(id,data).catch(()=>{});
     _curSave=id;_refreshSaved();
     if(PAT.App)PAT.App.toast('💾 "'+_pieceName+'" guardado','success');
   }
@@ -1276,7 +1276,9 @@ PAT.DrafterUI = (function () {
       });
       div.querySelector('.dv6-sdel').addEventListener('click',e=>{
         e.stopPropagation();if(!confirm('¿Eliminar "'+item.name+'"?'))return;
-        delete store[id];localStorage.setItem(MK,JSON.stringify(store));_refreshSaved();
+        delete store[id];localStorage.setItem(MK,JSON.stringify(store));
+        if(PAT.SavedPatterns)PAT.SavedPatterns.eliminar(id).catch(()=>{});
+        _refreshSaved();
       });
       list.appendChild(div);
     });

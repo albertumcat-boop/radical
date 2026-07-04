@@ -2042,7 +2042,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         del.onclick = async (e) => {
           e.stopPropagation();
           if (!confirm('¿Eliminar "' + (it.nombre || 'esta imagen') + '" de tu biblioteca?')) return;
-          await PAT.ImageLibrary.eliminar(it.id);
+          try { await PAT.ImageLibrary.eliminar(it.id); } catch (e) { console.warn('[BgImage] Error al eliminar:', e); }
           _refreshLib();
         };
         row.appendChild(thumb); row.appendChild(label); row.appendChild(del);
@@ -5829,20 +5829,31 @@ document.addEventListener('pat:importPattern', function(e) {
 
 // ── PWA Service Worker ────────────────────────────────
 if ('serviceWorker' in navigator) {
+  var _swReg = null;
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/service-worker.js')
       .then(function(reg) {
+        _swReg = reg;
         console.log('[PWA] SW registrado:', reg.scope);
         reg.addEventListener('updatefound', function() {
           var newWorker = reg.installing;
           newWorker.addEventListener('statechange', function() {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              if (PAT.App) PAT.App.toast('🔄 Nueva versión disponible — recarga para actualizar', 'info');
+              // Mostrar banner persistente con botón de actualización
+              var banner = document.createElement('div');
+              banner.id = 'sw-update-banner';
+              banner.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--acc);color:#fff;padding:10px 18px;border-radius:8px;display:flex;align-items:center;gap:12px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+              banner.innerHTML = '<span>🔄 Nueva versión disponible</span><button style="background:#fff;color:var(--acc);border:none;border-radius:5px;padding:4px 12px;font-weight:700;cursor:pointer" onclick="(function(){if(_swReg&&_swReg.waiting){_swReg.waiting.postMessage({action:\'skipWaiting\'});}else{location.reload();}})()">Actualizar</button><button style="background:transparent;border:none;color:#fff;cursor:pointer;font-size:16px;opacity:.7" onclick="document.getElementById(\'sw-update-banner\').remove()">✕</button>';
+              document.body.appendChild(banner);
             }
           });
         });
       })
       .catch(function(err) { console.warn('[PWA] SW no registrado:', err); });
+  });
+  // Recargar automáticamente cuando el nuevo SW tome el control
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    window.location.reload();
   });
 }
 </script>

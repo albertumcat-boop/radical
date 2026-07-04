@@ -63,13 +63,17 @@ PAT.ImageLibrary = (function () {
     anchoCm = anchoCm || 50;
 
     if (col) {
-      const ahora = firebase.firestore.FieldValue.serverTimestamp();
-      const ref = await col.add({
-        nombre: nombre || 'Imagen sin nombre',
-        dataUrl: comp, w, h, anchoCm,
-        createdAt: ahora, updatedAt: ahora,
-      });
-      return { id: ref.id, dataUrl: comp, nombre, w, h, anchoCm };
+      try {
+        const ahora = firebase.firestore.FieldValue.serverTimestamp();
+        const ref = await col.add({
+          nombre: nombre || 'Imagen sin nombre',
+          dataUrl: comp, w, h, anchoCm,
+          createdAt: ahora, updatedAt: ahora,
+        });
+        return { id: ref.id, dataUrl: comp, nombre, w, h, anchoCm };
+      } catch (e) {
+        console.warn('[ImageLibrary] Firestore error al guardar, usando localStorage:', e.message);
+      }
     }
 
     // Fallback localStorage
@@ -90,8 +94,10 @@ PAT.ImageLibrary = (function () {
   async function actualizarAncho(id, anchoCm) {
     const col = _col();
     if (col) {
-      await col.doc(id).set({ anchoCm, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-      return;
+      try {
+        await col.doc(id).set({ anchoCm, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        return;
+      } catch (e) { console.warn('[ImageLibrary] Firestore error al actualizar ancho:', e.message); }
     }
     try {
       const existing = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
@@ -105,8 +111,10 @@ PAT.ImageLibrary = (function () {
   async function listar() {
     const col = _col();
     if (col) {
-      const snap = await col.orderBy('updatedAt', 'desc').get();
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      try {
+        const snap = await col.orderBy('updatedAt', 'desc').get();
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) { console.warn('[ImageLibrary] Firestore error al listar, usando localStorage:', e.message); }
     }
     try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
     catch (e) { return []; }
@@ -115,7 +123,10 @@ PAT.ImageLibrary = (function () {
   /** Elimina una imagen de la biblioteca por id. */
   async function eliminar(id) {
     const col = _col();
-    if (col) { await col.doc(id).delete(); return; }
+    if (col) {
+      try { await col.doc(id).delete(); return; }
+      catch (e) { console.warn('[ImageLibrary] Firestore error al eliminar:', e.message); }
+    }
     try {
       const existing = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
       localStorage.setItem(LS_KEY, JSON.stringify(existing.filter(it => it.id !== id)));
@@ -126,8 +137,10 @@ PAT.ImageLibrary = (function () {
   async function renombrar(id, nuevoNombre) {
     const col = _col();
     if (col) {
-      await col.doc(id).set({ nombre: nuevoNombre, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-      return;
+      try {
+        await col.doc(id).set({ nombre: nuevoNombre, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        return;
+      } catch (e) { console.warn('[ImageLibrary] Firestore error al renombrar:', e.message); }
     }
     try {
       const existing = JSON.parse(localStorage.getItem(LS_KEY) || '[]');

@@ -92,6 +92,24 @@ window.PAT = window.PAT || {};
       await auth.sendPasswordResetEmail(email);
     },
 
+    /** Elimina el documento raíz del usuario en Firestore y luego su cuenta de Auth.
+     *  Las subcolecciones (configuracion, bgImages, atelierClients, misSistemas)
+     *  requieren Cloud Function para borrarse en cascada; el doc raíz se borra aquí. */
+    async deleteAccount() {
+      if (!firebaseReady) throw new Error('Firebase no disponible');
+      const user = auth.currentUser;
+      if (!user) throw new Error('No hay sesión activa');
+      try {
+        await db.collection('users').doc(user.uid).delete();
+      } catch (e) {
+        console.warn('[Firebase] No se pudo borrar doc usuario:', e.message);
+      }
+      await user.delete();
+      localStorage.removeItem('pat_tier');
+      sessionStorage.removeItem('pat_session_token');
+      sessionStorage.removeItem('pat_purchases');
+    },
+
     // ── Patrones (aislados por userId) ───────────────────────────
     async savePattern(name, data) {
       const uid = _getCurrentUid();
@@ -123,7 +141,7 @@ window.PAT = window.PAT || {};
           .collection('patterns')
           .where('userId', '==', uid)
           .orderBy('createdAt', 'desc')
-          .limit(50)
+          .limit(200)
           .get();
         const patterns = [];
         snap.forEach(doc => patterns.push({ id: doc.id, ...doc.data() }));

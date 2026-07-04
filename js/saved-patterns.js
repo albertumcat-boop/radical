@@ -19,6 +19,7 @@ PAT.SavedPatterns = (function () {
   const LS_KEY = 'pat_v6'; // misma clave que el localStorage legado, para migrar sin perder datos
   let _cache = {};
   let _loaded = false;
+  let _unsubscribe = null; // listener onSnapshot activo
 
   function _lsLoad() {
     try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); }
@@ -43,30 +44,42 @@ PAT.SavedPatterns = (function () {
     } catch (e) { return null; }
   }
 
-  /** Carga todos los patrones guardados del usuario (Firestore → localStorage → vacío).
-   *  Si hay datos locales que no están en Firestore (ej. guardados antes de
-   *  iniciar sesión), se fusionan y se suben para no perderlos. */
+  /** Carga y suscribe en tiempo real (onSnapshot). Si hay datos locales pendientes
+   *  de subir, los fusiona en el primer snapshot y los persiste. */
   async function loadAll() {
+    // Cancelar listener previo si existe (ej. re-login)
+    if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
+
     const doc = _fsDoc();
     const local = _lsLoad();
+
     if (doc) {
+      // Merge inicial: subir locales pendientes antes de activar el listener
       try {
         const snap = await doc.get();
         const remoto = snap.exists ? (snap.data().patrones || {}) : {};
-        // Fusionar: lo local que no esté en remoto se considera pendiente de subir
-        const merged = Object.assign({}, remoto, local);
-        _cache = merged;
-        _lsSave(_cache);
-        _loaded = true;
-        // Subir cualquier patrón local que faltara en Firestore
         const faltantes = Object.keys(local).some(id => !remoto[id]);
-        if (faltantes) await _persist();
-        console.log('[SavedPatterns] Patrones cargados:', Object.keys(_cache).length);
-        return;
-      } catch (e) {
-        console.warn('[SavedPatterns] Firestore error, usando localStorage', e.message);
-      }
+        if (faltantes) {
+          const merged = Object.assign({}, remoto, local);
+          await doc.set({ patrones: merged }, { merge: true });
+        }
+      } catch (e) { /* sin conexión — el listener actualizará cuando vuelva */ }
+
+      // Listener en tiempo real: mantiene la cache sincronizada entre pestañas/dispositivos
+      _unsubscribe = doc.onSnapshot(
+        (snap) => {
+          if (snap.exists) {
+            _cache = snap.data().patrones || {};
+            _lsSave(_cache);
+            _loaded = true;
+            console.log('[SavedPatterns] Sync:', Object.keys(_cache).length, 'patrones');
+          }
+        },
+        (e) => { console.warn('[SavedPatterns] onSnapshot error:', e.message); }
+      );
+      return;
     }
+
     _cache = local;
     _loaded = true;
   }
@@ -100,10 +113,13 @@ PAT.SavedPatterns = (function () {
     await _persist();
   }
 
-  // Cargar automáticamente al iniciar/cerrar sesión (mismo patrón que NotasUsuario/PieceBases)
   document.addEventListener('pat:authChanged', (e) => {
-    if (e.detail) loadAll();
-    else { _cache = _lsLoad(); _loaded = true; }
+    if (e.detail) {
+      loadAll();
+    } else {
+      if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
+      _cache = _lsLoad(); _loaded = true;
+    }
   });
 
   // Cache local disponible de inmediato, antes de resolver el login
