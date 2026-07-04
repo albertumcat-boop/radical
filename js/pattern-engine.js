@@ -92,6 +92,7 @@ PAT.PatternEngine = (function () {
     let curX  = CAL_W + GAP;
     let curY  = PAD;
     let rowH  = 0;
+    let maxX  = 0; // ancho real máximo entre todas las filas
 
     pieces.forEach(function(piece) {
       if (!piece || !piece.group || !piece.bounds) {
@@ -104,6 +105,7 @@ PAT.PatternEngine = (function () {
 
       // Saltar a nueva fila si no cabe
       if (curX > CAL_W + GAP && (curX + pw) > MAX_W) {
+        if (curX > maxX) maxX = curX;
         curX = CAL_W + GAP;
         curY += rowH + GAP;
         rowH = 0;
@@ -116,18 +118,19 @@ PAT.PatternEngine = (function () {
       _content.appendChild(g);
 
       curX += pw + GAP;
+      if (curX > maxX) maxX = curX;
       if (ph > rowH) rowH = ph;
     });
 
-    // Calcular viewBox final
-    const vbW = curX + PAD;
+    // Calcular viewBox final usando el ancho real máximo de todas las filas
+    const vbW = Math.max(maxX, curX) + PAD;
     const vbH = curY + rowH + PAD;
 
-    // Leyenda de tipos de línea (esquina superior derecha, en español)
+    // Leyenda en esquina inferior izquierda (bajo las piezas, no encima)
     try {
       if (PAT.SVGUtils && PAT.SVGUtils.legend) {
-        const legendW = 70;
-        _content.appendChild(PAT.SVGUtils.legend(vbW - legendW - PAD, PAD));
+        const legendH = 4 * 7 + 9 + 3; // coincide con la fórmula en svg-utils
+        _content.appendChild(PAT.SVGUtils.legend(PAD, vbH - legendH - PAD));
       }
     } catch (e) {
       console.warn('[Engine] No se pudo dibujar la leyenda:', e);

@@ -40,8 +40,8 @@ PAT.Patterns.Camisa = (function() {
     const hW = (H + ease + 20) / 4;
 
     const neckW   = B / 12 + 5;
-    const neckD_b = 25;
-    const neckD_f = isLady ? FL * 0.12 + 20 : 30;
+    const neckD_b = 22;              // espalda: 2.2cm, escote típico camisa
+    const neckD_f = isLady ? 32 : 28; // frente: 3.2/2.8cm, no depende de la largura
     const shLen   = Sh / 2 - neckW;
     const shSlope = isLady ? 15 : 18;
     const adepth  = B * 0.14 + 50;
@@ -61,9 +61,11 @@ PAT.Patterns.Camisa = (function() {
 
       let d = P.M(...nkC);
       if (frontFlag) {
-        d += ` ${P.Q(s+neckW*0.2, s+neckD_f*0.8, ...nkS)}`;
+        // Cuello frente: control más centrado y alto → curva suave sin pico
+        d += ` ${P.Q(s+neckW*0.35, s+neckD_f*0.25, ...nkS)}`;
       } else {
-        d += ` ${P.Q(s+neckW*0.1, s, ...nkS)}`;
+        // Cuello espalda: control centrado en la anchura y casi en la cima → escote plano típico
+        d += ` ${P.Q(s+neckW*0.45, s+3, ...nkS)}`;
       }
       d += ` ${P.L(...shT)}`;
       d += ` ${P.C(shT[0]+5, shT[1]+(ahM[1]-shT[1])*0.4, ahM[0]+10, ahM[1]-15, ...ahM)}`;
@@ -123,7 +125,7 @@ PAT.Patterns.Camisa = (function() {
       // El frente es pieza completa (no en doblez), incluye solapamiento de botonadura
       let d = P.M(s, s + neckD_f);
       d += ` ${P.L(s+botonW, s+neckD_f)}`;  // borde de botonadura
-      d += ` ${P.Q(s+botonW+neckW*0.2, s+neckD_f*0.8, ...nkSF)}`;
+      d += ` ${P.Q(s+botonW+neckW*0.35, s+neckD_f*0.25, ...nkSF)}`;
       d += ` ${P.L(...shTF)}`;
       d += ` ${P.C(shTF[0]+5, shTF[1]+(ahMF[1]-shTF[1])*0.4, ahMF[0]+10, ahMF[1]-15, ...ahMF)}`;
       d += ` ${P.C(ahMF[0]+8, ahMF[1]+15, ahBF[0]+5, ahBF[1]-20, ...ahBF)}`;
