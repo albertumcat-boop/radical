@@ -82,7 +82,9 @@ window.PAT = window.PAT || {};
     async signOut() {
       if (!firebaseReady) return;
       await auth.signOut();
-      localStorage.removeItem('pat_tier');
+      ['pat_tier','pat_v6','pat_atelier_clients','pat_notas_nh',
+       'pat_perfiles_medidas','pat_v6_bases','pat_pizarras','patronai_bgimages']
+        .forEach(k => localStorage.removeItem(k));
       sessionStorage.removeItem('pat_session_token');
       sessionStorage.removeItem('pat_purchases');
     },

@@ -365,6 +365,8 @@ PAT.AtelierPanel = (function () {
     if (!confirm(`¿Eliminar al cliente "${name}"?\nEsta acción no se puede deshacer.`)) return;
     _clients = _clients.filter(c => c.id !== clientId);
     _saveClients();
+    // Borrar también el doc de Firestore (no solo dejar de sincronizarlo)
+    _fsCol()?.doc(clientId).delete().catch(() => {});
     _refreshPanel();
     PAT.App.toast(`"${name}" eliminado`, 'info');
   }

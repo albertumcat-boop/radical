@@ -12,13 +12,13 @@ PAT.AuthTier = (function () {
     },
     pro: {
       id:'pro', name:'Pro', price:9.99, color:'#8b5cf6', badge:'⭐',
-      allowedGarments:['franela','falda','blusa','camisa','vestido'],
+      allowedGarments:['franela','falda','blusa','camisa','vestido','pantalon','short','falda-lapiz'],
       pdfWatermark:false, customSeam:true, atelierPanel:false,
       pdfClean:true, maxSavedPatterns:50,
     },
     expert: {
       id:'expert', name:'Expert', price:24.99, color:'#f59e0b', badge:'👑',
-      allowedGarments:['franela','falda','blusa','camisa','vestido'],
+      allowedGarments:['franela','falda','blusa','camisa','vestido','pantalon','short','blazer','chaleco','falda-lapiz','vestido-cruzado'],
       pdfWatermark:false, customSeam:true, atelierPanel:true,
       pdfClean:true, maxSavedPatterns:500,
     },
@@ -397,14 +397,18 @@ PAT.AuthTier = (function () {
       if (doc.exists) {
         const data = doc.data();
         const tier = data.tier || 'free';
-        if (tier !== 'free') {
-          _currentTier = tier;
+        _currentTier = tier;
+        if (tier === 'free') {
+          _sessionToken = null;
+          localStorage.removeItem('pat_tier');
+          sessionStorage.removeItem('pat_session_token');
+        } else {
           _sessionToken = 'firestore_verified_' + uid;
           localStorage.setItem('pat_tier', tier);
           sessionStorage.setItem('pat_session_token', _sessionToken);
-          _renderBadge();
-          document.dispatchEvent(new CustomEvent('pat:tierChanged', { detail: { tier } }));
         }
+        _renderBadge();
+        document.dispatchEvent(new CustomEvent('pat:tierChanged', { detail: { tier } }));
       }
     } catch (e) {
       console.warn('[AuthTier] No se pudo cargar tier desde Firestore:', e.message);
