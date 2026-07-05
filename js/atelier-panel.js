@@ -15,6 +15,7 @@ PAT.AtelierPanel = (function () {
   const STORAGE_KEY = 'pat_atelier_clients';
   let _clients = [];
   let _panelEl = null;
+  let _unsubscribe = null;
 
   function _fsCol() {
     try {
@@ -30,21 +31,28 @@ PAT.AtelierPanel = (function () {
   function init() {
     _clients = _loadClients();
     document.addEventListener('pat:authChanged', (e) => {
-      if (e.detail) _loadFromFirestore();
-      else _clients = _loadClients();
+      if (e.detail) {
+        _subscribeFirestore();
+      } else {
+        if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
+        _clients = _loadClients();
+      }
     });
   }
 
-  async function _loadFromFirestore() {
+  function _subscribeFirestore() {
+    if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
     const col = _fsCol();
     if (!col) return;
-    try {
-      const snap = await col.orderBy('updatedAt', 'desc').get();
-      if (!snap.empty) {
+    _unsubscribe = col.orderBy('updatedAt', 'desc').onSnapshot(
+      (snap) => {
         _clients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_clients)); } catch (e) {}
-      }
-    } catch (e) { console.warn('[AtelierPanel] Firestore load error:', e.message); }
+        if (_panelEl && _panelEl.style.display !== 'none') _refreshPanel();
+        console.log('[AtelierPanel] Sync:', _clients.length, 'clientes');
+      },
+      (e) => { console.warn('[AtelierPanel] onSnapshot error:', e.message); }
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────

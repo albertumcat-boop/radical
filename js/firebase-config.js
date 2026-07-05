@@ -94,20 +94,34 @@ window.PAT = window.PAT || {};
       await auth.sendPasswordResetEmail(email);
     },
 
-    /** Elimina el documento raíz del usuario en Firestore y luego su cuenta de Auth.
-     *  Las subcolecciones (configuracion, bgImages, atelierClients, misSistemas)
-     *  requieren Cloud Function para borrarse en cascada; el doc raíz se borra aquí. */
+    /** Elimina la cuenta completa: subcollections + doc raíz + Auth. */
     async deleteAccount() {
       if (!firebaseReady) throw new Error('Firebase no disponible');
       const user = auth.currentUser;
       if (!user) throw new Error('No hay sesión activa');
-      try {
-        await db.collection('users').doc(user.uid).delete();
-      } catch (e) {
+      const uid = user.uid;
+      const userRef = db.collection('users').doc(uid);
+
+      // Borrar documentos de cada subcollección conocida
+      const subcols = ['configuracion', 'bgImages', 'atelierClients', 'misSistemas', 'commissions'];
+      for (const sub of subcols) {
+        try {
+          const snap = await userRef.collection(sub).limit(200).get();
+          const batch = db.batch();
+          snap.docs.forEach(d => batch.delete(d.ref));
+          if (!snap.empty) await batch.commit();
+        } catch (e) {
+          console.warn('[Firebase] No se pudo borrar subcolección', sub, e.message);
+        }
+      }
+
+      try { await userRef.delete(); } catch (e) {
         console.warn('[Firebase] No se pudo borrar doc usuario:', e.message);
       }
       await user.delete();
-      localStorage.removeItem('pat_tier');
+      ['pat_tier','pat_v6','pat_atelier_clients','pat_notas_nh',
+       'pat_perfiles_medidas','pat_v6_bases','pat_pizarras','patronai_bgimages']
+        .forEach(k => localStorage.removeItem(k));
       sessionStorage.removeItem('pat_session_token');
       sessionStorage.removeItem('pat_purchases');
     },

@@ -121,14 +121,17 @@ PAT.Affiliate = (function () {
     _commissionLog.push(commission);
     localStorage.setItem('pat_commission_log', JSON.stringify(_commissionLog));
 
-    // HOOK DE PRODUCCIÓN: enviar al backend
-    // ─────────────────────────────────────────────────────────────
-    // fetch('/api/log-commission', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(commission)
-    // });
-    // ─────────────────────────────────────────────────────────────
+    // Persistir en Firestore si hay sesión activa
+    try {
+      const uid = PAT.AuthTier.getUserId();
+      if (uid && window.firebase?.firestore) {
+        firebase.firestore()
+          .collection('users').doc(uid)
+          .collection('commissions').doc(commission.id)
+          .set(commission)
+          .catch(e => console.warn('[Affiliate] Firestore commission error:', e.message));
+      }
+    } catch (e) { /* sin sesión, solo localStorage */ }
 
     console.log('[Affiliate] Comisión registrada:', commission);
   }
