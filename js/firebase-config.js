@@ -68,7 +68,10 @@ window.PAT = window.PAT || {};
       const cred = await auth.createUserWithEmailAndPassword(email, password);
       // Crear documento de usuario con tier free por defecto
       await db.collection('users').doc(cred.user.uid).set({
-        email, tier: 'free', createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        email,
+        tier: 'free',
+        trialStart: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
       return cred.user;
     },

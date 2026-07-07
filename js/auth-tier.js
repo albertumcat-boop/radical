@@ -28,11 +28,13 @@ PAT.AuthTier = (function () {
     franela:0.99, falda:0.99, blusa:1.49, camisa:1.99, vestido:1.99,
   };
 
-  // Token de sesión — se genera al "pagar" y expira al cerrar el navegador
-  // En producción: este token viene del backend tras verificar el pago con Stripe
+  const TRIAL_DAYS = 15;
+
   let _currentTier      = 'free';
-  let _sessionToken     = null;   // prueba de pago en esta sesión
+  let _sessionToken     = null;
   let _sessionPurchases = new Set();
+  let _isInTrial        = false;
+  let _trialDaysLeft    = 0;
 
   function init() {
     _currentTier  = _loadTier();
@@ -54,14 +56,16 @@ PAT.AuthTier = (function () {
   }
 
   // ── Getters ──────────────────────────────────────────────────
-  function getTier()    { return TIERS[_currentTier]; }
-  function getTierId()  { return _currentTier; }
-  function getTiers()   { return TIERS; }
-  function getPatternPrice(g) { return PATTERN_PRICES[g] || 1.99; }
-  function canUseGarment(g)   { return (typeof g === 'string' && g.indexOf('custom:') === 0) || TIERS[_currentTier].allowedGarments.includes(g); }
-  function needsWatermark()   { return TIERS[_currentTier].pdfWatermark; }
-  function hasAtelierPanel()  { return TIERS[_currentTier].atelierPanel; }
-  function hasCustomSeam()    { return TIERS[_currentTier].customSeam; }
+  function getTier()         { return TIERS[_currentTier]; }
+  function getTierId()       { return _currentTier; }
+  function getTiers()        { return TIERS; }
+  function getPatternPrice(g){ return PATTERN_PRICES[g] || 1.99; }
+  function isInTrial()       { return _isInTrial; }
+  function trialDaysLeft()   { return _trialDaysLeft; }
+  function canUseGarment(g)  { return (typeof g === 'string' && g.indexOf('custom:') === 0) || TIERS[_currentTier].allowedGarments.includes(g); }
+  function needsWatermark()  { return TIERS[_currentTier].pdfWatermark; }
+  function hasAtelierPanel() { return TIERS[_currentTier].atelierPanel; }
+  function hasCustomSeam()   { return TIERS[_currentTier].customSeam; }
 
   function canExportPDF(g) {
     if (_currentTier !== 'free') return true;
@@ -125,14 +129,19 @@ PAT.AuthTier = (function () {
       box-shadow:0 2px 12px rgba(0,0,0,.3);color:${tier.color};
     `;
     const loggedIn = isLoggedIn();
+    const trialTag = _isInTrial
+      ? `<span style="background:#10b98122;padding:1px 7px;border-radius:10px;font-size:9px;color:#10b981">🎁 ${_trialDaysLeft}d gratis</span>`
+      : '';
     badge.innerHTML = `
       <span>${tier.badge}</span>
-      <span>${tier.name}</span>
+      <span>${_isInTrial ? 'Trial' : tier.name}</span>
       ${!loggedIn
         ? `<span style="background:#3b82f622;padding:1px 7px;border-radius:10px;font-size:9px;color:#60a5fa">Entrar →</span>`
-        : _currentTier !== 'expert'
-          ? `<span style="background:${tier.color}22;padding:1px 7px;border-radius:10px;font-size:9px">Mejorar ↑</span>`
-          : ''
+        : _isInTrial
+          ? trialTag
+          : _currentTier !== 'expert'
+            ? `<span style="background:${tier.color}22;padding:1px 7px;border-radius:10px;font-size:9px">Mejorar ↑</span>`
+            : ''
       }
     `;
     // Doble clic en badge → modal de cuenta
@@ -394,21 +403,48 @@ PAT.AuthTier = (function () {
     try {
       const db = firebase.firestore();
       const doc = await db.collection('users').doc(uid).get();
-      if (doc.exists) {
-        const data = doc.data();
-        const tier = data.tier || 'free';
-        _currentTier = tier;
-        if (tier === 'free') {
-          _sessionToken = null;
-          localStorage.removeItem('pat_tier');
-          sessionStorage.removeItem('pat_session_token');
-        } else {
-          _sessionToken = 'firestore_verified_' + uid;
-          localStorage.setItem('pat_tier', tier);
-          sessionStorage.setItem('pat_session_token', _sessionToken);
+      if (!doc.exists) return;
+
+      const data = doc.data();
+      const storedTier = data.tier || 'free';
+
+      // ── Evaluar trial ─────────────────────────────────────────
+      _isInTrial     = false;
+      _trialDaysLeft = 0;
+      let effectiveTier = storedTier;
+
+      if (storedTier === 'free' && data.trialStart) {
+        const startMs = data.trialStart.toMillis
+          ? data.trialStart.toMillis()
+          : (data.trialStart.seconds || 0) * 1000;
+        const elapsed = (Date.now() - startMs) / 86400000; // días
+        if (elapsed < TRIAL_DAYS) {
+          _isInTrial     = true;
+          _trialDaysLeft = Math.ceil(TRIAL_DAYS - elapsed);
+          effectiveTier  = 'expert'; // acceso completo durante el trial
         }
-        _renderBadge();
-        document.dispatchEvent(new CustomEvent('pat:tierChanged', { detail: { tier } }));
+      }
+
+      _currentTier = effectiveTier;
+
+      if (effectiveTier === 'free') {
+        _sessionToken = null;
+        localStorage.removeItem('pat_tier');
+        sessionStorage.removeItem('pat_session_token');
+      } else {
+        _sessionToken = 'firestore_verified_' + uid;
+        localStorage.setItem('pat_tier', effectiveTier);
+        sessionStorage.setItem('pat_session_token', _sessionToken);
+      }
+
+      _renderBadge();
+      document.dispatchEvent(new CustomEvent('pat:tierChanged', {
+        detail: { tier: effectiveTier, isInTrial: _isInTrial, trialDaysLeft: _trialDaysLeft },
+      }));
+
+      // Si el trial venció → mostrar paywall
+      if (storedTier === 'free' && data.trialStart && !_isInTrial) {
+        setTimeout(() => PAT.Paywall?.show(), 800);
       }
     } catch (e) {
       console.warn('[AuthTier] No se pudo cargar tier desde Firestore:', e.message);
@@ -421,5 +457,6 @@ PAT.AuthTier = (function () {
     hasAtelierPanel, hasCustomSeam,
     setTier, activateTier, registerPurchase,
     getUserId, getUserEmail, isLoggedIn, loadTierFromFirestore,
+    isInTrial, trialDaysLeft,
   };
 })();
