@@ -5,6 +5,11 @@
     { "src": "/app", "dest": "/index.html" },
     { "src": "/landing", "dest": "/landing.html" }
   ],
+  "functions": {
+    "api/webhook.js": {
+      "memory": 256
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

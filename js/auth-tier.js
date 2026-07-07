@@ -31,27 +31,20 @@ PAT.AuthTier = (function () {
   const TRIAL_DAYS = 15;
 
   let _currentTier      = 'free';
-  let _sessionToken     = null;
+  let _tierVerified     = false;   // true una vez que Firestore respondió
   let _sessionPurchases = new Set();
   let _isInTrial        = false;
   let _trialDaysLeft    = 0;
 
   function init() {
-    _currentTier  = _loadTier();
-    _sessionToken = sessionStorage.getItem('pat_session_token');
+    // Tier solo se verifica contra Firestore. localStorage es solo hint visual.
+    _currentTier      = _loadTier();
+    _tierVerified     = false;
     _sessionPurchases = new Set(
       JSON.parse(sessionStorage.getItem('pat_purchases') || '[]')
     );
-
-    // Verificar que el tier guardado tenga un token válido
-    // Si no hay token pero hay tier Pro/Expert → downgrade a free (evita bypass)
-    if (_currentTier !== 'free' && !_sessionToken) {
-      _currentTier = 'free';
-      localStorage.removeItem('pat_tier');
-    }
-
     _renderBadge();
-    console.log('[AuthTier] Tier activo:', _currentTier);
+    console.log('[AuthTier] Tier inicial (pendiente verificación):', _currentTier);
     return _currentTier;
   }
 
@@ -72,39 +65,26 @@ PAT.AuthTier = (function () {
     return _sessionPurchases.has(g);
   }
 
-  // ── Activar tier (solo desde PaymentUI tras "pago") ───────────
-  // En producción: llamar solo tras confirmar el pago con Stripe webhook
-  function activateTier(tierId, paymentToken) {
+  // ── activateTier: solo lo llama loadTierFromFirestore (datos de Firestore) ─
+  // No acepta tokens externos — el tier viene siempre del backend vía Firestore.
+  function activateTier(tierId) {
     if (!TIERS[tierId]) return false;
-
-    // Validar que viene con un token de pago (no bypass directo)
-    if (tierId !== 'free' && !paymentToken) {
-      console.warn('[AuthTier] Intento de activar tier sin token de pago');
-      return false;
-    }
-
     _currentTier  = tierId;
-    _sessionToken = paymentToken || null;
-
+    _tierVerified = true;
+    // Guardar solo como hint visual para la próxima carga (no es fuente de verdad)
     if (tierId === 'free') {
       localStorage.removeItem('pat_tier');
-      sessionStorage.removeItem('pat_session_token');
     } else {
       localStorage.setItem('pat_tier', tierId);
-      sessionStorage.setItem('pat_session_token', paymentToken);
     }
-
     _renderBadge();
     document.dispatchEvent(new CustomEvent('pat:tierChanged', { detail: { tier: tierId } }));
     return true;
   }
 
-  // Mantener compatibilidad con código existente que llama setTier
-  // pero ahora requiere el token
+  // setTier eliminado — era el bypass principal. Cualquier llamada es no-op.
   function setTier(tierId) {
-    // En modo DEMO: generar un token simulado
-    const demoToken = 'demo_' + tierId + '_' + Date.now();
-    return activateTier(tierId, demoToken);
+    console.warn('[AuthTier] setTier() deshabilitado. El tier lo gestiona Firestore.');
   }
 
   function registerPurchase(g) {
@@ -425,19 +405,7 @@ PAT.AuthTier = (function () {
         }
       }
 
-      _currentTier = effectiveTier;
-
-      if (effectiveTier === 'free') {
-        _sessionToken = null;
-        localStorage.removeItem('pat_tier');
-        sessionStorage.removeItem('pat_session_token');
-      } else {
-        _sessionToken = 'firestore_verified_' + uid;
-        localStorage.setItem('pat_tier', effectiveTier);
-        sessionStorage.setItem('pat_session_token', _sessionToken);
-      }
-
-      _renderBadge();
+      activateTier(effectiveTier);
       document.dispatchEvent(new CustomEvent('pat:tierChanged', {
         detail: { tier: effectiveTier, isInTrial: _isInTrial, trialDaysLeft: _trialDaysLeft },
       }));
@@ -446,6 +414,9 @@ PAT.AuthTier = (function () {
       if (storedTier === 'free' && data.trialStart && !_isInTrial) {
         setTimeout(() => PAT.Paywall?.show(), 800);
       }
+      // Usuarios legacy sin trialStart: quedan en free (acceso limitado, sin paywall).
+      // Para monetizarlos: ejecutar migración manual en Firestore Console que
+      // escriba trialStart con fecha pasada en docs sin ese campo.
     } catch (e) {
       console.warn('[AuthTier] No se pudo cargar tier desde Firestore:', e.message);
     }

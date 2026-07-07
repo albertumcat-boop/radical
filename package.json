@@ -4,8 +4,11 @@
   "description": "Sistema Integral de Patronaje Paramétrico y Visualización 3D",
   "scripts": {
     "start": "npx serve . -p 3000",
-    "deploy:firebase": "firebase deploy",
+    "deploy:firebase": "firebase deploy --only firestore:rules",
     "deploy:vercel": "vercel --prod"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
   },
   "devDependencies": {
     "serve": "^14.2.0"
