@@ -140,12 +140,91 @@ PAT.Atelier = (function () {
     return _miAtelier ? _miAtelier.id : null;
   }
 
+  /**
+   * Devuelve un array con { uid, email, esOwner } de cada empleado.
+   * Necesita leer cada doc users/{uid} para obtener el email.
+   */
+  async function listarEmpleados() {
+    const atelier = await getMiAtelier();
+    if (!atelier) return [];
+    const db = _db();
+    const uids = atelier.empleados || [];
+    const results = await Promise.all(
+      uids.map(async uid => {
+        try {
+          const doc = await db.collection('users').doc(uid).get();
+          const email = doc.exists ? (doc.data().email || uid) : uid;
+          return { uid, email, esOwner: uid === atelier.ownerUid };
+        } catch { return { uid, email: uid, esOwner: uid === atelier.ownerUid }; }
+      })
+    );
+    // Owner siempre primero
+    return results.sort((a, b) => (b.esOwner ? 1 : 0) - (a.esOwner ? 1 : 0));
+  }
+
+  /**
+   * El dueño expulsa a un empleado.
+   * Solo el owner puede expulsar; no puede expulsarse a sí mismo.
+   */
+  async function expulsarEmpleado(targetUid) {
+    const uid = _uid();
+    const atelier = await getMiAtelier();
+    if (!atelier) throw new Error('No perteneces a ningún atelier');
+    if (atelier.ownerUid !== uid) throw new Error('Solo el dueño puede expulsar miembros');
+    if (targetUid === uid) throw new Error('No puedes expulsarte a ti mismo');
+    const db = _db();
+    const batch = db.batch();
+    batch.update(db.collection('ateliers').doc(atelier.id), {
+      empleados: firebase.firestore.FieldValue.arrayRemove(targetUid),
+    });
+    batch.set(db.collection('users').doc(targetUid),
+      { atelierId: firebase.firestore.FieldValue.delete() }, { merge: true });
+    await batch.commit();
+    _miAtelier.empleados = (_miAtelier.empleados || []).filter(u => u !== targetUid);
+    document.dispatchEvent(new CustomEvent('pat:atelierChanged', { detail: _miAtelier }));
+  }
+
+  /**
+   * El dueño genera un nuevo código de invitación.
+   * Invalida el anterior borrando su doc en atelierCodes.
+   */
+  async function regenerarCodigo() {
+    const uid = _uid();
+    const atelier = await getMiAtelier();
+    if (!atelier) throw new Error('No tienes un atelier');
+    if (atelier.ownerUid !== uid) throw new Error('Solo el dueño puede regenerar el código');
+    const db = _db();
+
+    let nuevoCodigo, codigoRef, intento = 0;
+    do {
+      nuevoCodigo = _genCodigo();
+      codigoRef = db.collection('atelierCodes').doc(nuevoCodigo);
+      intento++;
+    } while ((await codigoRef.get()).exists && intento < 5);
+
+    const batch = db.batch();
+    // Borrar código viejo
+    batch.delete(db.collection('atelierCodes').doc(atelier.codigo));
+    // Crear código nuevo
+    batch.set(codigoRef, { atelierId: atelier.id });
+    // Actualizar doc del atelier
+    batch.update(db.collection('ateliers').doc(atelier.id), { codigo: nuevoCodigo });
+    await batch.commit();
+
+    _miAtelier.codigo = nuevoCodigo;
+    document.dispatchEvent(new CustomEvent('pat:atelierChanged', { detail: _miAtelier }));
+    return nuevoCodigo;
+  }
+
   return {
     crearAtelier,
     unirseConCodigo,
     salirDelAtelier,
     getMiAtelier,
     getMiAtelierIdCached,
+    listarEmpleados,
+    expulsarEmpleado,
+    regenerarCodigo,
   };
 
 })();
