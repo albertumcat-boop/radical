@@ -19,24 +19,22 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
 
+      // Al registrarse el cliente puede escribir: email, tier=free, trialStart, createdAt.
+      // Nada más. subscriptionStatus, stripeCustomer, lsSubscriptionId, lsVariantId → bloqueados.
       allow create: if request.auth != null
         && request.auth.uid == uid
         && request.resource.data.tier == 'free'
-        && !isSensitiveField(
-             request.resource.data.diff(
-               { tier: 'free', trialStart: request.resource.data.trialStart,
-                 email: request.resource.data.email,
-                 createdAt: request.resource.data.createdAt }
-           ).affectedKeys()
-         );
+        && request.resource.data.keys().hasOnly([
+             'email', 'tier', 'trialStart', 'createdAt'
+           ]);
 
-      // El cliente puede actualizar atelierId, email, preferencias — pero NO tier
+      // El cliente puede actualizar atelierId, email, preferencias — pero NO campos de pago
       allow update: if request.auth != null
         && request.auth.uid == uid
         && !request.resource.data.diff(resource.data)
              .affectedKeys()
-             .hasAny(['tier', 'subscriptionStatus', 'stripeCustomer',
-                      'lsSubscriptionId', 'lsVariantId']);
+             .hasAny(['tier', 'trialStart', 'subscriptionStatus',
+                      'stripeCustomer', 'lsSubscriptionId', 'lsVariantId']);
     }
 
     // ── Subcollections del usuario: notas, sistemas, clientes, etc. ───────

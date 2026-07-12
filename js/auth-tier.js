@@ -340,8 +340,10 @@ PAT.AuthTier = (function () {
     });
     document.getElementById('acc-logout').addEventListener('click', async () => {
       await PAT.Firebase.signOut();
-      _currentTier = 'free';
-      _sessionToken = null;
+      _currentTier      = 'free';
+      _tierVerified     = false;
+      _isInTrial        = false;
+      _trialDaysLeft    = 0;
       _sessionPurchases = new Set();
       _renderBadge();
       modal.remove();

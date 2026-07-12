@@ -49,6 +49,17 @@ function verifySignature(rawBody, signature, secret) {
   } catch { return false; }
 }
 
+// Leer el stream raw del request — necesario para verificar HMAC sobre bytes originales.
+// Vercel vanilla functions NO parsean el body automáticamente; llega como stream.
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+    req.on('end',  ()    => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -60,10 +71,13 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Missing signature' });
   }
 
-  // rawBody viene como Buffer cuando Vercel tiene bodyParser desactivado (ver vercel.json)
-  const rawBody = req.body instanceof Buffer
-    ? req.body
-    : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+  let rawBody;
+  try {
+    rawBody = await readRawBody(req);
+  } catch (e) {
+    console.error('[Webhook] Error leyendo body:', e.message);
+    return res.status(400).json({ error: 'Cannot read body' });
+  }
 
   if (!verifySignature(rawBody, signature, secret)) {
     console.warn('[Webhook] Firma inválida — posible replay attack');
@@ -72,7 +86,7 @@ module.exports = async (req, res) => {
 
   let payload;
   try {
-    payload = JSON.parse(rawBody.toString());
+    payload = JSON.parse(rawBody.toString('utf8'));
   } catch {
     return res.status(400).json({ error: 'Invalid JSON' });
   }
