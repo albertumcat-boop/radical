@@ -194,6 +194,8 @@ PAT.DrafterUI = (function () {
   .dv6-sep{height:18px;margin:0 1px}
   .dv6-pnl{display:none}
   .dv6-keys{display:none}
+  /* Ocultar botón Panel (panel está oculto en móvil) */
+  #dv6-panel-btn{display:none}
   #dv6-coord{font-size:10px;padding:3px 7px}
   #dv6-instr{font-size:11px;padding:5px 14px;max-width:90%}
 }

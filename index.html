@@ -331,18 +331,64 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
 .toast.error{border-color:rgba(184,64,64,.4);color:var(--err)}
 .toast.warning{border-color:rgba(196,152,48,.4);color:var(--gold)}
 
-/* Responsive */
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE MOBILE
+   ══════════════════════════════════════════════════════════════════ */
 @media(max-width:768px){
-  :root{--sidebar:260px;--topbar:50px}
-  #sidebar{position:fixed;top:0;left:0;height:100vh;transform:translateX(-100%);transition:transform .3s var(--ease)}
+  :root{--sidebar:260px;--topbar:48px}
+
+  /* Sidebar: overlay lateral deslizante */
+  #sidebar{position:fixed;top:0;left:0;height:100dvh;z-index:20;
+    transform:translateX(-100%);transition:transform .3s var(--ease)}
   #sidebar.mobile-open{transform:translateX(0)}
-  #sb-mobile-overlay{display:none;position:fixed;inset:0;z-index:15;background:rgba(0,0,0,.3);backdrop-filter:blur(2px)}
+  #sb-mobile-overlay{display:none;position:fixed;inset:0;z-index:15;
+    background:rgba(0,0,0,.3);backdrop-filter:blur(2px)}
   #sidebar.mobile-open~#sb-mobile-overlay{display:block}
-  .tb-info span:last-child{display:none}
+
+  /* ── Topbar ────────────────────────────────────────────────────── */
+  #topbar{padding:0 8px;gap:6px;overflow:hidden}
+
+  /* Ocultar zoom (el usuario hace pinch) */
+  .zoom-ctrl{display:none!important}
+
+  /* Truncar nombre del patrón a 1 línea */
+  .tb-info{overflow:hidden;flex:1;min-width:0}
+  #pattern-info{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-size:11px;display:block;max-width:100%}
+  #piece-count{display:none}
+
+  /* Tier badge: sacarlo de position:fixed, integrarlo al flujo del topbar */
+  #tier-badge{
+    position:static!important;top:auto!important;right:auto!important;
+    font-size:9px!important;padding:3px 8px!important;
+    gap:3px!important;box-shadow:none!important;flex-shrink:0;
+    white-space:nowrap;
+  }
+  /* Ocultar el span de "Mejorar ↑" / "Entrar →" / trial tag en móvil
+     solo conservar emoji e icono de tier (primeros 2 spans) */
+  #tier-badge span:nth-child(n+3){display:none!important}
+
+  /* ── Canvas / Main area ────────────────────────────────────────── */
+  #main{height:100dvh}
+  #svg-wrapper{touch-action:none}
+
+  /* ── Leyenda ───────────────────────────────────────────────────── */
+  .legend{font-size:9px;gap:8px;padding:5px 10px;
+    overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}
+
+  /* ── Modales: bottom sheet en pantalla pequeña ─────────────────── */
+  .modal{padding:0;align-items:flex-end}
+  .m-box{
+    max-height:92dvh;border-radius:var(--r2) var(--r2) 0 0;
+    position:fixed;bottom:0;left:0;right:0;
+    width:100%!important;margin:0;
+  }
 }
 @media(max-width:480px){
+  /* Ocultar texto en botones de vista (solo icono) */
   .view-btn span{display:none}
-  #topbar{padding:0 8px;gap:6px}
+  .view-btn{padding:5px 8px}
+  .view-tabs{gap:1px}
 }
 *::-webkit-scrollbar{width:4px;height:4px}
 *::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
