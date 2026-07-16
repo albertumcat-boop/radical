@@ -180,6 +180,23 @@ PAT.DrafterUI = (function () {
   cursor:pointer;font-family:var(--font,'Segoe UI');transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
 .dv6-fb.pri{background:#8b5cf6;color:#fff}.dv6-fb.pri:hover{filter:brightness(1.1)}
 .dv6-fb.sec{background:#141420;color:#ede9fe;border:1.5px solid #3d3d58}.dv6-fb.sec:hover{background:#1c1c2a}
+/* ══ MOBILE ══════════════════════════════════════════════════════ */
+@media(max-width:640px){
+  .dv6{width:100vw;height:100dvh;border-radius:0;border:none}
+  .dv6-hdr{padding:5px 8px;gap:6px;min-height:0}
+  .dv6-title{display:none}
+  .dv6-nm{min-width:0;width:110px;font-size:11px;padding:1px 4px}
+  .dv6-zl{display:none}
+  .dv6-tb{padding:3px 6px;gap:2px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none}
+  .dv6-tb::-webkit-scrollbar{display:none}
+  .dv6-tb .tb{padding:5px 7px;font-size:10px;gap:3px;flex-shrink:0;white-space:nowrap}
+  .dv6-sep{height:18px;margin:0 1px}
+  .dv6-pnl{display:none}
+  .dv6-keys{display:none}
+  #dv6-coord{font-size:10px;padding:3px 7px}
+  #dv6-instr{font-size:11px;padding:5px 14px;max-width:90%}
+}
     `;
     document.head.appendChild(s);
   }
