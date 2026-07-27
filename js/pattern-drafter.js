@@ -368,9 +368,9 @@ PAT.Drafter = (function () {
     if (pathD) {
       const path = document.createElementNS(NS, 'path');
       path.setAttribute('d', pathD);
-      path.setAttribute('fill', 'rgba(139,92,246,0.04)');
-      path.setAttribute('stroke', '#e2e8f0');
-      path.setAttribute('stroke-width', '0.8');
+      path.setAttribute('fill', 'rgba(212,96,58,0.04)');
+      path.setAttribute('stroke', '#2a2018');
+      path.setAttribute('stroke-width', '0.9');
       path.setAttribute('stroke-linejoin', 'round');
       path.setAttribute('stroke-linecap', 'round');
       g.appendChild(path);
@@ -388,12 +388,12 @@ PAT.Drafter = (function () {
       const el = document.createElementNS(NS, 'line');
       el.setAttribute('x1', a.x); el.setAttribute('y1', a.y);
       el.setAttribute('x2', b.x); el.setAttribute('y2', b.y);
-      el.setAttribute('stroke', '#f87171');
-      el.setAttribute('stroke-width', '0.6');
+      el.setAttribute('stroke', '#b84040');
+      el.setAttribute('stroke-width', '0.7');
       el.setAttribute('stroke-dasharray', '8,4');
       el.setAttribute('fill', 'none');
       g.appendChild(el);
-      _addLabel(g, (a.x+b.x)/2 + 5, (a.y+b.y)/2, 'DOBLAR', '#f87171', 3.5);
+      _addLabel(g, (a.x+b.x)/2 + 5, (a.y+b.y)/2, 'DOBLAR', '#b84040', 3.5);
     });
 
     // 4. Hilo recto (azul con flechas)
@@ -403,13 +403,13 @@ PAT.Drafter = (function () {
       const el = document.createElementNS(NS, 'line');
       el.setAttribute('x1', a.x); el.setAttribute('y1', a.y);
       el.setAttribute('x2', b.x); el.setAttribute('y2', b.y);
-      el.setAttribute('stroke', '#60a5fa');
-      el.setAttribute('stroke-width', '0.7');
+      el.setAttribute('stroke', '#3a6ea8');
+      el.setAttribute('stroke-width', '0.8');
       el.setAttribute('marker-start', 'url(#arrow-rev)');
       el.setAttribute('marker-end',   'url(#arrow)');
       el.setAttribute('fill', 'none');
       g.appendChild(el);
-      _addLabel(g, (a.x+b.x)/2 + 4, (a.y+b.y)/2, 'Hilo recto', '#60a5fa', 3.5);
+      _addLabel(g, (a.x+b.x)/2 + 4, (a.y+b.y)/2, 'Hilo recto', '#3a6ea8', 3.5);
     });
 
     // 5. Muescas
@@ -420,7 +420,7 @@ PAT.Drafter = (function () {
       const ny = a.y + (b.y-a.y) * (l.pos || 0.5);
       const tri = document.createElementNS(NS, 'polygon');
       tri.setAttribute('points', nx+','+(ny-4)+' '+(nx-2)+','+(ny+2)+' '+(nx+2)+','+(ny+2));
-      tri.setAttribute('fill', '#e2e8f0');
+      tri.setAttribute('fill', '#2a2018');
       g.appendChild(tri);
     });
 
@@ -437,15 +437,15 @@ PAT.Drafter = (function () {
       const dLine = document.createElementNS(NS, 'line');
       dLine.setAttribute('x1', a.x+px); dLine.setAttribute('y1', a.y+py);
       dLine.setAttribute('x2', b.x+px); dLine.setAttribute('y2', b.y+py);
-      dLine.setAttribute('stroke', '#8b5cf6');
-      dLine.setAttribute('stroke-width', '0.4');
+      dLine.setAttribute('stroke', '#7c3aed');
+      dLine.setAttribute('stroke-width', '0.5');
       dLine.setAttribute('marker-start', 'url(#arrow-rev)');
       dLine.setAttribute('marker-end', 'url(#arrow)');
       dLine.setAttribute('fill', 'none');
       g.appendChild(dLine);
 
       const label = (l.label ? l.label+' ' : '') + dist + 'mm';
-      _addLabel(g, (a.x+b.x)/2+px*1.5, (a.y+b.y)/2+py*1.5, label, '#8b5cf6', 4, 'middle');
+      _addLabel(g, (a.x+b.x)/2+px*1.5, (a.y+b.y)/2+py*1.5, label, '#7c3aed', 4, 'middle');
     });
 
     // 7. Puntos con etiquetas
@@ -453,8 +453,8 @@ PAT.Drafter = (function () {
       const c = document.createElementNS(NS, 'circle');
       c.setAttribute('cx', pt.x); c.setAttribute('cy', pt.y);
       c.setAttribute('r', '2.2');
-      c.setAttribute('fill', '#8b5cf6');
-      c.setAttribute('stroke', '#1c1c2a');
+      c.setAttribute('fill', '#D4603A');
+      c.setAttribute('stroke', '#fff');
       c.setAttribute('stroke-width', '0.5');
       g.appendChild(c);
 
@@ -462,7 +462,7 @@ PAT.Drafter = (function () {
       t.setAttribute('x', pt.x + 3.5);
       t.setAttribute('y', pt.y - 2.5);
       t.setAttribute('font-size', '5.5');
-      t.setAttribute('fill', '#a78bfa');
+      t.setAttribute('fill', '#5b21b6');
       t.setAttribute('font-family', 'Arial, sans-serif');
       t.setAttribute('font-weight', 'bold');
       t.textContent = name;
@@ -473,8 +473,8 @@ PAT.Drafter = (function () {
     const bbox  = _bbox();
     const cx    = (bbox.minX + bbox.maxX) / 2;
     const cy    = (bbox.minY + bbox.maxY) / 2;
-    _addLabel(g, cx, cy - 8, _pieceName, '#ede9fe', 6, 'middle');
-    _addLabel(g, cx, cy + 4, 'Trazado manual', '#9490b0', 4.5, 'middle');
+    _addLabel(g, cx, cy - 8, _pieceName, '#2a2018', 6, 'middle');
+    _addLabel(g, cx, cy + 4, 'Trazado manual', '#6b5a45', 4.5, 'middle');
 
     const PAD = 20;
     return {
@@ -520,7 +520,7 @@ PAT.Drafter = (function () {
     const el = document.createElementNS(NS, 'line');
     el.setAttribute('x1', a.x); el.setAttribute('y1', a.y);
     el.setAttribute('x2', b.x); el.setAttribute('y2', b.y);
-    el.setAttribute('stroke', stroke || '#e2e8f0');
+    el.setAttribute('stroke', stroke || '#2a2018');
     el.setAttribute('stroke-width', width || '0.8');
     if (dash) el.setAttribute('stroke-dasharray', dash);
     el.setAttribute('fill', 'none');
@@ -531,7 +531,7 @@ PAT.Drafter = (function () {
     const t = document.createElementNS(NS, 'text');
     t.setAttribute('x', x); t.setAttribute('y', y);
     t.setAttribute('font-size', size || 4);
-    t.setAttribute('fill', fill || '#9490b0');
+    t.setAttribute('fill', fill || '#6b5a45');
     t.setAttribute('font-family', 'Arial, sans-serif');
     t.setAttribute('text-anchor', anchor || 'start');
     t.textContent = text;
