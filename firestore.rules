@@ -97,10 +97,18 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // ── Tienda: catálogo de productos (solo lectura pública) ─────────────
+    // ── Admins: solo el propio uid puede leer su doc ─────────────────────
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // ── Tienda: catálogo de productos ────────────────────────────────────
     match /products/{productId} {
       allow read: if true;
-      allow write: if false;
+      // Solo admins registrados en /admins/{uid} pueden escribir
+      allow write: if request.auth != null
+                   && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // ── Órdenes de compra: solo el dueño puede leer/escribir ────────────

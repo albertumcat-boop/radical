@@ -14,6 +14,7 @@ const FB_CONFIG = {
 };
 let _db = null, _auth = null, _user = null, _userTier = 'free';
 let _cart = [], _currentFilter = 'all', _searchQuery = '', _activeProduct = null;
+let _products = [...CATALOG]; // merged: Firestore first, local fallback
 
 // Descuento de afiliado activo
 const _aff = (() => {
@@ -326,7 +327,31 @@ function _initFirebase() {
     _db   = firebase.firestore ? firebase.firestore() : null;
     _auth = firebase.auth     ? firebase.auth()      : null;
     if (_auth) _auth.onAuthStateChanged(_onAuthChange);
+    // Cargar productos desde Firestore (con imágenes y videos reales)
+    _loadFirestoreProducts().catch(() => {});
   } catch(e) { console.warn('[Tienda] Firebase init omitido:', e.message); }
+}
+
+async function _loadFirestoreProducts() {
+  if (!_db) return;
+  try {
+    const snap = await _db.collection('products')
+      .where('published', '==', true)
+      .orderBy('sortOrder')
+      .get();
+    if (snap.empty) return;
+    const fsProducts = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+    // Merge: Firestore overrides local catalog fields; keep local SVG fallback
+    _products = fsProducts.map(fp => {
+      const local = CATALOG.find(c => c.id === fp.id) || {};
+      return { ...local, ...fp }; // Firestore data wins (tiene imágenes, videos, etc.)
+    });
+    // Append any Firestore-only products not in local catalog
+    fsProducts.forEach(fp => {
+      if (!_products.find(p => p.id === fp.id)) _products.push(fp);
+    });
+    _renderGrid();
+  } catch(e) { console.warn('[Tienda] Firestore productos:', e.message); }
 }
 
 function _onAuthChange(user) {
@@ -383,7 +408,7 @@ function _saveCart() {
   _updateCartUI();
 }
 function _addToCart(productId) {
-  const p = CATALOG.find(x => x.id === productId);
+  const p = _products.find(x => x.id === productId);
   if (!p) return;
   if (_cart.find(x => x.id === productId)) {
     _toast('Ya está en tu carrito', 'info'); return;
@@ -440,7 +465,7 @@ function _renderCartDrawer() {
 }
 
 function _catLabel(cat) {
-  return {patron:'Patrón digital',curso:'Curso en video',pack:'Pack de productos',recurso:'Recurso descargable'}[cat] || cat;
+  return {patron:'Patrón digital',curso:'Curso en video',video:'Video curso',pack:'Pack de productos',recurso:'Recurso descargable'}[cat] || cat;
 }
 
 // ── PRODUCTS GRID ─────────────────────────────────────────────────
@@ -458,6 +483,7 @@ function _renderGrid() {
     const groups = [
       { cat:'patron', label:'🧵 Patrones Digitales' },
       { cat:'curso',  label:'🎓 Cursos' },
+      { cat:'video',  label:'🎬 Video Cursos' },
       { cat:'pack',   label:'📦 Packs y Bundles' },
       { cat:'recurso',label:'📚 Recursos y Guías' },
     ];
@@ -471,14 +497,14 @@ function _renderGrid() {
     html = filtered.map(_cardHTML).join('');
   }
   grid.innerHTML = html;
-  document.getElementById('stat-products').textContent = CATALOG.length + '+';
+  document.getElementById('stat-products').textContent = _products.length + '+';
 }
 
 function _filteredProducts() {
-  return CATALOG.filter(p => {
+  return _products.filter(p => {
     const matchCat  = _currentFilter === 'all' || p.cat === _currentFilter;
     const q = _searchQuery.toLowerCase();
-    const matchSrch = !q || p.name.toLowerCase().includes(q) || p.shortDesc.toLowerCase().includes(q) || p.cat.includes(q);
+    const matchSrch = !q || p.name.toLowerCase().includes(q) || (p.shortDesc||'').toLowerCase().includes(q) || p.cat.includes(q);
     return matchCat && matchSrch;
   });
 }
@@ -495,15 +521,29 @@ function _cardHTML(p) {
     ? `<span class="card-meta-item">📹 ${p.lessons} clases</span><span class="card-meta-item">⏱ ${p.duration}</span>`
     : p.files ? `<span class="card-meta-item">📄 ${p.files.length} archivos</span>` : '';
 
+  // Media: imagen real si existe, si no SVG
+  const media = p.coverImage
+    ? `<img src="${p.coverImage}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;border-radius:0" loading="lazy">`
+    : (SVGS[p.svg] || SVGS.recurso);
+
+  // Video badge encima de la imagen
+  const videoBadge = (p.videoPreview || p.cat === 'video')
+    ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;background:rgba(42,32,24,.65);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;font-size:20px;pointer-events:none">▶</div>`
+    : '';
+
+  const popularBadge = p.popular ? `<span class="card-popular">⭐ Popular</span>` : '';
+
   return `<div class="product-card" onclick="Shop.openModal('${p.id}')">
     <div class="card-preview">
-      ${SVGS[p.svg] || SVGS.recurso}
+      ${media}
+      ${videoBadge}
       <span class="card-badge badge-${p.cat}">${_catLabel(p.cat)}</span>
       ${tierBadge || discountBadge}
+      ${popularBadge}
     </div>
     <div class="card-body">
       <div class="card-name">${p.name}</div>
-      <div class="card-desc">${p.shortDesc}</div>
+      <div class="card-desc">${p.shortDesc||''}</div>
       <div class="card-meta">${metaItems}</div>
     </div>
     <div class="card-footer">
@@ -520,23 +560,74 @@ function _cardHTML(p) {
 
 // ── PRODUCT MODAL ─────────────────────────────────────────────────
 function openModal(productId) {
-  const p = CATALOG.find(x => x.id === productId);
+  const p = _products.find(x => x.id === productId);
   if (!p) return;
   _activeProduct = p;
   const price = _effectivePrice(p);
   const modal = document.getElementById('product-modal');
 
+  // ── Media section: gallery + video ──────────────────────────────
+  const allImages = [];
+  if (p.coverImage) allImages.push(p.coverImage);
+  if (Array.isArray(p.gallery)) p.gallery.filter(Boolean).forEach(u => allImages.push(u));
+
+  let mediaHTML = '';
+  if (p.videoPreview) {
+    // Video embed as main media
+    mediaHTML = `<div style="position:relative;width:100%;padding-bottom:56.25%;background:#111">
+      <iframe src="${p.videoPreview}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0"
+        allow="autoplay;encrypted-media" allowfullscreen></iframe>
+    </div>`;
+  } else if (allImages.length > 0) {
+    mediaHTML = `<div style="position:relative;width:100%;background:#1a1612;overflow:hidden" id="modal-main-img-wrap">
+      <img id="modal-main-img" src="${allImages[0]}" alt="${p.name}"
+        style="width:100%;max-height:340px;object-fit:contain;display:block">
+    </div>`;
+    if (allImages.length > 1) {
+      mediaHTML += `<div style="display:flex;gap:6px;padding:8px 16px;overflow-x:auto;background:#f5f0e8">
+        ${allImages.map((u,i) => `<img src="${u}" onclick="document.getElementById('modal-main-img').src='${u}'"
+          style="width:60px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid ${i===0?'#D4603A':'transparent'};flex-shrink:0">`).join('')}
+      </div>`;
+    }
+  } else {
+    // SVG fallback
+    mediaHTML = `<div style="width:100%;height:220px;display:flex;align-items:center;justify-content:center">${SVGS[p.svg] || SVGS.recurso}</div>`;
+  }
+
+  // Video lessons list (if any)
+  let lessonsHTML = '';
+  if (Array.isArray(p.videoLessons) && p.videoLessons.length) {
+    lessonsHTML = `<div style="margin-top:16px">
+      <div style="font-weight:700;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase;color:#7B5CF6;margin-bottom:8px">Contenido del curso</div>
+      ${p.videoLessons.map((l,i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:.875rem">
+        <span style="color:${l.free?'#D4603A':'#999'};font-size:1rem">${l.free?'▶':'🔒'}</span>
+        <span style="flex:1">${i+1}. ${l.title||''}</span>
+        ${l.duration?`<span style="color:#999;font-size:.8rem">${l.duration}</span>`:''}
+      </div>`).join('')}
+    </div>`;
+  }
+
   document.getElementById('modal-preview').innerHTML =
-    `<button class="modal-close" onclick="Shop.closeModal()">✕</button>
-     <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">${SVGS[p.svg] || SVGS.recurso}</div>`;
+    `<button class="modal-close" onclick="Shop.closeModal()">✕</button>${mediaHTML}`;
+
+  // Insert lessons below description (create or reuse element)
+  let lessonsEl = document.getElementById('modal-lessons');
+  if (!lessonsEl) {
+    lessonsEl = document.createElement('div');
+    lessonsEl.id = 'modal-lessons';
+    const descEl = document.getElementById('modal-desc');
+    descEl.parentNode.insertBefore(lessonsEl, descEl.nextSibling);
+  }
+  lessonsEl.innerHTML = lessonsHTML;
 
   document.getElementById('modal-badges').innerHTML =
     `<span class="card-badge badge-${p.cat}">${_catLabel(p.cat)}</span>
      ${p.tier ? `<span class="card-badge badge-${p.tier==='expert'?'patron':'recurso'}">${p.tier==='expert'?'★ Expert':'★ Pro'}</span>` : ''}
-     ${p.lessons ? `<span class="card-badge badge-recurso">📹 ${p.lessons} clases · ${p.duration}</span>` : ''}`;
+     ${p.lessons ? `<span class="card-badge badge-recurso">📹 ${p.lessons} clases · ${p.duration}</span>` : ''}
+     ${Array.isArray(p.videoLessons)&&p.videoLessons.length ? `<span class="card-badge badge-recurso">📹 ${p.videoLessons.length} lecciones</span>` : ''}`;
 
   document.getElementById('modal-title').textContent = p.name;
-  document.getElementById('modal-desc').textContent  = p.desc;
+  document.getElementById('modal-desc').textContent  = p.desc||'';
 
   document.getElementById('modal-features').innerHTML = p.features
     .map(f => `<div class="modal-feature"><span class="modal-feature-icon">✓</span>${f}</div>`).join('');

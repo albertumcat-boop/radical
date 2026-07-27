@@ -4,7 +4,8 @@
     { "src": "/", "dest": "/landing.html" },
     { "src": "/app", "dest": "/index.html" },
     { "src": "/landing", "dest": "/landing.html" },
-    { "src": "/tienda", "dest": "/tienda.html" }
+    { "src": "/tienda", "dest": "/tienda.html" },
+    { "src": "/admin", "dest": "/admin.html" }
   ],
   "functions": {
     "api/webhook.js": {

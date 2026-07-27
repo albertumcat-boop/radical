@@ -4,8 +4,8 @@
  * Versión: debe actualizarse en cada deploy para invalidar caché.
  */
 
-const CACHE_NAME   = 'patronai-v42';
-const CACHE_STATIC = 'patronai-static-v42';
+const CACHE_NAME   = 'patronai-v43';
+const CACHE_STATIC = 'patronai-static-v43';
 
 // Assets que se cachean en la instalación
 const STATIC_ASSETS = [
@@ -48,6 +48,8 @@ const STATIC_ASSETS = [
   '/js/paywall.js',
   '/tienda.html',
   '/js/tienda.js',
+  '/admin.html',
+  '/js/tienda-admin.js',
 ];
 
 // URLs que NUNCA se cachean (siempre van a la red)
