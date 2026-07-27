@@ -97,6 +97,20 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ── Tienda: catálogo de productos (solo lectura pública) ─────────────
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ── Órdenes de compra: solo el dueño puede leer/escribir ────────────
+    // (el webhook del backend crea el documento con el uid del comprador)
+    match /orders/{orderId} {
+      allow read: if request.auth != null
+                  && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
     // ── Todo lo demás: denegado ──────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;

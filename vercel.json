@@ -3,7 +3,8 @@
   "routes": [
     { "src": "/", "dest": "/landing.html" },
     { "src": "/app", "dest": "/index.html" },
-    { "src": "/landing", "dest": "/landing.html" }
+    { "src": "/landing", "dest": "/landing.html" },
+    { "src": "/tienda", "dest": "/tienda.html" }
   ],
   "functions": {
     "api/webhook.js": {
