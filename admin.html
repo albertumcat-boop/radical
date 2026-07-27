@@ -486,6 +486,9 @@ code{background:var(--s2);padding:2px 7px;border-radius:5px;font-family:var(--mo
         <span class="nav-count" id="nav-count-orders">—</span>
       </div>
       <div class="nav-divider"></div>
+      <div class="nav-item" onclick="Admin.showPanel('earnings',this)">
+        💰 Ganancias Creadores
+      </div>
       <div class="nav-item" onclick="Admin.showPanel('stats',this)">
         📊 Estadísticas
       </div>
@@ -540,6 +543,17 @@ code{background:var(--s2);padding:2px 7px;border-radius:5px;font-family:var(--mo
           <div id="orders-body">
             <div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Sin órdenes aún</div><div class="empty-sub">Las compras aparecerán aquí</div></div>
           </div>
+        </div>
+      </div>
+
+      <!-- EARNINGS PANEL -->
+      <div class="panel" id="panel-earnings">
+        <div class="list-header"><h1 class="list-title">Ganancias de Creadores</h1></div>
+        <div style="background:#fffbf5;border:1px solid #e8ddd0;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:.85rem;color:#6b5a4e;line-height:1.6">
+          <strong>¿Cómo funciona?</strong> Cuando un cliente compra un producto, el sistema calcula automáticamente la regalía del creador según el % configurado en cada producto. Tú recibes el pago completo vía Lemon Squeezy, y luego pagas al creador su parte. Marca cada venta como "Pagado" al girar el dinero.
+        </div>
+        <div id="earnings-list" style="display:flex;flex-direction:column;gap:12px">
+          <div class="empty-state"><div class="empty-icon">💰</div><div class="empty-text">Cargando ganancias…</div></div>
         </div>
       </div>
 
@@ -701,6 +715,24 @@ code{background:var(--s2);padding:2px 7px;border-radius:5px;font-family:var(--mo
     <div class="tag-add-row">
       <input class="tag-add-input" type="text" id="files-input" placeholder="Ej: patron_espalda.pdf" onkeydown="if(event.key==='Enter'){Admin.addTag('files');event.preventDefault()}">
       <button class="tag-add-btn" onclick="Admin.addTag('files')">+ Añadir</button>
+    </div>
+
+    <div class="field-section">Creador / Regalías</div>
+    <div class="field-group">
+      <div class="field-label">Nombre del creador</div>
+      <input class="field-input" type="text" id="f-creator-name" placeholder="Ej: María González">
+    </div>
+    <div class="field-group">
+      <div class="field-label">Email del creador (para pagos)</div>
+      <input class="field-input" type="email" id="f-creator-email" placeholder="creador@email.com">
+    </div>
+    <div class="field-group">
+      <div class="field-label">UID Firebase del creador (opcional)</div>
+      <input class="field-input" type="text" id="f-creator-uid" placeholder="Dejar vacío si no tiene cuenta">
+    </div>
+    <div class="field-group">
+      <div class="field-label">% Regalía para el creador <span style="color:var(--ink3)">(0 = ninguna, 70 = creador recibe 70%)</span></div>
+      <input class="field-input" type="number" id="f-royalty-pct" placeholder="70" min="0" max="100" step="1" value="70">
     </div>
 
     <div class="field-section">Publicación</div>

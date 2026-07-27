@@ -216,6 +216,75 @@ function showPanel(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
   if (el) el.classList.add('active');
+  if (name === 'earnings') _loadEarnings();
+}
+
+async function _loadEarnings() {
+  const container = document.getElementById('earnings-list');
+  container.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Cargando…</div></div>';
+  try {
+    const snap = await db.collection('creatorEarnings').get();
+    if (snap.empty) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">💰</div><div class="empty-text">Sin ganancias registradas aún</div><div class="empty-sub">Aparecerán aquí cuando se haga la primera venta de un producto con creador asignado</div></div>';
+      return;
+    }
+    let html = '';
+    for (const doc of snap.docs) {
+      const e = doc.data();
+      // Cargar ventas individuales
+      const salesSnap = await db.collection('creatorEarnings').doc(doc.id).collection('sales').orderBy('createdAt','desc').get();
+      const salesRows = salesSnap.docs.map(s => {
+        const sale = s.data();
+        const fecha = sale.createdAt?.toDate ? sale.createdAt.toDate().toLocaleDateString('es') : '—';
+        const paidBadge = sale.paid
+          ? `<span style="color:#2a9d5c;font-size:.75rem;font-weight:600">✓ Pagado</span>`
+          : `<button onclick="Admin.markSalePaid('${doc.id}','${s.id}')" style="font-size:.72rem;padding:3px 8px;border:1px solid #D4603A;background:none;color:#D4603A;border-radius:4px;cursor:pointer">Marcar pagado</button>`;
+        return `<tr style="font-size:.8rem;border-bottom:1px solid #f0e8de">
+          <td style="padding:6px 8px">${fecha}</td>
+          <td style="padding:6px 8px">${sale.productName||'—'}</td>
+          <td style="padding:6px 8px">$${(sale.salePrice||0).toFixed(2)}</td>
+          <td style="padding:6px 8px">${sale.royaltyPct||0}%</td>
+          <td style="padding:6px 8px;font-weight:600;color:#2a9d5c">$${(sale.royaltyAmt||0).toFixed(2)}</td>
+          <td style="padding:6px 8px">${paidBadge}</td>
+        </tr>`;
+      }).join('');
+
+      html += `<div style="background:#fff;border:1px solid #e8ddd0;border-radius:10px;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:#fffbf5;border-bottom:1px solid #f0e8de">
+          <div>
+            <div style="font-weight:700;font-size:.95rem">${e.creatorName||'Sin nombre'}</div>
+            <div style="font-size:.8rem;color:#8a7a70">${e.creatorEmail||'Sin email'}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:1.4rem;font-weight:800;color:#D4603A">$${(e.totalEarned||0).toFixed(2)}</div>
+            <div style="font-size:.75rem;color:#8a7a70">${e.totalSales||0} ventas · pendiente de pago</div>
+          </div>
+        </div>
+        ${salesRows ? `<table style="width:100%;border-collapse:collapse">
+          <thead><tr style="font-size:.72rem;color:#8a7a70;text-transform:uppercase;letter-spacing:.04em;background:#faf6f1">
+            <th style="padding:6px 8px;text-align:left;font-weight:500">Fecha</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500">Producto</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500">Precio</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500">%</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500">Regalía</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500">Estado</th>
+          </tr></thead>
+          <tbody>${salesRows}</tbody>
+        </table>` : '<div style="padding:12px 18px;font-size:.8rem;color:#8a7a70">Sin ventas aún</div>'}
+      </div>`;
+    }
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Error cargando ganancias</div><div class="empty-sub">${e.message}</div></div>`;
+  }
+}
+
+async function markSalePaid(creatorUid, saleId) {
+  try {
+    await db.collection('creatorEarnings').doc(creatorUid).collection('sales').doc(saleId).update({ paid: true });
+    _toast('Venta marcada como pagada ✓', 'ok');
+    _loadEarnings();
+  } catch(e) { _toast('Error: ' + e.message, 'err'); }
 }
 
 // ── EDITOR ───────────────────────────────────────────────────────
@@ -256,10 +325,13 @@ function closeEditor() {
 }
 
 function _clearForm() {
-  ['f-id','f-name','f-short','f-desc','f-price','f-old-price','f-ls-key','f-video-preview','cover-url'].forEach(id => {
+  ['f-id','f-name','f-short','f-desc','f-price','f-old-price','f-ls-key','f-video-preview','cover-url',
+   'f-creator-name','f-creator-email','f-creator-uid'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  const rp = document.getElementById('f-royalty-pct');
+  if (rp) rp.value = '70';
   document.getElementById('f-cat').value      = 'patron';
   document.getElementById('f-tier').value     = '';
   document.getElementById('f-published').checked = true;
@@ -312,6 +384,12 @@ function _fillForm(p) {
   _lessons = (p.videoLessons || []).map(l => ({...l}));
   _renderLessons();
 
+  // Creator / Royalties
+  document.getElementById('f-creator-name').value  = p.creatorName  || '';
+  document.getElementById('f-creator-email').value = p.creatorEmail || '';
+  document.getElementById('f-creator-uid').value   = p.creatorUid   || '';
+  document.getElementById('f-royalty-pct').value   = p.royaltyPct != null ? p.royaltyPct : 70;
+
   _toggleLessonsSection();
 }
 
@@ -341,10 +419,14 @@ async function saveProduct() {
     coverImage:   document.getElementById('cover-url').value.trim() || null,
     gallery:      _gallery.filter(Boolean),
     videoPreview: document.getElementById('f-video-preview').value.trim() || null,
-    videoLessons: _lessons,
-    features:     _features,
-    files:        _files,
-    updatedAt:    firebase.firestore.FieldValue.serverTimestamp(),
+    videoLessons:  _lessons,
+    features:      _features,
+    files:         _files,
+    creatorName:   document.getElementById('f-creator-name').value.trim()  || null,
+    creatorEmail:  document.getElementById('f-creator-email').value.trim() || null,
+    creatorUid:    document.getElementById('f-creator-uid').value.trim()   || null,
+    royaltyPct:    parseFloat(document.getElementById('f-royalty-pct').value) || 0,
+    updatedAt:     firebase.firestore.FieldValue.serverTimestamp(),
     sortOrder:    _editId ? (_allProducts.find(p=>p.id===_editId)?.sortOrder || 99) : _allProducts.length + 1,
   };
   if (!_editId) {
@@ -569,6 +651,7 @@ window.Admin = {
   handleCoverFile, previewCoverUrl, removeCover: _removeCover,
   previewVideo,
   addLesson, addTag,
+  markSalePaid,
   _galleryFile, _galleryRemove, _lessonUpdate, _lessonRemove, _removeTag,
 };
 

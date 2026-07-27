@@ -113,18 +113,80 @@ module.exports = async (req, res) => {
     switch (eventName) {
 
       case 'order_created': {
-        // Primera compra completada
-        const variantId = data?.attributes?.first_order_item?.variant_id;
-        const tier = tierFromVariant(variantId);
+        const variantId  = data?.attributes?.first_order_item?.variant_id;
+        const tier       = tierFromVariant(variantId);
+        const lsOrderId  = String(data?.id || Date.now());
+        const totalCents = data?.attributes?.total || 0;
+        const total      = +(totalCents / 100).toFixed(2);
+
+        // Extraer productIds del custom_data (enviados desde create-cart-checkout.js)
+        const rawIds    = payload.meta?.custom_data?.productIds || '';
+        const productIds = rawIds ? rawIds.split(',').filter(Boolean) : [];
+
+        // Guardar la orden en Firestore (protege las descargas)
+        await db.collection('orders').doc(lsOrderId).set({
+          uid,
+          productIds,
+          total,
+          status:    'paid',
+          lsOrderId,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+        console.log(`[Webhook] order_created → order ${lsOrderId} uid=${uid} products=[${productIds}]`);
+
+        // Actualizar tier si es producto de suscripción
         if (tier) {
           await db.collection('users').doc(uid).update({
             tier,
             subscriptionStatus: 'active',
-            lsSubscriptionId:   String(data?.id || ''),
+            lsSubscriptionId:   lsOrderId,
             lsVariantId:        String(variantId || ''),
             updatedAt:          FieldValue.serverTimestamp(),
           });
           console.log(`[Webhook] order_created → ${uid} tier=${tier}`);
+        }
+
+        // Acumular ganancias por creador (si los productos tienen creatorUid)
+        if (productIds.length) {
+          try {
+            const snaps = await Promise.all(
+              productIds.map(pid => db.collection('products').doc(pid).get())
+            );
+            const batch = db.batch();
+            snaps.forEach(snap => {
+              if (!snap.exists) return;
+              const prod = snap.data();
+              if (!prod.creatorUid || !prod.royaltyPct) return;
+              const salePrice  = +(prod.price || 0);
+              const royaltyAmt = +(salePrice * prod.royaltyPct / 100).toFixed(2);
+              const earnRef    = db.collection('creatorEarnings').doc(prod.creatorUid);
+              batch.set(earnRef, {
+                creatorUid:   prod.creatorUid,
+                creatorEmail: prod.creatorEmail || '',
+                creatorName:  prod.creatorName  || '',
+                totalEarned:  FieldValue.increment(royaltyAmt),
+                totalSales:   FieldValue.increment(1),
+                updatedAt:    FieldValue.serverTimestamp(),
+              }, { merge: true });
+              // Log individual de venta
+              const saleRef = earnRef.collection('sales').doc(lsOrderId + '_' + snap.id);
+              batch.set(saleRef, {
+                productId:    snap.id,
+                productName:  prod.name || '',
+                salePrice,
+                royaltyPct:   prod.royaltyPct,
+                royaltyAmt,
+                orderId:      lsOrderId,
+                buyerUid:     uid,
+                paid:         false, // admin marca como pagado al girar el dinero
+                createdAt:    FieldValue.serverTimestamp(),
+              });
+            });
+            await batch.commit();
+            console.log(`[Webhook] Ganancias de creador actualizadas para order ${lsOrderId}`);
+          } catch(e) {
+            console.error('[Webhook] Error actualizando ganancias de creador:', e.message);
+          }
         }
         break;
       }

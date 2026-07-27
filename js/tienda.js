@@ -15,6 +15,7 @@ const FB_CONFIG = {
 let _db = null, _auth = null, _user = null, _userTier = 'free';
 let _cart = [], _currentFilter = 'all', _searchQuery = '', _activeProduct = null;
 let _products = [...CATALOG]; // merged: Firestore first, local fallback
+let _purchasedIds = new Set(); // IDs de productos ya comprados por el usuario
 
 // Descuento de afiliado activo
 const _aff = (() => {
@@ -359,11 +360,29 @@ function _onAuthChange(user) {
   if (user) {
     document.getElementById('nav-user-name').textContent = user.displayName || user.email?.split('@')[0] || '';
     _loadUserTier(user.uid);
+    _loadPurchases(user.uid);
   } else {
     document.getElementById('nav-user-name').textContent = '';
     _userTier = 'free';
+    _purchasedIds = new Set();
     _renderTierNotice();
+    _renderGrid();
   }
+}
+
+async function _loadPurchases(uid) {
+  if (!_db) return;
+  try {
+    const snap = await _db.collection('orders')
+      .where('uid', '==', uid)
+      .where('status', '==', 'paid')
+      .get();
+    _purchasedIds = new Set();
+    snap.docs.forEach(d => {
+      (d.data().productIds || []).forEach(pid => _purchasedIds.add(pid));
+    });
+    _renderGrid();
+  } catch(e) { console.warn('[Tienda] purchases:', e.message); }
 }
 
 async function _loadUserTier(uid) {
@@ -548,12 +567,15 @@ function _cardHTML(p) {
     </div>
     <div class="card-footer">
       <div class="card-price">
-        <span class="price-current">$${price.toFixed(2)}</span>
-        ${p.oldPrice ? `<span class="price-old">$${p.oldPrice.toFixed(2)}</span>` : ''}
+        ${_purchasedIds.has(p.id)
+          ? `<span style="color:#2a9d5c;font-weight:700;font-size:.85rem">✓ Comprado</span>`
+          : `<span class="price-current">$${price.toFixed(2)}</span>${p.oldPrice ? `<span class="price-old">$${p.oldPrice.toFixed(2)}</span>` : ''}`
+        }
       </div>
-      <button class="buy-btn${isInCart?' outline':''}" onclick="event.stopPropagation();Shop.addToCart('${p.id}')">
-        ${isInCart ? '✓ En carrito' : 'Agregar'}
-      </button>
+      ${_purchasedIds.has(p.id)
+        ? `<button class="buy-btn" style="background:#2a9d5c" onclick="event.stopPropagation();Shop.openModal('${p.id}')">Descargar</button>`
+        : `<button class="buy-btn${isInCart?' outline':''}" onclick="event.stopPropagation();Shop.addToCart('${p.id}')">${isInCart ? '✓ En carrito' : 'Agregar'}</button>`
+      }
     </div>
   </div>`;
 }
@@ -639,27 +661,58 @@ function openModal(productId) {
 
   const noteEl = document.getElementById('modal-price-note');
   const isInCart = _cart.some(x => x.id === p.id);
-  noteEl.textContent = '• Descarga inmediata  • PDF escala 1:1  • Licencia personal';
+  const hasPurchased = _purchasedIds.has(p.id);
 
   const buyBtn = document.getElementById('modal-buy-btn');
-  if (isInCart) {
-    buyBtn.textContent = '✓ Ya está en tu carrito';
-    buyBtn.onclick = () => { closeModal(); toggleCart(); };
-  } else {
-    buyBtn.textContent = '🛒 Agregar al carrito';
-    buyBtn.onclick = () => { addToCart(p.id); buyBtn.textContent = '✓ En carrito'; };
-  }
-
   const inclEl = document.getElementById('modal-includes');
-  if (p.files && p.files.length) {
+
+  if (hasPurchased) {
+    // Usuario ya compró — mostrar área de descarga real
+    noteEl.textContent = '✓ Producto en tu biblioteca · Descarga disponible';
+    noteEl.style.color = '#2a9d5c';
+    buyBtn.style.display = 'none';
+
     inclEl.style.display = 'block';
-    document.getElementById('modal-file-list').innerHTML = p.files.map(f => {
+    const icons = {PDF:'📄',MP4:'📹',ZIP:'📦',XLSX:'📊',GSHEET:'📊'};
+    const fileLinks = (p.files || []).map(f => {
       const ext = f.split('.').pop().toUpperCase();
-      const icons = {PDF:'📄',MP4:'📹',ZIP:'📦',XLSX:'📊',GSHEET:'📊'};
-      return `<div class="modal-file"><span class="modal-file-icon">${icons[ext]||'📎'}</span>${f}</div>`;
+      // downloadUrl viene del campo fileUrls en Firestore si existe, si no mostramos nombre
+      const url = (p.fileUrls && p.fileUrls[f]) ? p.fileUrls[f] : null;
+      return url
+        ? `<a class="modal-file" href="${url}" target="_blank" download style="text-decoration:none;color:inherit">
+             <span class="modal-file-icon">${icons[ext]||'📎'}</span>${f}
+             <span style="margin-left:auto;font-size:.75rem;color:#D4603A">⬇ Descargar</span>
+           </a>`
+        : `<div class="modal-file"><span class="modal-file-icon">${icons[ext]||'📎'}</span>${f}</div>`;
     }).join('');
+
+    document.getElementById('modal-file-list').innerHTML = fileLinks ||
+      `<div style="color:#666;font-size:.875rem;padding:8px 0">Descarga disponible en tu email de confirmación.</div>`;
+
   } else {
-    inclEl.style.display = 'none';
+    // No comprado — flujo normal de carrito
+    noteEl.textContent = '• Descarga inmediata  • PDF escala 1:1  • Licencia personal';
+    noteEl.style.color = '';
+    buyBtn.style.display = '';
+
+    if (isInCart) {
+      buyBtn.textContent = '✓ Ya está en tu carrito';
+      buyBtn.onclick = () => { closeModal(); toggleCart(); };
+    } else {
+      buyBtn.textContent = '🛒 Agregar al carrito';
+      buyBtn.onclick = () => { addToCart(p.id); buyBtn.textContent = '✓ En carrito'; };
+    }
+
+    if (p.files && p.files.length) {
+      inclEl.style.display = 'block';
+      const icons = {PDF:'📄',MP4:'📹',ZIP:'📦',XLSX:'📊',GSHEET:'📊'};
+      document.getElementById('modal-file-list').innerHTML = p.files.map(f => {
+        const ext = f.split('.').pop().toUpperCase();
+        return `<div class="modal-file"><span class="modal-file-icon">${icons[ext]||'📎'}</span>${f}</div>`;
+      }).join('');
+    } else {
+      inclEl.style.display = 'none';
+    }
   }
 
   modal.classList.add('open');
@@ -698,7 +751,7 @@ async function checkout() {
 
   try {
     const items = _cart.map(c => {
-      const p = CATALOG.find(x => x.id === c.id);
+      const p = _products.find(x => x.id === c.id);
       return { variantKey: p.lsVariantKey, productId: p.id, name: p.name, price: c.price };
     });
     const res = await fetch('/api/create-cart-checkout', {
