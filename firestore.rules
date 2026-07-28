@@ -111,11 +111,13 @@ service cloud.firestore {
                    && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // ── Órdenes de compra: solo el dueño puede leer ──────────────────────
+    // ── Órdenes de compra ─────────────────────────────────────────────────────
+    // Dueño lee sus propias órdenes; admins leen todas.
     // El webhook del backend (Firebase Admin) crea/actualiza los docs.
     match /orders/{orderId} {
       allow read: if request.auth != null
-                  && resource.data.uid == request.auth.uid;
+                  && (resource.data.uid == request.auth.uid
+                      || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
       allow write: if false; // solo el backend con Admin SDK puede escribir
     }
 

@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         checkout_data: {
           email,
           custom: {
-            uid,
+            firebase_uid: uid,
             productIds: items.map(i => i.productId).join(','),
             affCode: affCode || '',
           },

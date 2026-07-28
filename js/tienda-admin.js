@@ -533,7 +533,7 @@ function _galleryFile(input, index) {
       storage.ref(path).put(file)
         .then(s => s.ref.getDownloadURL())
         .then(url => { _gallery[index] = url; _renderGallerySlots(); })
-        .catch(() => {});
+        .catch(e => { _toast('Error al subir imagen: ' + e.message, 'err'); });
     }
     _renderGallerySlots();
   };

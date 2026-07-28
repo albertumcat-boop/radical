@@ -6,12 +6,8 @@
 (function () {
 'use strict';
 
-// ── Firebase config (mismo proyecto radicalpro) ───────────────────
-const FB_CONFIG = {
-  apiKey: "AIzaSyBkHlVJBXFBXFBXFBXFBXFBXFBXFBXFBXF",
-  authDomain: "radicalpro.firebaseapp.com",
-  projectId: "radicalpro",
-};
+// ── Firebase config ────────────────────────────────────────────────
+// (inicializado en _initFirebase con window.__PATRONAI_FB_CONFIG__ o fallback)
 let _db = null, _auth = null, _user = null, _userTier = 'free';
 let _cart = [], _currentFilter = 'all', _searchQuery = '', _activeProduct = null;
 // Normalizar CATALOG: asegurar campos que Firestore sí tiene
@@ -381,14 +377,14 @@ function _onAuthChange(user) {
 async function _loadPurchases(uid) {
   if (!_db) return;
   try {
-    const snap = await _db.collection('orders')
-      .where('uid', '==', uid)
-      .where('status', '==', 'paid')
-      .get();
+    // Filtramos status en cliente para evitar requerir índice compuesto uid+status
+    const snap = await _db.collection('orders').where('uid', '==', uid).get();
     _purchasedIds = new Set();
-    snap.docs.forEach(d => {
-      (d.data().productIds || []).forEach(pid => _purchasedIds.add(pid));
-    });
+    snap.docs
+      .filter(d => d.data().status === 'paid')
+      .forEach(d => {
+        (d.data().productIds || []).forEach(pid => _purchasedIds.add(pid));
+      });
     _renderGrid();
   } catch(e) { console.warn('[Tienda] purchases:', e.message); }
 }
@@ -501,7 +497,8 @@ function _renderGrid() {
   if (!grid) return;
   const filtered = _filteredProducts();
   if (filtered.length === 0) {
-    grid.innerHTML = `<div class="no-results">No se encontraron productos para "<em>${_searchQuery}</em>"</div>`;
+    const _safeQ = _searchQuery.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    grid.innerHTML = `<div class="no-results">No se encontraron productos para "<em>${_safeQ}</em>"</div>`;
     return;
   }
   // Group by category when showing all
