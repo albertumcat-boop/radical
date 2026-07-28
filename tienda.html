@@ -511,6 +511,18 @@ nav{
 .cart-continue-btn:hover{color:var(--ink);border-color:var(--ink2);background:#fff}
 .cart-note{text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:10px;line-height:1.6}
 
+/* ══ ADMIN ACCESS ════════════════════════════════════════════════ */
+.admin-tap-hint{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:12px;padding:6px 16px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:9000}
+.admin-tap-hint.show{opacity:1}
+.admin-modal-bg{position:fixed;inset:0;background:rgba(30,20,10,.6);z-index:9500;display:none;align-items:center;justify-content:center;padding:20px}
+.admin-modal-bg.open{display:flex}
+.admin-modal-box{background:var(--surf);border:1px solid var(--brd);border-radius:20px;padding:32px 28px;max-width:320px;width:100%;text-align:center}
+.admin-modal-logo{font-family:var(--serif);font-size:22px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.admin-modal-sub{font-size:12px;color:var(--ink3);margin-bottom:24px}
+.admin-modal-btn{width:100%;height:46px;background:var(--ink);color:#fff;border:none;border-radius:12px;font-size:15px;font-family:var(--serif);cursor:pointer;letter-spacing:.3px;transition:background .2s;margin-bottom:10px}
+.admin-modal-btn:hover{background:var(--ink2)}
+.admin-modal-cancel{width:100%;height:38px;background:none;border:1px solid var(--brd);border-radius:10px;font-size:13px;color:var(--ink3);cursor:pointer}
+
 /* ══ PAY MODAL ═══════════════════════════════════════════════════ */
 #pay-modal-overlay{position:fixed;inset:0;background:rgba(30,20,10,.55);z-index:8000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .25s;padding:16px}
 #pay-modal-overlay.open{opacity:1}
@@ -611,7 +623,7 @@ nav{
 
 <!-- ══ NAV ═════════════════════════════════════════════════════ -->
 <nav>
-  <a href="/" class="nav-logo">
+  <a href="/" class="nav-logo" id="logo-btn" onclick="logoClick(event)">
     <div class="nav-logo-mark">✂</div>
     <div class="nav-logo-text">
       <span class="nav-logo-name">PatrónAI</span>
@@ -763,6 +775,17 @@ nav{
 <!-- ══ TOASTS ════════════════════════════════════════════════════ -->
 <div id="toast-container"></div>
 
+<!-- ══ ADMIN ACCESS ══════════════════════════════════════════════ -->
+<div class="admin-tap-hint" id="admin-tap-hint"></div>
+<div class="admin-modal-bg" id="admin-modal-bg" onclick="if(event.target===this)closeAdminModal()">
+  <div class="admin-modal-box">
+    <div class="admin-modal-logo">✂ PatrónAI</div>
+    <div class="admin-modal-sub">Acceso al panel de administración</div>
+    <button class="admin-modal-btn" onclick="window.location.href='/admin.html'">Ir al panel admin →</button>
+    <button class="admin-modal-cancel" onclick="closeAdminModal()">Cancelar</button>
+  </div>
+</div>
+
 <!-- ══ FOOTER ════════════════════════════════════════════════════ -->
 <footer class="shop-footer">
   <div class="footer-inner">
@@ -791,6 +814,42 @@ window.__PATRONAI_FB_CONFIG__ = {
 };
 </script>
 <script src="/js/tienda.js"></script>
+<script>
+// ── Admin access: 5 clicks al logo ───────────────────────────────
+var _logoClicks = 0, _logoTimer = null, _keyBuf = '';
+function logoClick(e) {
+  e.preventDefault();
+  _logoClicks++;
+  clearTimeout(_logoTimer);
+  var hint = document.getElementById('admin-tap-hint');
+  if (_logoClicks >= 2 && _logoClicks < 5) {
+    hint.textContent = (5 - _logoClicks) + ' más...';
+    hint.classList.add('show');
+    setTimeout(function(){ hint.classList.remove('show'); }, 900);
+  }
+  if (_logoClicks >= 5) {
+    _logoClicks = 0;
+    hint.classList.remove('show');
+    document.getElementById('admin-modal-bg').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    return;
+  }
+  _logoTimer = setTimeout(function(){
+    _logoClicks = 0;
+    hint.classList.remove('show');
+  }, 1800);
+  if (_logoClicks === 1) window.location.href = '/';
+}
+function closeAdminModal() {
+  document.getElementById('admin-modal-bg').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keypress', function(e) {
+  if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+  _keyBuf = (_keyBuf + e.key.toLowerCase()).slice(-8);
+  if (_keyBuf.includes('patronai')) { _keyBuf = ''; document.getElementById('admin-modal-bg').classList.add('open'); document.body.style.overflow = 'hidden'; }
+});
+</script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js');</script>
 </body>
 </html>
