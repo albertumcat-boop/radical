@@ -825,6 +825,12 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
       </svg>
     </button>
 
+    <!-- Nav links -->
+    <div style="display:flex;align-items:center;gap:4px;margin-right:6px">
+      <a href="/landing" title="Inicio" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:none;border:1px solid var(--brd);color:var(--tx3);text-decoration:none;font-size:14px;transition:background .15s" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background='none'">⌂</a>
+      <a href="/tienda" title="Tienda" style="display:flex;align-items:center;gap:5px;padding:0 10px;height:30px;border-radius:8px;background:none;border:1px solid rgba(196,152,48,.35);color:var(--gold);text-decoration:none;font-size:11px;font-weight:600;white-space:nowrap;transition:background .15s" onmouseover="this.style.background='rgba(196,152,48,.08)'" onmouseout="this.style.background='none'">🛍️ <span id="tb-tienda-label">Tienda</span></a>
+    </div>
+
     <!-- Vista buttons (app.js usa data-view) -->
     <div class="view-tabs">
       <button class="view-btn active" data-view="pattern">

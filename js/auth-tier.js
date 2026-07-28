@@ -101,30 +101,36 @@ PAT.AuthTier = (function () {
       badge.id = 'tier-badge';
       document.body.appendChild(badge);
     }
+    // El badge va dentro del topbar (no flotante) para no tapar controles
     badge.style.cssText = `
-      position:fixed;top:10px;right:14px;z-index:999;
-      background:var(--panel);border:1px solid ${tier.color}55;
-      border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;
-      display:flex;align-items:center;gap:6px;cursor:pointer;
-      box-shadow:0 2px 12px rgba(0,0,0,.3);color:${tier.color};
+      background:${tier.color}18;border:1px solid ${tier.color}44;
+      border-radius:20px;padding:4px 11px;font-size:11px;font-weight:700;
+      display:flex;align-items:center;gap:6px;cursor:pointer;color:${tier.color};
+      white-space:nowrap;flex-shrink:0;
     `;
     const loggedIn = isLoggedIn();
     const trialTag = _isInTrial
       ? `<span style="background:#10b98122;padding:1px 7px;border-radius:10px;font-size:9px;color:#10b981">🎁 ${_trialDaysLeft}d gratis</span>`
       : '';
-    badge.innerHTML = `
-      <span>${tier.badge}</span>
-      <span>${_isInTrial ? 'Trial' : tier.name}</span>
-      ${!loggedIn
-        ? `<span style="background:#3b82f622;padding:1px 7px;border-radius:10px;font-size:9px;color:#60a5fa">Entrar →</span>`
-        : _isInTrial
+
+    if (!loggedIn) {
+      badge.innerHTML = `
+        <span style="font-size:13px">👤</span>
+        <span style="font-size:11px;font-weight:600;color:var(--tx2)">Iniciar sesión</span>
+      `;
+    } else {
+      badge.innerHTML = `
+        <span>${tier.badge}</span>
+        <span>${_isInTrial ? 'Trial' : tier.name}</span>
+        ${_isInTrial
           ? trialTag
           : _currentTier !== 'expert'
             ? `<span style="background:${tier.color}22;padding:1px 7px;border-radius:10px;font-size:9px">Mejorar ↑</span>`
             : ''
-      }
-    `;
-    // Doble clic en badge → modal de cuenta
+        }
+      `;
+    }
+
     badge.onclick = () => {
       if (isLoggedIn()) {
         showAccountModal();
