@@ -336,12 +336,14 @@ function _initFirebase() {
 async function _loadFirestoreProducts() {
   if (!_db) return;
   try {
-    const snap = await _db.collection('products')
-      .where('published', '==', true)
-      .orderBy('sortOrder')
-      .get();
+    // Sin where+orderBy combinados para evitar requerir índice compuesto.
+    // Filtramos published y ordenamos en cliente.
+    const snap = await _db.collection('products').get();
     if (snap.empty) return;
-    const fsProducts = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+    const fsProducts = snap.docs
+      .map(d => ({ ...d.data(), id: d.id }))
+      .filter(p => p.published !== false)
+      .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
     // Merge: Firestore overrides local catalog fields; keep local SVG fallback
     _products = fsProducts.map(fp => {
       const local = CATALOG.find(c => c.id === fp.id) || {};
