@@ -28,6 +28,7 @@ let _filterCat   = 'all';
 let _editId      = null;   // null = nuevo, string = editar
 let _features    = [];
 let _files       = [];
+let _fileUrls    = {};     // map: filename → download URL
 let _gallery     = [];     // Array de URLs (hasta 6)
 let _lessons     = [];
 
@@ -96,7 +97,8 @@ function _authMsg(code) {
 
 // ── LOAD ALL DATA ────────────────────────────────────────────────
 async function _loadAll() {
-  await Promise.all([_loadProducts(), _loadOrders()]);
+  _loadOrders(); // realtime listener, no await
+  await _loadProducts();
   _updateStats();
 }
 
@@ -136,13 +138,19 @@ async function _seedProducts() {
   document.getElementById('nav-count-products').textContent = _allProducts.length;
 }
 
-async function _loadOrders() {
-  try {
-    const snap = await db.collection('orders').orderBy('createdAt','desc').limit(50).get();
-    _orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    _renderOrders();
-    document.getElementById('nav-count-orders').textContent = _orders.length;
-  } catch(e) { /* orders might not exist yet */ }
+let _ordersUnsub = null;
+function _loadOrders() {
+  if (_ordersUnsub) _ordersUnsub();
+  _ordersUnsub = db.collection('orders')
+    .orderBy('fecha', 'desc')
+    .limit(100)
+    .onSnapshot(snap => {
+      _orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _renderOrders();
+      const pending = _orders.filter(o => o.status === 'pending').length;
+      document.getElementById('nav-count-orders').textContent = pending || _orders.length;
+      _updateStats();
+    }, () => {});
 }
 
 // ── RENDER PRODUCTS LIST ─────────────────────────────────────────
@@ -182,20 +190,107 @@ function filterProducts(cat, el) {
 
 // ── RENDER ORDERS ────────────────────────────────────────────────
 function _renderOrders() {
-  const body = document.getElementById('orders-body');
+  const pending   = _orders.filter(o => o.status === 'pending');
+  const paid      = _orders.filter(o => o.status === 'paid');
+  const cancelled = _orders.filter(o => o.status === 'cancelled');
+
+  let html = '';
+
   if (!_orders.length) {
-    body.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Sin órdenes aún</div><div class="empty-sub">Las compras aparecerán aquí</div></div>`;
-    return;
+    html = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Sin órdenes aún</div><div class="empty-sub">Aparecerán aquí cuando un cliente envíe un pedido</div></div>`;
+  } else {
+    if (pending.length) {
+      html += `<div class="ord-section-title">⏳ Pendientes de confirmación (${pending.length})</div>`;
+      html += pending.map(o => _renderOrderCard(o)).join('');
+    }
+    if (paid.length) {
+      html += `<div class="ord-section-title" style="margin-top:24px">✅ Confirmados (${paid.length})</div>`;
+      html += paid.map(o => _renderOrderCard(o)).join('');
+    }
+    if (cancelled.length) {
+      html += `<div class="ord-section-title" style="margin-top:24px;color:#999">❌ Cancelados (${cancelled.length})</div>`;
+      html += cancelled.map(o => _renderOrderCard(o)).join('');
+    }
   }
-  body.innerHTML = _orders.map(o => {
-    const date = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleDateString('es') : '—';
-    return `<div class="order-row">
-      <span class="order-date">${date}</span>
-      <span class="order-email">${_esc(o.email||'—')}</span>
-      <span class="order-total">$${(o.total||0).toFixed(2)}</span>
-      <span class="order-id">${(o.lsOrderId||o.id||'').substring(0,12)}</span>
+
+  document.getElementById('orders-body').innerHTML = html;
+}
+
+function _renderOrderCard(o) {
+  const date = o.fecha?.toDate ? o.fecha.toDate().toLocaleString('es') : '—';
+  const statusLabel = { pending:'Pendiente', paid:'Confirmado', cancelled:'Cancelado' }[o.status] || o.status;
+  const statusClass = { pending:'ord-pending', paid:'ord-paid', cancelled:'ord-cancelled' }[o.status] || '';
+
+  const itemsHtml = (o.items || []).map(i =>
+    `<div class="ord-item-row"><span>${_esc(i.name||i.productId)}</span><span>$${(i.price||0).toFixed(2)}</span></div>`
+  ).join('');
+
+  const metodo = { pago_movil:'📱 Pago Móvil', binance:'🟡 Binance', zelle:'💵 Zelle', transferencia:'🏦 Transferencia' }[o.metodoPago] || (o.metodoPago||'—');
+
+  const waPhone = (o.email||'').replace(/[^0-9]/g,'');
+
+  const actions = o.status === 'pending' ? `
+    <div class="ord-actions">
+      <button class="ord-btn-confirm" onclick="Admin.confirmOrder('${o.id}','${_esc(o.email||'')}')">✅ Confirmar pago</button>
+      <button class="ord-btn-cancel" onclick="Admin.cancelOrder('${o.id}')">❌ Cancelar</button>
+    </div>` : o.status === 'paid' ? `
+    <div class="ord-actions">
+      <button class="ord-btn-wa" onclick="window.open('https://wa.me/+${waPhone}','_blank')">📲 WhatsApp al cliente</button>
+      <button class="ord-btn-cancel" onclick="Admin.deleteOrder('${o.id}')">🗑 Eliminar</button>
+    </div>` : `
+    <div class="ord-actions">
+      <button class="ord-btn-cancel" onclick="Admin.deleteOrder('${o.id}')">🗑 Eliminar</button>
     </div>`;
-  }).join('');
+
+  return `<div class="ord-card ${statusClass}">
+    <div class="ord-card-head">
+      <div>
+        <div class="ord-email">${_esc(o.email||'—')}</div>
+        <div class="ord-date">${date} · ${metodo}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="ord-total">$${(o.total||0).toFixed(2)}</div>
+        <span class="ord-status-badge ${statusClass}">${statusLabel}</span>
+      </div>
+    </div>
+    <div class="ord-items">${itemsHtml || '<span style="font-size:.8rem;color:#999">Sin detalle de productos</span>'}</div>
+    ${actions}
+  </div>`;
+}
+
+async function confirmOrder(orderId, clientEmail) {
+  const btn = document.querySelector(`[onclick*="confirmOrder('${orderId}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Confirmando…'; }
+  try {
+    await db.collection('orders').doc(orderId).update({
+      status: 'paid',
+      confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    _toast('✅ Pago confirmado — el cliente ya puede descargar', 'ok');
+
+    // Abrir WhatsApp al cliente para notificarle
+    const msg = `✅ *Hola! Tu pedido en PatrónAI Pro ha sido confirmado.*\n\nYa puedes descargar tus productos en:\nhttps://radical-pi.vercel.app/tienda\n\nInicia sesión con tu cuenta (${clientEmail}) y busca el botón "Descargar" en cada producto. ¡Gracias por tu compra! ✂️`;
+    setTimeout(() => window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank'), 500);
+  } catch(e) {
+    _toast('Error al confirmar: ' + e.message, 'err');
+    if (btn) { btn.disabled = false; btn.textContent = '✅ Confirmar pago'; }
+  }
+}
+
+async function cancelOrder(orderId) {
+  if (!confirm('¿Cancelar este pedido?')) return;
+  try {
+    await db.collection('orders').doc(orderId).update({ status: 'cancelled' });
+    _toast('Pedido cancelado', 'ok');
+  } catch(e) { _toast('Error: ' + e.message, 'err'); }
+}
+
+async function deleteOrder(orderId) {
+  if (!confirm('¿Eliminar este pedido del historial?')) return;
+  try {
+    await db.collection('orders').doc(orderId).delete();
+    _toast('Pedido eliminado', 'ok');
+  } catch(e) { _toast('Error: ' + e.message, 'err'); }
 }
 
 // ── STATS ────────────────────────────────────────────────────────
@@ -340,6 +435,7 @@ function _clearForm() {
   _hideVideoPreview();
   _features = []; _renderTags('features');
   _files    = []; _renderTags('files');
+  _fileUrls = {}; _renderFileUrls();
   _lessons  = []; _renderLessons();
 }
 
@@ -379,6 +475,8 @@ function _fillForm(p) {
   _renderTags('features');
   _files    = [...(p.files || [])];
   _renderTags('files');
+  _fileUrls = { ...(p.fileUrls || {}) };
+  _renderFileUrls();
 
   // Lessons
   _lessons = (p.videoLessons || []).map(l => ({...l}));
@@ -422,6 +520,7 @@ async function saveProduct() {
     videoLessons:  _lessons,
     features:      _features,
     files:         _files,
+    fileUrls:      Object.keys(_fileUrls).length ? _fileUrls : null,
     creatorName:   document.getElementById('f-creator-name').value.trim()  || null,
     creatorEmail:  document.getElementById('f-creator-email').value.trim() || null,
     creatorUid:    document.getElementById('f-creator-uid').value.trim()   || null,
@@ -603,7 +702,7 @@ function addTag(type) {
   const val = document.getElementById(inputId).value.trim();
   if (!val) return;
   if (type === 'features') { _features.push(val); _renderTags('features'); }
-  else { _files.push(val); _renderTags('files'); }
+  else { _files.push(val); _renderTags('files'); _renderFileUrls(); }
   document.getElementById(inputId).value = '';
 }
 function _renderTags(type) {
@@ -619,6 +718,29 @@ function _renderTags(type) {
 function _removeTag(type, i) {
   if (type === 'features') _features.splice(i,1); else _files.splice(i,1);
   _renderTags(type);
+  if (type === 'files') _renderFileUrls();
+}
+
+// ── FILE URLS (download links per file) ───────────────────────────
+function _renderFileUrls() {
+  const container = document.getElementById('file-urls-list');
+  if (!container) return;
+  if (_files.length === 0) {
+    container.innerHTML = '<div style="font-size:.78rem;color:#aaa;padding:4px 0">Añade archivos arriba para asignarles URLs.</div>';
+    return;
+  }
+  container.innerHTML = _files.map(fname =>
+    `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+       <span style="min-width:160px;font-size:.8rem;color:#bbb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(fname)}">${_esc(fname)}</span>
+       <input type="url" placeholder="https://..." value="${_esc(_fileUrls[fname] || '')}"
+         style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:6px 10px;color:#e0d8d0;font-size:.82rem"
+         oninput="Admin._setFileUrl('${_esc(fname).replace(/'/g,"\\'")}', this.value)">
+     </div>`
+  ).join('');
+}
+function _setFileUrl(fname, url) {
+  if (url.trim()) { _fileUrls[fname] = url.trim(); }
+  else { delete _fileUrls[fname]; }
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────
@@ -650,8 +772,9 @@ window.Admin = {
   openEditor, closeEditor, saveProduct, deleteProduct,
   handleCoverFile, previewCoverUrl, removeCover: _removeCover,
   previewVideo,
-  addLesson, addTag,
+  addLesson, addTag, _setFileUrl, _renderFileUrls,
   markSalePaid,
+  confirmOrder, cancelOrder, deleteOrder,
   _galleryFile, _galleryRemove, _lessonUpdate, _lessonRemove, _removeTag,
 };
 

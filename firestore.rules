@@ -113,12 +113,17 @@ service cloud.firestore {
 
     // ── Órdenes de compra ─────────────────────────────────────────────────────
     // Dueño lee sus propias órdenes; admins leen todas.
-    // El webhook del backend (Firebase Admin) crea/actualiza los docs.
+    // Clientes autenticados pueden crear su propio pedido (status: pending).
+    // Solo admins pueden actualizar/eliminar (confirmar o borrar pedido).
     match /orders/{orderId} {
       allow read: if request.auth != null
                   && (resource.data.uid == request.auth.uid
                       || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
-      allow write: if false; // solo el backend con Admin SDK puede escribir
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'pending';
+      allow update, delete: if request.auth != null
+                    && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // ── Ganancias de creadores: cada creador ve solo las suyas ───────────

@@ -385,14 +385,31 @@ input,textarea,select{font-family:inherit;font-size:13px}
 .stat-sub{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-top:6px}
 
 /* ── ORDERS PANEL ────────────────────────────────────────── */
-.orders-list{background:var(--s1);border-radius:var(--r2);border:1.5px solid var(--brd2);overflow:hidden}
-.order-row{
-  display:grid;grid-template-columns:160px 1fr 80px 100px;gap:0;
-  align-items:center;padding:12px 16px;border-bottom:1px solid var(--brd2);
-}
-.order-row:last-child{border-bottom:none}
-.order-row.head{background:var(--s2);padding:8px 16px}
-.order-row.head span{font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:1px;text-transform:uppercase}
+.orders-list{display:flex;flex-direction:column;gap:12px}
+.ord-section-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:4px 0;border-bottom:1.5px solid var(--brd2);margin-bottom:4px}
+.ord-card{background:var(--s1);border:1.5px solid var(--brd2);border-radius:14px;overflow:hidden}
+.ord-card.ord-pending{border-color:#f5c842}
+.ord-card.ord-paid{border-color:#2a9d5c}
+.ord-card.ord-cancelled{opacity:.6}
+.ord-card-head{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 16px;border-bottom:1px solid var(--brd2)}
+.ord-email{font-size:.9rem;font-weight:600;color:var(--ink)}
+.ord-date{font-family:var(--mono);font-size:.72rem;color:var(--ink3);margin-top:3px}
+.ord-total{font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--fire)}
+.ord-status-badge{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;display:inline-block;margin-top:4px}
+.ord-pending .ord-status-badge{background:#fff8dc;color:#a07800}
+.ord-paid .ord-status-badge{background:#e8f5ee;color:#1a7a40}
+.ord-cancelled .ord-status-badge{background:#f5e8e8;color:#a03030}
+.ord-items{padding:10px 16px;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid var(--brd2)}
+.ord-item-row{display:flex;justify-content:space-between;font-size:.82rem;color:var(--ink2)}
+.ord-actions{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap}
+.ord-btn-confirm{flex:1;padding:9px 14px;background:#2a9d5c;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer}
+.ord-btn-confirm:hover{background:#1e7a44}
+.ord-btn-confirm:disabled{background:#aaa;cursor:not-allowed}
+.ord-btn-cancel{padding:9px 14px;background:none;border:1.5px solid #e0d0c8;border-radius:8px;font-size:.82rem;color:var(--ink3);cursor:pointer}
+.ord-btn-cancel:hover{border-color:#c44;color:#c44}
+.ord-btn-wa{flex:1;padding:9px 14px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer}
+.ord-btn-wa:hover{background:#1da851}
+/* legacy compat */
 .order-id{font-family:var(--mono);font-size:11px;color:var(--ink2)}
 .order-email{font-size:12px;color:var(--ink)}
 .order-total{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--fire)}
@@ -536,13 +553,8 @@ code{background:var(--s2);padding:2px 7px;border-radius:5px;font-family:var(--mo
         <div class="list-header">
           <h1 class="list-title">Órdenes</h1>
         </div>
-        <div class="orders-list" id="orders-list">
-          <div class="order-row head">
-            <span>Fecha</span><span>Email</span><span>Total</span><span>ID</span>
-          </div>
-          <div id="orders-body">
-            <div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Sin órdenes aún</div><div class="empty-sub">Las compras aparecerán aquí</div></div>
-          </div>
+        <div class="orders-list" id="orders-body">
+          <div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Sin órdenes aún</div><div class="empty-sub">Aparecerán aquí cuando un cliente envíe un pedido</div></div>
         </div>
       </div>
 
@@ -716,6 +728,11 @@ code{background:var(--s2);padding:2px 7px;border-radius:5px;font-family:var(--mo
       <input class="tag-add-input" type="text" id="files-input" placeholder="Ej: patron_espalda.pdf" onkeydown="if(event.key==='Enter'){Admin.addTag('files');event.preventDefault()}">
       <button class="tag-add-btn" onclick="Admin.addTag('files')">+ Añadir</button>
     </div>
+
+    <div class="field-section">Links de descarga (fileUrls)</div>
+    <div style="font-size:.78rem;color:#8a7a70;margin-bottom:10px;line-height:1.5">Por cada archivo listado arriba, pega la URL de descarga (Firebase Storage, Google Drive, Dropbox, etc.). El cliente verá el botón "Descargar" solo si hay una URL aquí.</div>
+    <div id="file-urls-list"></div>
+    <div style="font-size:.75rem;color:#aaa;margin-top:6px">Las URLs se llenan automáticamente según los archivos añadidos arriba.</div>
 
     <div class="field-section">Creador / Regalías</div>
     <div class="field-group">
