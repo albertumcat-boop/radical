@@ -10,13 +10,7 @@
 // (inicializado en _initFirebase con window.__PATRONAI_FB_CONFIG__ o fallback)
 let _db = null, _auth = null, _user = null, _userTier = 'free';
 let _cart = [], _currentFilter = 'all', _searchQuery = '', _activeProduct = null;
-// Normalizar CATALOG: asegurar campos que Firestore sí tiene
-const CATALOG_NORMALIZED = CATALOG.map((p, i) => ({
-  published: true, sortOrder: i + 1,
-  coverImage: null, gallery: [], videoPreview: null, videoLessons: [],
-  ...p,
-}));
-let _products = [...CATALOG_NORMALIZED]; // merged: Firestore first, local fallback
+let _products = []; // se inicializa tras la declaración de CATALOG
 let _purchasedIds = new Set(); // IDs de productos ya comprados por el usuario
 
 // Descuento de afiliado activo
@@ -310,6 +304,15 @@ const CATALOG = [
     tier:null,
   },
 ];
+
+// Normalizar CATALOG: asegurar campos que Firestore sí tiene
+// (debe estar DESPUÉS de la declaración de CATALOG)
+const CATALOG_NORMALIZED = CATALOG.map((p, i) => ({
+  published: true, sortOrder: i + 1,
+  coverImage: null, gallery: [], videoPreview: null, videoLessons: [],
+  ...p,
+}));
+_products = [...CATALOG_NORMALIZED];
 
 // ── FIREBASE INIT ─────────────────────────────────────────────────
 function _initFirebase() {
