@@ -14,7 +14,13 @@ const FB_CONFIG = {
 };
 let _db = null, _auth = null, _user = null, _userTier = 'free';
 let _cart = [], _currentFilter = 'all', _searchQuery = '', _activeProduct = null;
-let _products = [...CATALOG]; // merged: Firestore first, local fallback
+// Normalizar CATALOG: asegurar campos que Firestore sí tiene
+const CATALOG_NORMALIZED = CATALOG.map((p, i) => ({
+  published: true, sortOrder: i + 1,
+  coverImage: null, gallery: [], videoPreview: null, videoLessons: [],
+  ...p,
+}));
+let _products = [...CATALOG_NORMALIZED]; // merged: Firestore first, local fallback
 let _purchasedIds = new Set(); // IDs de productos ya comprados por el usuario
 
 // Descuento de afiliado activo
@@ -344,12 +350,12 @@ async function _loadFirestoreProducts() {
       .map(d => ({ ...d.data(), id: d.id }))
       .filter(p => p.published !== false)
       .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
-    // Merge: Firestore overrides local catalog fields; keep local SVG fallback
+    // Merge: CATALOG_NORMALIZED como base (tiene SVG fallback), Firestore gana en campos reales
     _products = fsProducts.map(fp => {
-      const local = CATALOG.find(c => c.id === fp.id) || {};
-      return { ...local, ...fp }; // Firestore data wins (tiene imágenes, videos, etc.)
+      const local = CATALOG_NORMALIZED.find(c => c.id === fp.id) || {};
+      return { ...local, ...fp };
     });
-    // Append any Firestore-only products not in local catalog
+    // Productos solo en Firestore (creados desde el admin, sin equivalente local)
     fsProducts.forEach(fp => {
       if (!_products.find(p => p.id === fp.id)) _products.push(fp);
     });
@@ -653,7 +659,7 @@ function openModal(productId) {
   document.getElementById('modal-title').textContent = p.name;
   document.getElementById('modal-desc').textContent  = p.desc||'';
 
-  document.getElementById('modal-features').innerHTML = p.features
+  document.getElementById('modal-features').innerHTML = (p.features||[])
     .map(f => `<div class="modal-feature"><span class="modal-feature-icon">✓</span>${f}</div>`).join('');
 
   document.getElementById('modal-price').textContent = '$' + price.toFixed(2);
