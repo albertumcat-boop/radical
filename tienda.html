@@ -834,21 +834,18 @@ function logoClick(e) {
     document.body.style.overflow = 'hidden';
     return;
   }
+  // Si pasan 1.8s sin llegar a 5, navega al inicio normalmente
   _logoTimer = setTimeout(function(){
+    var n = _logoClicks;
     _logoClicks = 0;
     hint.classList.remove('show');
+    if (n < 5) window.location.href = '/';
   }, 1800);
-  if (_logoClicks === 1) window.location.href = '/';
 }
 function closeAdminModal() {
   document.getElementById('admin-modal-bg').classList.remove('open');
   document.body.style.overflow = '';
 }
-document.addEventListener('keypress', function(e) {
-  if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
-  _keyBuf = (_keyBuf + e.key.toLowerCase()).slice(-8);
-  if (_keyBuf.includes('patronai')) { _keyBuf = ''; document.getElementById('admin-modal-bg').classList.add('open'); document.body.style.overflow = 'hidden'; }
-});
 </script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js');</script>
 </body>
