@@ -926,7 +926,142 @@ function _init() {
 
 document.addEventListener('DOMContentLoaded', _init);
 
+// ── SELL / CREATOR SUBMISSION ─────────────────────────────────────
+let _crfFiles = [];   // File objects pendientes de subir
+let _crfCover = null; // File object portada
+
+function openSellModal() {
+  if (!_user) {
+    _toast('Inicia sesión para vender tus productos', 'info');
+    return;
+  }
+  document.getElementById('creator-modal-bg').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSellModal() {
+  document.getElementById('creator-modal-bg').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function _crf_coverChange(input) {
+  const f = input.files[0];
+  if (!f) return;
+  if (f.size > 5 * 1024 * 1024) { _toast('La portada debe ser menor a 5 MB', 'error'); return; }
+  _crfCover = f;
+  document.getElementById('crf-cover-name').textContent = f.name + ' (' + (f.size/1024).toFixed(0) + ' KB)';
+}
+
+function _crf_filesChange(input) {
+  const newFiles = Array.from(input.files).filter(f => {
+    if (f.size > 50 * 1024 * 1024) { _toast(f.name + ' supera 50 MB', 'error'); return false; }
+    return true;
+  });
+  _crfFiles = [..._crfFiles, ...newFiles];
+  _crf_renderFilesList();
+  input.value = '';
+}
+
+function _crf_renderFilesList() {
+  const list = document.getElementById('crf-files-list');
+  list.innerHTML = _crfFiles.map((f, i) =>
+    `<div class="crf-file-item">
+       <span class="crf-file-name">${_esc(f.name)}</span>
+       <span class="crf-file-size">${(f.size/1024/1024).toFixed(1)} MB</span>
+       <button class="crf-file-rm" onclick="Shop._crf_removeFile(${i})">×</button>
+     </div>`
+  ).join('');
+}
+
+function _crf_removeFile(i) {
+  _crfFiles.splice(i, 1);
+  _crf_renderFilesList();
+}
+
+async function submitSell() {
+  if (!_user) return;
+  const name  = document.getElementById('crf-name').value.trim();
+  const short = document.getElementById('crf-short').value.trim();
+  const price = parseFloat(document.getElementById('crf-price').value) || 0;
+  if (!name) { _toast('El nombre es obligatorio', 'error'); return; }
+  if (!short) { _toast('La descripción corta es obligatoria', 'error'); return; }
+  if (price <= 0) { _toast('Indica el precio sugerido', 'error'); return; }
+  if (_crfFiles.length === 0) { _toast('Añade al menos un archivo del producto', 'error'); return; }
+
+  const btn = document.getElementById('crf-submit-btn');
+  btn.disabled = true; btn.textContent = 'Subiendo archivos…';
+
+  const storage = firebase.storage();
+  const subId   = Date.now() + '_' + Math.random().toString(36).slice(2,7);
+  const basePath = `submissions/${_user.uid}/${subId}`;
+  const progressWrap = document.getElementById('crf-progress-wrap');
+  const progressBar  = document.getElementById('crf-progress-bar');
+  progressWrap.style.display = 'block';
+
+  try {
+    // Subir portada
+    let coverUrl = null;
+    if (_crfCover) {
+      btn.textContent = 'Subiendo portada…';
+      const ref = storage.ref(`${basePath}/cover_${_crfCover.name}`);
+      await ref.put(_crfCover);
+      coverUrl = await ref.getDownloadURL();
+    }
+
+    // Subir archivos del producto
+    const fileUrls = {};
+    for (let i = 0; i < _crfFiles.length; i++) {
+      const f = _crfFiles[i];
+      btn.textContent = `Subiendo ${i+1}/${_crfFiles.length}: ${f.name}`;
+      progressBar.style.width = ((i / _crfFiles.length) * 100) + '%';
+      const ref = storage.ref(`${basePath}/${f.name}`);
+      const task = ref.put(f);
+      await new Promise((resolve, reject) => {
+        task.on('state_changed',
+          snap => { progressBar.style.width = (((i + snap.bytesTransferred/snap.totalBytes) / _crfFiles.length) * 100) + '%'; },
+          reject,
+          resolve
+        );
+      });
+      fileUrls[f.name] = await ref.getDownloadURL();
+    }
+    progressBar.style.width = '100%';
+
+    // Guardar submission en Firestore
+    await db.collection('submissions').add({
+      uid:        _user.uid,
+      email:      _user.email,
+      cat:        document.getElementById('crf-cat').value,
+      name,
+      shortDesc:  short,
+      desc:       document.getElementById('crf-desc').value.trim(),
+      price,
+      royaltyPct: parseInt(document.getElementById('crf-royalty').value),
+      coverImage: coverUrl,
+      fileUrls,
+      files:      Object.keys(fileUrls),
+      status:     'pending',
+      createdAt:  firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    _toast('¡Enviado! Lo revisamos en 1-3 días y te avisamos.', 'success');
+    // Reset form
+    ['crf-name','crf-short','crf-desc','crf-price'].forEach(id => document.getElementById(id).value = '');
+    _crfFiles = []; _crfCover = null;
+    _crf_renderFilesList();
+    document.getElementById('crf-cover-name').textContent = 'JPG, PNG o WEBP · máx 5 MB';
+    progressWrap.style.display = 'none';
+    progressBar.style.width = '0';
+    setTimeout(() => closeSellModal(), 1400);
+  } catch(e) {
+    _toast('Error al enviar: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Enviar para revisión →';
+  }
+}
+
+function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 // ── PUBLIC API ────────────────────────────────────────────────────
-window.Shop = { openModal, closeModal, toggleCart, closeCart, addToCart, removeFromCart, checkout, closePayModal, submitPayOrder, filter, search };
+window.Shop = { openModal, closeModal, toggleCart, closeCart, addToCart, removeFromCart, checkout, closePayModal, submitPayOrder, filter, search, openSellModal, closeSellModal, submitSell, _crf_coverChange, _crf_filesChange, _crf_removeFile };
 
 })();

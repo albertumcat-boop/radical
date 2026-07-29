@@ -126,6 +126,17 @@ service cloud.firestore {
                     && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // ── Solicitudes de creadores ──────────────────────────────────────────
+    match /submissions/{subId} {
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow read: if request.auth != null
+                  && (resource.data.uid == request.auth.uid
+                      || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      allow update, delete: if request.auth != null
+                    && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
     // ── Ganancias de creadores: cada creador ve solo las suyas ───────────
     match /creatorEarnings/{creatorUid} {
       allow read: if request.auth != null && request.auth.uid == creatorUid;

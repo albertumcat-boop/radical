@@ -502,6 +502,10 @@ code{background:var(--s2);padding:2px 7px;border-radius:5px;font-family:var(--mo
         📦 Órdenes
         <span class="nav-count" id="nav-count-orders">—</span>
       </div>
+      <div class="nav-item" onclick="Admin.showPanel('submissions',this)">
+        ✦ Solicitudes
+        <span class="nav-count" id="nav-count-submissions">—</span>
+      </div>
       <div class="nav-divider"></div>
       <div class="nav-item" onclick="Admin.showPanel('earnings',this)">
         💰 Ganancias Creadores
@@ -555,6 +559,16 @@ code{background:var(--s2);padding:2px 7px;border-radius:5px;font-family:var(--mo
         </div>
         <div class="orders-list" id="orders-body">
           <div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">Sin órdenes aún</div><div class="empty-sub">Aparecerán aquí cuando un cliente envíe un pedido</div></div>
+        </div>
+      </div>
+
+      <!-- SUBMISSIONS PANEL -->
+      <div class="panel" id="panel-submissions">
+        <div class="list-header">
+          <h1 class="list-title">Solicitudes de Creadores</h1>
+        </div>
+        <div class="orders-list" id="submissions-body">
+          <div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">Sin solicitudes aún</div></div>
         </div>
       </div>
 

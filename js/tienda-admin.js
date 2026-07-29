@@ -21,6 +21,7 @@ try { storage = firebase.storage(); } catch(e) {}
 
 // ── State ───────────────────────────────────────────────────────
 let _user        = null;
+const _WA_NUM    = '584129376303';
 let _isAdmin     = false;
 let _allProducts = [];
 let _orders      = [];
@@ -97,7 +98,8 @@ function _authMsg(code) {
 
 // ── LOAD ALL DATA ────────────────────────────────────────────────
 async function _loadAll() {
-  _loadOrders(); // realtime listener, no await
+  _loadOrders();       // realtime listener, no await
+  _loadSubmissions();  // realtime listener, no await
   await _loadProducts();
   _updateStats();
 }
@@ -766,6 +768,123 @@ function _toast(msg, type='info') {
   setTimeout(() => t.remove(), 3500);
 }
 
+// ── SUBMISSIONS ───────────────────────────────────────────────────
+let _submissions = [];
+let _submissionsUnsub = null;
+
+function _loadSubmissions() {
+  if (_submissionsUnsub) _submissionsUnsub();
+  _submissionsUnsub = db.collection('submissions')
+    .orderBy('createdAt', 'desc').limit(100)
+    .onSnapshot(snap => {
+      _submissions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _renderSubmissions();
+      const pending = _submissions.filter(s => s.status === 'pending').length;
+      document.getElementById('nav-count-submissions').textContent = pending || _submissions.length;
+    }, () => {});
+}
+
+function _renderSubmissions() {
+  const el = document.getElementById('submissions-body');
+  if (!_submissions.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">Sin solicitudes aún</div></div>';
+    return;
+  }
+  const pending   = _submissions.filter(s => s.status === 'pending');
+  const approved  = _submissions.filter(s => s.status === 'approved');
+  const rejected  = _submissions.filter(s => s.status === 'rejected');
+  let html = '';
+  if (pending.length)  html += `<div class="ord-section-label">Pendientes (${pending.length})</div>`  + pending.map(_renderSubCard).join('');
+  if (approved.length) html += `<div class="ord-section-label">Aprobadas (${approved.length})</div>` + approved.map(_renderSubCard).join('');
+  if (rejected.length) html += `<div class="ord-section-label">Rechazadas (${rejected.length})</div>`+ rejected.map(_renderSubCard).join('');
+  el.innerHTML = html;
+}
+
+function _renderSubCard(s) {
+  const fecha  = s.createdAt?.toDate ? s.createdAt.toDate().toLocaleDateString('es-VE') : '—';
+  const status = s.status === 'pending' ? '🟡 Pendiente' : s.status === 'approved' ? '🟢 Aprobada' : '🔴 Rechazada';
+  const catEmoji = {patron:'🧵',curso:'🎓',video:'🎬',pack:'📦',recurso:'📚'}[s.cat] || '📄';
+  const files = s.files || [];
+  const fileList = files.map(f =>
+    `<a href="${_esc(s.fileUrls?.[f] || '#')}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;font-size:.75rem;color:var(--vio);text-decoration:underline;margin-right:8px">${_esc(f)}</a>`
+  ).join('');
+  const isPending = s.status === 'pending';
+  return `<div class="ord-card ord-${s.status}" style="margin-bottom:14px">
+    <div class="ord-card-head">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+        ${s.coverImage ? `<img src="${_esc(s.coverImage)}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0">` : `<div style="width:52px;height:52px;border-radius:8px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0">${catEmoji}</div>`}
+        <div style="min-width:0">
+          <div style="font-weight:700;font-size:.95rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(s.name || '—')}</div>
+          <div style="font-size:.78rem;color:var(--ink3);margin-top:2px">${_esc(s.shortDesc || '')}</div>
+          <div style="font-size:.72rem;color:var(--ink4);margin-top:3px;font-family:monospace">${_esc(s.email || '')} · $${s.price || 0} USD · ${s.royaltyPct || 70}% regalía · ${fecha}</div>
+        </div>
+      </div>
+      <div style="font-family:monospace;font-size:.72rem;padding:3px 9px;border-radius:8px;background:var(--s2);white-space:nowrap;flex-shrink:0">${status}</div>
+    </div>
+    <div style="padding:10px 14px;border-top:1px solid var(--brd2)">
+      ${s.desc ? `<div style="font-size:.8rem;color:var(--ink2);margin-bottom:8px;line-height:1.5">${_esc(s.desc)}</div>` : ''}
+      <div style="margin-bottom:6px"><span style="font-family:monospace;font-size:.7rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em">Archivos: </span>${fileList || '<span style="font-size:.75rem;color:var(--ink4)">ninguno</span>'}</div>
+      ${isPending ? `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="ord-btn-confirm" onclick="Admin.approveSubmission('${s.id}')">✓ Aprobar y publicar</button>
+        <button class="ord-btn-wa" onclick="window.open('https://wa.me/${_WA_NUM}?text=${encodeURIComponent('Hola '+s.email+', tu producto "'+s.name+'" fue aprobado en PatrónAI.')}','_blank')">WhatsApp creador</button>
+        <button class="ord-btn-cancel" onclick="Admin.rejectSubmission('${s.id}')">✗ Rechazar</button>
+      </div>` : ''}
+    </div>
+  </div>`;
+}
+
+async function approveSubmission(subId) {
+  const s = _submissions.find(x => x.id === subId);
+  if (!s) return;
+  if (!confirm('¿Aprobar y publicar "' + s.name + '" en la tienda?')) return;
+  try {
+    const prodId = subId;
+    await db.collection('products').doc(prodId).set({
+      id:          prodId,
+      cat:         s.cat || 'patron',
+      name:        s.name,
+      shortDesc:   s.shortDesc || '',
+      desc:        s.desc || '',
+      price:       s.price || 0,
+      fileUrls:    s.fileUrls || null,
+      files:       s.files || [],
+      features:    [],
+      coverImage:  s.coverImage || null,
+      gallery:     [],
+      published:   true,
+      popular:     false,
+      creatorName:  s.email,
+      creatorEmail: s.email,
+      creatorUid:   s.uid,
+      royaltyPct:   s.royaltyPct || 70,
+      purchases:    0,
+      sortOrder:    _allProducts.length + 1,
+      createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt:    firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    await db.collection('submissions').doc(subId).update({ status: 'approved', reviewedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    _toast('Producto publicado en la tienda ✓', 'ok');
+  } catch(e) {
+    _toast('Error: ' + e.message, 'err');
+  }
+}
+
+async function rejectSubmission(subId) {
+  const s = _submissions.find(x => x.id === subId);
+  if (!s) return;
+  const reason = prompt('Motivo del rechazo (opcional):') ?? '';
+  try {
+    await db.collection('submissions').doc(subId).update({
+      status: 'rejected',
+      rejectionReason: reason,
+      reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    _toast('Solicitud rechazada', 'ok');
+  } catch(e) {
+    _toast('Error: ' + e.message, 'err');
+  }
+}
+
 // ── PUBLIC API ────────────────────────────────────────────────────
 window.Admin = {
   login, logout, showPanel, filterProducts,
@@ -775,6 +894,7 @@ window.Admin = {
   addLesson, addTag, _setFileUrl, _renderFileUrls,
   markSalePaid,
   confirmOrder, cancelOrder, deleteOrder,
+  approveSubmission, rejectSubmission,
   _galleryFile, _galleryRemove, _lessonUpdate, _lessonRemove, _removeTag,
 };
 

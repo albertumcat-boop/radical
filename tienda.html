@@ -549,6 +549,61 @@ nav{
 .pay-submit-btn:hover{background:#1da851}
 .pay-submit-btn:disabled{background:#aaa;cursor:not-allowed}
 
+/* ══ CREATOR MODAL ══════════════════════════════════════════════ */
+.creator-modal-bg{position:fixed;inset:0;background:rgba(30,20,10,.6);z-index:8500;display:none;align-items:center;justify-content:center;padding:16px}
+.creator-modal-bg.open{display:flex}
+.creator-modal{background:var(--surf);border:1.5px solid var(--brd);border-radius:20px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column}
+.creator-modal-head{padding:24px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
+.creator-modal-head h3{font-family:var(--serif);font-size:1.6rem;font-weight:700;color:var(--ink);line-height:1.1}
+.creator-modal-head p{font-size:.82rem;color:var(--ink3);margin-top:4px}
+.creator-modal-close{background:none;border:none;color:var(--ink3);font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:8px;flex-shrink:0}
+.creator-modal-close:hover{background:var(--bg2)}
+.creator-form{padding:20px 24px 24px;display:flex;flex-direction:column;gap:16px}
+.crf-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px;display:block}
+.crf-input,.crf-select,.crf-textarea{
+  width:100%;padding:10px 13px;border:1.5px solid var(--brd);border-radius:10px;
+  background:var(--panel);color:var(--ink);font-family:var(--font);font-size:.88rem;
+  outline:none;transition:border-color .15s;
+}
+.crf-input:focus,.crf-select:focus,.crf-textarea:focus{border-color:var(--vio);background:#fff}
+.crf-textarea{resize:vertical;min-height:90px;line-height:1.5}
+.crf-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.crf-file-zone{
+  border:2px dashed var(--brd);border-radius:12px;padding:24px;text-align:center;
+  cursor:pointer;transition:border-color .2s,background .2s;position:relative;
+}
+.crf-file-zone:hover,.crf-file-zone.drag{border-color:var(--vio);background:var(--viobg)}
+.crf-file-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.crf-file-icon{font-size:2rem;display:block;margin-bottom:6px}
+.crf-file-hint{font-size:.78rem;color:var(--ink3);line-height:1.5}
+.crf-file-hint strong{color:var(--vio)}
+.crf-files-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.crf-file-item{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  background:var(--bg);border-radius:8px;border:1px solid var(--brd2);
+  font-size:.78rem;color:var(--ink2);
+}
+.crf-file-item .crf-file-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crf-file-item .crf-file-size{font-family:var(--mono);font-size:.7rem;color:var(--ink4);flex-shrink:0}
+.crf-file-item .crf-file-rm{background:none;border:none;color:var(--ink4);font-size:.9rem;cursor:pointer;padding:0 2px;flex-shrink:0}
+.crf-file-item .crf-file-rm:hover{color:var(--red)}
+.crf-upload-progress{height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-top:6px}
+.crf-upload-bar{height:100%;background:var(--vio);border-radius:2px;width:0;transition:width .3s}
+.crf-royalty-note{font-size:.78rem;color:var(--ink3);background:var(--viobg);border:1px solid rgba(123,92,246,.2);border-radius:9px;padding:10px 13px;line-height:1.5}
+.crf-submit-btn{
+  width:100%;padding:14px;border:none;border-radius:12px;
+  background:var(--vio);color:#fff;font-family:var(--font);font-size:.95rem;font-weight:700;
+  cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(123,92,246,.35);
+}
+.crf-submit-btn:hover{background:var(--vio2);transform:translateY(-1px)}
+.crf-submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.sell-btn{
+  padding:8px 16px;border-radius:10px;border:1.5px solid rgba(123,92,246,.4);
+  background:var(--viobg);color:var(--vio);font-family:var(--mono);font-size:11px;
+  transition:all .2s;white-space:nowrap;
+}
+.sell-btn:hover{background:var(--vio);color:#fff;border-color:var(--vio)}
+
 /* ══ TOAST ══════════════════════════════════════════════════════ */
 #toast-container{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;align-items:center}
 .toast{
@@ -637,6 +692,7 @@ nav{
     <a href="/tienda" class="nav-active">Tienda</a>
     <span id="nav-user-name"></span>
   </div>
+  <button class="sell-btn" onclick="Shop.openSellModal()">✦ Vender</button>
   <button class="cart-btn" onclick="Shop.toggleCart()" aria-label="Ver carrito">
     🛒 Carrito
     <span class="cart-count" id="cart-count">0</span>
@@ -775,6 +831,81 @@ nav{
 <!-- ══ TOASTS ════════════════════════════════════════════════════ -->
 <div id="toast-container"></div>
 
+<!-- ══ CREATOR MODAL ═════════════════════════════════════════════ -->
+<div class="creator-modal-bg" id="creator-modal-bg" onclick="if(event.target===this)Shop.closeSellModal()">
+  <div class="creator-modal">
+    <div class="creator-modal-head">
+      <div>
+        <h3>Vende en PatrónAI</h3>
+        <p>Sube tu patrón, curso o recurso. Lo revisamos y lo publicamos en la tienda.</p>
+      </div>
+      <button class="creator-modal-close" onclick="Shop.closeSellModal()">✕</button>
+    </div>
+    <div class="creator-form" id="creator-form">
+      <div>
+        <label class="crf-label">Tipo de producto</label>
+        <select class="crf-select" id="crf-cat">
+          <option value="patron">🧵 Patrón de costura</option>
+          <option value="curso">🎓 Curso</option>
+          <option value="video">🎬 Video</option>
+          <option value="pack">📦 Pack</option>
+          <option value="recurso">📚 Recurso / Manual</option>
+        </select>
+      </div>
+      <div>
+        <label class="crf-label">Nombre del producto *</label>
+        <input class="crf-input" id="crf-name" type="text" placeholder="Ej: Patrón de Blusa Escote V — Tallas XS-XL">
+      </div>
+      <div>
+        <label class="crf-label">Descripción corta *</label>
+        <input class="crf-input" id="crf-short" type="text" placeholder="Una línea que resuma el producto">
+      </div>
+      <div>
+        <label class="crf-label">Descripción completa</label>
+        <textarea class="crf-textarea" id="crf-desc" placeholder="Describe qué incluye, para quién es, nivel de dificultad, tallas…"></textarea>
+      </div>
+      <div class="crf-row">
+        <div>
+          <label class="crf-label">Precio sugerido (USD) *</label>
+          <input class="crf-input" id="crf-price" type="number" min="0" step="0.5" placeholder="5.00">
+        </div>
+        <div>
+          <label class="crf-label">Tu % de regalía</label>
+          <select class="crf-select" id="crf-royalty">
+            <option value="70">70% (estándar)</option>
+            <option value="60">60%</option>
+            <option value="80">80% (productos Premium)</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="crf-label">Portada (imagen JPG/PNG)</label>
+        <div class="crf-file-zone" id="crf-cover-zone">
+          <input type="file" id="crf-cover-input" accept="image/jpeg,image/png,image/webp" onchange="Shop._crf_coverChange(this)">
+          <span class="crf-file-icon">🖼️</span>
+          <div class="crf-file-hint">Arrastra o <strong>selecciona</strong> la portada<br><span id="crf-cover-name">JPG, PNG o WEBP · máx 5 MB</span></div>
+        </div>
+      </div>
+      <div>
+        <label class="crf-label">Archivos del producto (PDFs, ZIPs, videos…) *</label>
+        <div class="crf-file-zone" id="crf-files-zone">
+          <input type="file" id="crf-files-input" multiple accept=".pdf,.zip,.mp4,.mov,.svg,.ai,.dxf" onchange="Shop._crf_filesChange(this)">
+          <span class="crf-file-icon">📎</span>
+          <div class="crf-file-hint">Arrastra o <strong>selecciona</strong> archivos<br>PDF, ZIP, MP4, SVG, AI, DXF · máx 50 MB c/u</div>
+        </div>
+        <div class="crf-files-list" id="crf-files-list"></div>
+        <div class="crf-upload-progress" id="crf-progress-wrap" style="display:none">
+          <div class="crf-upload-bar" id="crf-progress-bar"></div>
+        </div>
+      </div>
+      <div class="crf-royalty-note">
+        ✦ Recibirás tu % de cada venta confirmada. El equipo revisa tu producto antes de publicarlo (1-3 días). Te notificamos por WhatsApp o email.
+      </div>
+      <button class="crf-submit-btn" id="crf-submit-btn" onclick="Shop.submitSell()">Enviar para revisión →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ ADMIN ACCESS ══════════════════════════════════════════════ -->
 <div class="admin-tap-hint" id="admin-tap-hint"></div>
 <div class="admin-modal-bg" id="admin-modal-bg" onclick="if(event.target===this)closeAdminModal()">
@@ -803,6 +934,7 @@ nav{
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
 <script>
 window.__PATRONAI_FB_CONFIG__ = {
   apiKey:            "AIzaSyCI1F7s_jYsa_-2IAuCPojMKJbTdOQZlvw",
