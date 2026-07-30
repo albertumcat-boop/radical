@@ -468,17 +468,16 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
       <span class="badge-u">cm</span>
     </div>
 
-    <!-- Perfil de medidas: barra compacta — acciones en modal -->
-    <div class="m-profile-bar">
-      <span style="font-size:11px">👤</span>
-      <select id="mp-select" style="flex:1;background:transparent;border:none;color:var(--tx2);font-size:11px;font-family:var(--font);outline:none;cursor:pointer;min-width:0">
-        <option value="">Sin perfil</option>
-      </select>
-      <button id="mp-save"   style="background:var(--inp);border:1px solid var(--brd);color:var(--tx3);border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;transition:all .12s" title="Guardar perfil">💾</button>
-      <button id="mp-del"    style="background:var(--inp);border:1px solid var(--brd);color:var(--tx3);border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;transition:all .12s" title="Eliminar perfil">🗑</button>
-      <button id="mp-export" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx3);border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;transition:all .12s" title="Exportar JSON">⬇</button>
-      <button id="mp-import" style="background:var(--inp);border:1px solid var(--brd);color:var(--tx3);border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;transition:all .12s" title="Importar JSON">⬆</button>
-    </div>
+    <!-- Botón de clientes — abre panel completo -->
+    <button class="clients-open-btn" id="clients-open-btn" onclick="PAT.Clients && PAT.Clients.open()">
+      <span>👥</span>
+      <span id="clients-active-name" style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx3)">Sin cliente seleccionado</span>
+      <span style="font-size:10px;color:var(--tx3)">›</span>
+    </button>
+    <!-- Select oculto para compatibilidad con código existente -->
+    <select id="mp-select" style="display:none">
+      <option value="">Sin perfil</option>
+    </select>
     <input type="file" id="mp-import-file" accept="application/json" style="display:none">
 
     <details class="m-accord" open>
@@ -5826,6 +5825,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/patterns/chaleco.js"></script>
 <script src="js/patterns/falda-lapiz.js"></script>
 <script src="js/patterns/vestido-cruzado.js"></script>
+<script src="js/clients.js"></script>
+<script src="js/toolbar-config.js"></script>
 <script src="js/help-panel.js"></script>
 <script src="js/paywall.js"></script>
 

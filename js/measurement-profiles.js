@@ -94,11 +94,13 @@ PAT.MeasurementProfiles = (function () {
     const id = opts.id || ('mp_' + Date.now());
     _cache[id] = {
       id,
-      nombre: nombre || 'Sin nombre',
-      medidas: JSON.parse(JSON.stringify(medidas || {})),
-      genero: opts.genero || '',
-      notas: opts.notas || '',
-      savedAt: new Date().toISOString(),
+      nombre:   nombre || 'Sin nombre',
+      medidas:  JSON.parse(JSON.stringify(medidas || {})),
+      genero:   opts.genero   || '',
+      notas:    opts.notas    || '',
+      telefono: opts.telefono || '',
+      email:    opts.email    || '',
+      savedAt:  new Date().toISOString(),
     };
     await _persist();
     return id;
