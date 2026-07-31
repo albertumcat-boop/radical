@@ -3292,42 +3292,134 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   // RECTÁNGULO BASE
   // ════════════════════════════════════════════════════════════
   function _insertRect(){
-    const m=_getMeasures();
-    const defW=m.bust/4*10;    // B4 en mm, sugerido
-    const defH=m.backLength*10; // TALLE_ESP en mm, sugerido
+    const m = _getMeasures();
+    // Medidas disponibles para seleccionar como base
+    const MEDIDAS_RECT = [
+      { key:'bust',        label:'Pecho / Busto',     val: m.bust        },
+      { key:'waist',       label:'Cintura',            val: m.waist       },
+      { key:'hip',         label:'Cadera',             val: m.hip         },
+      { key:'shoulder',    label:'Hombros',            val: m.shoulder    },
+      { key:'neck',        label:'Cuello',             val: m.neck        },
+      { key:'backLength',  label:'Largo espalda',      val: m.backLength  },
+      { key:'frontLength', label:'Largo frente',       val: m.frontLength },
+      { key:'totalLength', label:'Largo total',        val: m.totalLength },
+      { key:'sleeveLength',label:'Largo manga',        val: m.sleeveLength},
+      { key:'sleeveCirc', label:'Contorno brazo',      val: m.sleeveCirc  },
+    ].filter(r => r.val > 0);
 
-    const wStr=window.prompt(`Ancho del rectángulo (cm)\n(sugerido: pecho/4 = ${(defW/10).toFixed(1)}cm)`, (defW/10).toFixed(1));
-    if (wStr===null) return; // canceló
-    const hStr=window.prompt(`Alto del rectángulo (cm)\n(sugerido: largo de espalda = ${(defH/10).toFixed(1)}cm)`, (defH/10).toFixed(1));
-    if (hStr===null) return; // canceló
-
-    const wNum=parseFloat(wStr.replace(',','.'));
-    const hNum=parseFloat(hStr.replace(',','.'));
-    const W = (Number.isFinite(wNum) && wNum>0) ? wNum*10 : defW;
-    const H = (Number.isFinite(hNum) && hNum>0) ? hNum*10 : defH;
-
-    _snapshot();
-    _clearAll();
-    // Nota: NO se pasa texto descriptivo como fórmula (fx/fy) — ese campo
-    // se evalúa como expresión matemática real; un texto tipo "Ancho=28cm"
-    // ahí lo invalida y se desborda en el panel. Estos 4 puntos son
-    // coordenadas fijas del rectángulo base, sin fórmula.
-    const A=_addPt(0,0,'A');
-    const B=_addPt(W,0,'B');
-    const C=_addPt(W,H,'C');
-    const D=_addPt(0,H,'D');
-    _lines=[
-      {from:A,to:B,type:'line',ctrl:0},
-      {from:B,to:C,type:'line',ctrl:0},
-      {from:C,to:D,type:'line',ctrl:0},
-      {from:D,to:A,type:'fold',ctrl:0},
+    const DIVS = [
+      {v:1,l:'Completa (÷1)'},{v:2,l:'Mitad (÷2)'},{v:3,l:'Tercio (÷3)'},
+      {v:4,l:'Cuarta (÷4)'},{v:5,l:'Quinta (÷5)'},{v:6,l:'Sexta (÷6)'},
+      {v:8,l:'Octava (÷8)'}
     ];
-    _pieceName='Rectángulo Base';
-    document.getElementById('dv6-nm').value=_pieceName;
-    _snapshot();
-    _renderAll();_fitView();
-    _setTool('addPoint');
-    _instr(`⬜ Rectángulo base: ${(W/10).toFixed(1)}×${(H/10).toFixed(1)}cm (${Math.round(W)}×${Math.round(H)}mm) · A(0,0) B(${Math.round(W)},0) C(${Math.round(W)},${Math.round(H)}) D(0,${Math.round(H)}). Agrega puntos [P].`);
+
+    function _optsM(sel){ return MEDIDAS_RECT.map(r=>`<option value="${r.key}" ${r.key===sel?'selected':''}>${r.label} (${r.val.toFixed(1)}cm)</option>`).join(''); }
+    function _optsD(sel){ return DIVS.map(d=>`<option value="${d.v}" ${d.v===sel?'selected':''}>${d.l}</option>`).join(''); }
+
+    // Modal
+    let el = document.getElementById('dv6-rect-modal');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'dv6-rect-modal';
+      el.style.cssText = 'position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px';
+      document.body.appendChild(el);
+    }
+
+    const wKey0 = 'bust', hKey0 = 'backLength';
+    const wVal0 = (MEDIDAS_RECT.find(r=>r.key===wKey0)||MEDIDAS_RECT[0]||{val:88}).val;
+    const hVal0 = (MEDIDAS_RECT.find(r=>r.key===hKey0)||MEDIDAS_RECT[0]||{val:40}).val;
+
+    el.innerHTML = `
+      <div style="background:#1a1828;border:1px solid #2e2e45;border-radius:14px;width:100%;max-width:400px;box-shadow:0 32px 80px rgba(0,0,0,.7);overflow:hidden">
+        <div style="padding:14px 18px;border-bottom:1px solid #2e2e45;font-size:13px;font-weight:800;color:#ede9fe">⬜ Rectángulo base</div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:14px">
+
+          <!-- ANCHO -->
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8b87a8;margin-bottom:6px">Ancho</div>
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
+              <select id="rm-wm" style="flex:1;background:#141420;border:1.5px solid #2e2e45;border-radius:7px;color:#ede9fe;padding:5px 7px;font-size:11px">${_optsM(wKey0)}</select>
+              <select id="rm-wd" style="width:130px;background:#141420;border:1.5px solid #2e2e45;border-radius:7px;color:#ede9fe;padding:5px 7px;font-size:11px">${_optsD(4)}</select>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="font-size:10px;color:#5a5678;flex:1">+ / − cm adicionales</span>
+              <input id="rm-wadd" type="number" value="0" step="0.5" style="width:70px;background:#141420;border:1.5px solid #2e2e45;border-radius:7px;color:#ede9fe;padding:4px 7px;font-size:11px">
+            </div>
+            <div id="rm-wprev" style="font-size:12px;font-weight:700;color:#34d399;margin-top:5px">= ${(wVal0/4).toFixed(1)} cm</div>
+          </div>
+
+          <div style="border-top:1px solid #2e2e45"></div>
+
+          <!-- ALTO -->
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8b87a8;margin-bottom:6px">Alto</div>
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
+              <select id="rm-hm" style="flex:1;background:#141420;border:1.5px solid #2e2e45;border-radius:7px;color:#ede9fe;padding:5px 7px;font-size:11px">${_optsM(hKey0)}</select>
+              <select id="rm-hd" style="width:130px;background:#141420;border:1.5px solid #2e2e45;border-radius:7px;color:#ede9fe;padding:5px 7px;font-size:11px">${_optsD(1)}</select>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="font-size:10px;color:#5a5678;flex:1">+ / − cm adicionales</span>
+              <input id="rm-hadd" type="number" value="0" step="0.5" style="width:70px;background:#141420;border:1.5px solid #2e2e45;border-radius:7px;color:#ede9fe;padding:4px 7px;font-size:11px">
+            </div>
+            <div id="rm-hprev" style="font-size:12px;font-weight:700;color:#34d399;margin-top:5px">= ${hVal0.toFixed(1)} cm</div>
+          </div>
+
+        </div>
+        <div style="padding:12px 18px;border-top:1px solid #2e2e45;display:flex;gap:8px">
+          <button id="rm-cancel" style="flex:1;padding:9px;border:1.5px solid #2e2e45;border-radius:9px;background:transparent;color:#9490b0;font-family:inherit;font-size:13px;cursor:pointer">Cancelar</button>
+          <button id="rm-ok" style="flex:2;padding:9px;border:none;border-radius:9px;background:#8b5cf6;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">⬜ Crear rectángulo</button>
+        </div>
+      </div>`;
+
+    el.style.display = 'flex';
+
+    function _calcW(){
+      const med = MEDIDAS_RECT.find(r=>r.key===document.getElementById('rm-wm').value)||MEDIDAS_RECT[0];
+      const div = parseFloat(document.getElementById('rm-wd').value)||4;
+      const add = parseFloat(document.getElementById('rm-wadd').value)||0;
+      const res = med.val/div + add;
+      document.getElementById('rm-wprev').textContent = `= ${res.toFixed(1)} cm  (${med.val.toFixed(1)} ÷ ${div}${add?(' + '+add):''})`;
+      return res;
+    }
+    function _calcH(){
+      const med = MEDIDAS_RECT.find(r=>r.key===document.getElementById('rm-hm').value)||MEDIDAS_RECT[0];
+      const div = parseFloat(document.getElementById('rm-hd').value)||1;
+      const add = parseFloat(document.getElementById('rm-hadd').value)||0;
+      const res = med.val/div + add;
+      document.getElementById('rm-hprev').textContent = `= ${res.toFixed(1)} cm  (${med.val.toFixed(1)} ÷ ${div}${add?(' + '+add):''})`;
+      return res;
+    }
+
+    ['rm-wm','rm-wd','rm-wadd'].forEach(id=>document.getElementById(id).oninput=_calcW);
+    ['rm-hm','rm-hd','rm-hadd'].forEach(id=>document.getElementById(id).oninput=_calcH);
+
+    document.getElementById('rm-cancel').onclick = () => { el.style.display='none'; };
+
+    document.getElementById('rm-ok').onclick = () => {
+      const W = _calcW() * 10; // cm → mm
+      const H = _calcH() * 10;
+      el.style.display = 'none';
+      if (W<=0 || H<=0) return;
+
+      _snapshot();
+      _clearAll();
+      const A=_addPt(0,0,'A');
+      const B=_addPt(W,0,'B');
+      const C=_addPt(W,H,'C');
+      const D=_addPt(0,H,'D');
+      _lines=[
+        {from:A,to:B,type:'line',ctrl:0},
+        {from:B,to:C,type:'line',ctrl:0},
+        {from:C,to:D,type:'line',ctrl:0},
+        {from:D,to:A,type:'fold',ctrl:0},
+      ];
+      _pieceName='Rectángulo Base';
+      document.getElementById('dv6-nm').value=_pieceName;
+      _snapshot();
+      _renderAll();_fitView();
+      _setTool('addPoint');
+      _instr(`⬜ Rectángulo base: ${(W/10).toFixed(1)}×${(H/10).toFixed(1)}cm · A(0,0) B(${Math.round(W)},0) C(${Math.round(W)},${Math.round(H)}) D(0,${Math.round(H)}). Agrega puntos [P].`);
+    };
   }
 
   function _clearAll(){
