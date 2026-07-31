@@ -430,6 +430,21 @@ PAT.AuthTier = (function () {
     }
   }
 
+  // Re-renderizar badge cuando Firebase resuelve la sesión
+  // (cubre el caso donde onAuthStateChanged dispara antes de que init() termine)
+  document.addEventListener('pat:authChanged', (e) => {
+    if (e.detail) {
+      // Sesión activa: si loadTierFromFirestore aún no actualizó el badge, forzar
+      if (!_tierVerified) loadTierFromFirestore();
+      else _renderBadge();
+    } else {
+      // Cerró sesión
+      _currentTier = 'free'; _tierVerified = false;
+      _isInTrial = false; _trialDaysLeft = 0;
+      _renderBadge();
+    }
+  });
+
   return {
     init, getTier, getTierId, getTiers, getPatternPrice,
     canUseGarment, canExportPDF, needsWatermark,
