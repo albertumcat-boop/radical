@@ -1618,30 +1618,33 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
            el botón "Ubicar punto aquí" quedaba inalcanzable. Le damos
            scroll propio limitando su alto al 70% de la ventana. -->
       <div class="dv6-psec" style="max-height:70vh;overflow-y:auto">
-        <div class="dv6-ptl">Punto seleccionado <span id="dv6-badge" style="color:#a78bfa;font-family:monospace;font-weight:800">—</span></div>
-        <div class="dv6-prow" style="justify-content:space-between;align-items:center;padding:6px 14px">
-          <span class="dv6-plb">Unidades</span>
-          <div style="display:flex;gap:4px">
-            <button type="button" class="dv6-unit-btn" id="dv6-unit-mm" data-unit="mm">mm</button>
-            <button type="button" class="dv6-unit-btn" id="dv6-unit-cm" data-unit="cm">cm</button>
-          </div>
-        </div>
+        <div class="dv6-ptl">Punto <span id="dv6-badge" style="color:#a78bfa;font-family:monospace;font-weight:800">—</span></div>
         <div id="dv6-nosel" style="padding:10px 14px;font-size:11px;color:#5a5678">
           Clic en un punto para editarlo · Arrástralo para moverlo
         </div>
         <div id="dv6-pform" style="display:none">
-          <div class="dv6-prow"><span class="dv6-plb">Nombre</span><input class="dv6-pi" id="dv6-pnm" maxlength="4" placeholder="A, B, 1…"></div>
-          <div class="dv6-prow"><span class="dv6-plb" id="dv6-lbl-x">X (mm)</span><input type="number" class="dv6-pi" id="dv6-px" step="0.5"></div>
-          <div class="dv6-prow"><span class="dv6-plb" id="dv6-lbl-y">Y (mm)</span><input type="number" class="dv6-pi" id="dv6-py" step="0.5"></div>
-          <div class="dv6-prow"><span class="dv6-plb">Fórm. X</span><input class="dv6-pi" id="dv6-pfx" style="color:#a78bfa" placeholder="B4, pecho/4+10…"></div>
-          <div class="dv6-prow"><span class="dv6-plb">Fórm. Y</span><input class="dv6-pi" id="dv6-pfy" style="color:#a78bfa" placeholder="TALLE_ESP, largo…"></div>
-          <div class="dv6-fv" id="dv6-fv">—</div>
+          <!-- Campos ocultos requeridos por el JS -->
+          <input type="number" id="dv6-px" style="display:none" step="0.5">
+          <input type="number" id="dv6-py" style="display:none" step="0.5">
+          <input id="dv6-pfx" style="display:none">
+          <input id="dv6-pfy" style="display:none">
+          <div id="dv6-fv" style="display:none">—</div>
+          <span id="dv6-lbl-x" style="display:none"></span>
+          <span id="dv6-lbl-y" style="display:none"></span>
 
-          <!-- Constructor visual de fórmulas: evita tener que escribir texto.
-               Elige una medida, una división y una constante (+/- cm), y el
-               botón inserta la fórmula compuesta en X o Y. -->
+          <!-- Constructor de fórmula — incluye Unidades y Nombre -->
           <div style="margin:6px 14px 10px;padding:8px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
-            <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600">🧩 CONSTRUCTOR DE FÓRMULA</div>
+            <div style="font-size:10px;color:#8b87a8;margin-bottom:8px;font-weight:600">🧩 CONSTRUCTOR DE FÓRMULA</div>
+            <!-- Unidades y Nombre integrados aquí -->
+            <div class="dv6-prow" style="padding:2px 0;justify-content:space-between;align-items:center">
+              <span class="dv6-plb">Unidades</span>
+              <div style="display:flex;gap:4px">
+                <button type="button" class="dv6-unit-btn" id="dv6-unit-mm" data-unit="mm">mm</button>
+                <button type="button" class="dv6-unit-btn" id="dv6-unit-cm" data-unit="cm">cm</button>
+              </div>
+            </div>
+            <div class="dv6-prow" style="padding:2px 0"><span class="dv6-plb">Nombre</span><input class="dv6-pi" id="dv6-pnm" maxlength="4" placeholder="A, B, 1…"></div>
+            <div style="border-top:1px solid #2a2640;margin:6px 0"></div>
             <div class="dv6-prow" style="padding:2px 0">
               <select class="dv6-pi" id="dv6-fb-medida" style="flex:1;width:100%"></select>
             </div>
