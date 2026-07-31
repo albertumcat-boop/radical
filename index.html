@@ -4310,27 +4310,38 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
    *  (ya en mm, lista para dividir/sumar). Cubre las medidas de caballero
    *  y dama que se usan en los sistemas NH. */
   const _MEDIDAS_FORMULA = [
-    { key:'pecho',    label:'Contorno de Pecho / Busto', field:'bust' },
-    { key:'hombros',  label:'Ancho de Espalda',          field:'shoulder' },
-    { key:'cuello',   label:'Contorno de Cuello',        field:'neck' },
-    { key:'talle',    label:'Talle Espalda (trasero)',   field:'backLength' },
-    { key:'talledel', label:'Talle Delantero',           field:'frontLength' },
-    { key:'largo',    label:'Largo Total / Largo de Camisa', field:'totalLength' },
-    { key:'cintura',  label:'Contorno de Cintura',       field:'waist' },
-    { key:'cadera',   label:'Contorno de Cadera',        field:'hip' },
+    { key:'pecho',      label:'Contorno de Pecho / Busto',      field:'bust' },
+    { key:'hombros',    label:'Ancho de Hombros',               field:'shoulder' },
+    { key:'espaldaAncho',label:'Ancho de Espalda',              field:'backWidth' },
+    { key:'cuello',     label:'Contorno de Cuello',             field:'neck' },
+    { key:'talle',      label:'Talle Espalda (trasero)',        field:'backLength' },
+    { key:'talledel',   label:'Talle Delantero',                field:'frontLength' },
+    { key:'largo',      label:'Largo Total / Largo de Camisa',  field:'totalLength' },
+    { key:'cintura',    label:'Contorno de Cintura',            field:'waist' },
+    { key:'cadera',     label:'Contorno de Cadera',             field:'hip' },
     { key:'caderaprof', label:'Alto de Cadera (desde cintura)', field:'hipDepth' },
-    { key:'falda',    label:'Largo de Falda',            field:'skirtLength' },
-    { key:'manga',    label:'Largo de Manga Larga',       field:'sleeveLength' },
-    { key:'mangacorta', label:'Largo de Manga Corta',     field:'sleeveShort' },
-    { key:'brazo',    label:'Contorno de Brazo',          field:'armCirc' },
-    { key:'puno',     label:'Contorno de Puño / Muñeca',  field:'wrist' },
+    { key:'sisa',       label:'Sisa',                           field:'armhole' },
+    { key:'falda',      label:'Largo de Falda',                 field:'skirtLength' },
+    { key:'manga',      label:'Largo de Manga Larga',           field:'sleeveLength' },
+    { key:'mangacorta', label:'Largo de Manga Corta',           field:'sleeveShort' },
+    { key:'brazo',      label:'Contorno de Brazo',              field:'armCirc' },
+    { key:'puno',       label:'Contorno de Puño / Muñeca',      field:'wrist' },
+    { key:'tiro',       label:'Entrepierna / Tiro',             field:'rise' },
+    { key:'muslo',      label:'Contorno de Muslo',              field:'thigh' },
+    { key:'rodilla',    label:'Contorno de Rodilla',            field:'knee' },
+    { key:'tobillo',    label:'Contorno de Tobillo',            field:'ankle' },
+    { key:'pantalon',   label:'Largo de Pantalón (tiro largo)', field:'outseam' },
+    { key:'entrepierna',label:'Largo de Pierna (entrepierna)',  field:'inseam' },
+    { key:'short',      label:'Largo de Short / Pantaloneta',   field:'shortLength' },
   ];
 
   function _buildVarsMap(){
     const m=_getMeasures();
     const b=m.bust*10,w=m.waist*10,h=m.hip*10,sh=m.shoulder*10,nk=m.neck*10;
     const mangaC=(m.sleeveShort||0)*10, brazoC=(m.armCirc||0)*10, punoC=(m.wrist||0)*10;
-    // Mayúsculas (histórico) + alias minúsculas amigables
+    const tiro=(m.rise||0)*10, muslo=(m.thigh||0)*10, rodilla=(m.knee||0)*10;
+    const tobillo=(m.ankle||0)*10, pantalon=(m.outseam||0)*10, entrepierna=(m.inseam||0)*10;
+    const shortL=(m.shortLength||0)*10, sisa=(m.armhole||0)*10, espAncho=(m.backWidth||0)*10;
     return{
       BUSTO:b,CINTURA:w,CADERA:h,ESPALDA:sh,CUELLO:nk,
       TALLE_ESP:m.backLength*10,TALLE_DEL:m.frontLength*10,
@@ -4338,11 +4349,12 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       FALDA:m.skirtLength*10,CADERA_PROF:m.hipDepth*10,
       B4:b/4,B6:b/6,B8:b/8,B10:b/10,B12:b/12,
       W4:w/4,H4:h/4,E2:sh/2,
-      // Alias minúsculas: pecho/cintura/cadera/hombros/cuello/talle/largo/manga/falda
       pecho:b,cintura:w,cadera:h,hombros:sh,cuello:nk,
       talle:m.backLength*10,talledel:m.frontLength*10,largo:m.totalLength*10,
       manga:m.sleeveLength*10,falda:m.skirtLength*10,caderaprof:m.hipDepth*10,
       mangacorta:mangaC,brazo:brazoC,puno:punoC,
+      tiro,muslo,rodilla,tobillo,pantalon,entrepierna,short:shortL,
+      sisa,espaldaAncho:espAncho,
     };
   }
 
