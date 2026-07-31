@@ -235,8 +235,8 @@ PAT.ToolbarConfig = (function () {
     // Botón tabla de medidas
     const btnM = document.createElement('button');
     btnM.id = 'dv6-tb-medidas-btn';
-    btnM.title = 'Ver tabla de medidas';
-    btnM.textContent = '📐 Medidas';
+    btnM.title = 'Tabla de medidas del cliente';
+    btnM.textContent = '📋 Tabla';
     btnM.style.cssText = 'padding:4px 10px;border-radius:6px;border:1px solid var(--bd2,#3a3a55);background:var(--bg2,#141420);color:var(--tx3,#5a5678);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s';
     btnM.onmouseenter = () => { btnM.style.borderColor='var(--acc,#b86b2e)'; btnM.style.color='var(--acc,#b86b2e)'; };
     btnM.onmouseleave = () => { btnM.style.borderColor='var(--bd2,#3a3a55)'; btnM.style.color='var(--tx3,#5a5678)'; };
