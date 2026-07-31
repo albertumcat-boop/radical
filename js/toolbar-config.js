@@ -229,16 +229,31 @@ PAT.ToolbarConfig = (function () {
 
   // ── Inyectar botón ⚙ en la toolbar del trazador ────────────────
   function _injectToolbarBtn() {
-    // La toolbar existe solo cuando el drafter está abierto
     const tb = document.querySelector('.dv6-tb');
     if (!tb || document.getElementById('dv6-tb-cfg-btn')) return;
+
+    // Botón tabla de medidas
+    const btnM = document.createElement('button');
+    btnM.id = 'dv6-tb-medidas-btn';
+    btnM.title = 'Ver tabla de medidas';
+    btnM.textContent = '📐 Medidas';
+    btnM.style.cssText = 'padding:4px 10px;border-radius:6px;border:1px solid var(--bd2,#3a3a55);background:var(--bg2,#141420);color:var(--tx3,#5a5678);font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s';
+    btnM.onmouseenter = () => { btnM.style.borderColor='var(--acc,#b86b2e)'; btnM.style.color='var(--acc,#b86b2e)'; };
+    btnM.onmouseleave = () => { btnM.style.borderColor='var(--bd2,#3a3a55)'; btnM.style.color='var(--tx3,#5a5678)'; };
+    btnM.onclick = () => {
+      if (PAT.MeasureTable) PAT.MeasureTable.open(null);
+    };
+    tb.appendChild(btnM);
+
+    // Botón configurar herramientas
     const btn = document.createElement('button');
     btn.id = 'dv6-tb-cfg-btn';
     btn.title = 'Personalizar herramientas';
     btn.textContent = '⚙ Herramientas';
     btn.onclick = openPanel;
     tb.appendChild(btn);
-    apply(); // aplicar configuración guardada
+
+    apply();
   }
 
   // ── Init ────────────────────────────────────────────────────────
