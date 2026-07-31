@@ -572,6 +572,9 @@ PAT.DrafterUI = (function () {
   let _selectedLine = null; // índice de línea seleccionada (para slider de curva)
 
   function _mdown(e) {
+    // Ignorar clics en botones/inputs/overlays que flotan sobre el canvas
+    if (e.target.closest('button, input, select, textarea, label, [data-ui]')) return;
+
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       _isPan = true;
       _panStart = { x: e.clientX - _pan.x, y: e.clientY - _pan.y };
