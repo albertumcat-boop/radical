@@ -1648,8 +1648,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             </div>
             <div class="dv6-prow" style="padding:2px 0"><span class="dv6-plb">Nombre</span><input class="dv6-pi" id="dv6-pnm" maxlength="4" placeholder="A, B, 1…"></div>
             <div style="border-top:1px solid #2a2640;margin:6px 0"></div>
-            <div class="dv6-prow" style="padding:2px 0">
-              <select class="dv6-pi" id="dv6-fb-medida" style="flex:1;width:100%"></select>
+            <div class="dv6-prow" style="padding:2px 0;gap:4px">
+              <select class="dv6-pi" id="dv6-fb-medida" style="flex:1"></select>
+              <button type="button" id="dv6-fb-cfg" title="Ocultar/mostrar medidas · Agregar medida personalizada"
+                style="padding:3px 9px;border-radius:5px;border:1px solid #2e2e45;background:#141420;color:#5a5678;font-size:10px;cursor:pointer;flex-shrink:0;white-space:nowrap">Editar</button>
             </div>
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
               <span class="dv6-plb" style="flex:1;font-size:10px">Valor de esa medida</span>
@@ -3952,12 +3954,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   function _initFormulaBuilder(){
     const sel=document.getElementById('dv6-fb-medida');
     if(!sel)return;
-    sel.innerHTML='';
-    _MEDIDAS_FORMULA.forEach(m=>{
-      const opt=document.createElement('option');
-      opt.value=m.key; opt.textContent=m.label;
-      sel.appendChild(opt);
-    });
+    _refreshFormulaDropdown(); // usa _medidasActivas() en lugar de _MEDIDAS_FORMULA completa
+
+    // Botón Editar → abre panel de configuración de medidas
+    const cfgBtn = document.getElementById('dv6-fb-cfg');
+    if (cfgBtn) cfgBtn.onclick = _showMedCfgPanel;
+    // Sincronizar dropdown cuando cambian las medidas personalizadas
+    document.addEventListener('pat:customMedidasChanged', _refreshFormulaDropdown);
 
     const valorEl=document.getElementById('dv6-fb-valor');
     const divEl=document.getElementById('dv6-fb-div');
@@ -4335,6 +4338,111 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     { key:'short',      label:'Largo de Short / Pantaloneta',   field:'shortLength' },
   ];
 
+  // ── Medidas personalizadas y visibilidad ─────────────────────────
+  const _LS_CUSTOM_M = 'pat_custom_medidas';  // [{key,label,field}]
+  const _LS_VIS_M    = 'pat_medidas_vis';     // {key: bool}
+  let _customMedidas = [];
+  let _medidasVis    = {};
+
+  function _loadMedidasPrefs(){
+    try { _customMedidas = JSON.parse(localStorage.getItem(_LS_CUSTOM_M)||'[]'); } catch(e){ _customMedidas=[]; }
+    try { _medidasVis    = JSON.parse(localStorage.getItem(_LS_VIS_M)   ||'{}'); } catch(e){ _medidasVis={}; }
+  }
+  function _saveMedidasPrefs(){
+    localStorage.setItem(_LS_CUSTOM_M, JSON.stringify(_customMedidas));
+    localStorage.setItem(_LS_VIS_M,    JSON.stringify(_medidasVis));
+  }
+  function _todasMedidas(){ return [..._MEDIDAS_FORMULA, ..._customMedidas]; }
+  function _medidasActivas(){ return _todasMedidas().filter(m => _medidasVis[m.key] !== false); }
+
+  function _refreshFormulaDropdown(){
+    const sel = document.getElementById('dv6-fb-medida');
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '';
+    _medidasActivas().forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.key; opt.textContent = m.label; sel.appendChild(opt);
+    });
+    if (prev) sel.value = prev;
+  }
+
+  // Panel de configuración del dropdown de medidas
+  function _showMedCfgPanel(){
+    document.getElementById('dv6-med-cfg-overlay')?.remove();
+    const ov = document.createElement('div');
+    ov.id = 'dv6-med-cfg-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9700;background:rgba(5,4,15,.82);display:flex;align-items:center;justify-content:center;padding:12px';
+    ov.innerHTML = `
+<div style="background:#0f0e1a;border:1px solid #2e2e45;border-radius:14px;width:100%;max-width:420px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.8)">
+  <div style="padding:10px 14px;border-bottom:1px solid #2e2e45;display:flex;align-items:center;gap:8px">
+    <span style="flex:1;font-size:12px;font-weight:700;color:#ede9fe">⚙ Configurar medidas</span>
+    <button id="dv6-mc-close" style="background:none;border:none;color:#5a5678;font-size:14px;cursor:pointer">✕</button>
+  </div>
+  <div id="dv6-mc-list" style="overflow-y:auto;flex:1;padding:6px 0"></div>
+  <div style="padding:10px 14px;border-top:1px solid #2e2e45;background:#090912">
+    <div style="font-size:10px;color:#5a5678;margin-bottom:6px;font-weight:600">＋ MEDIDA PERSONALIZADA</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input id="dv6-mc-new-lbl" placeholder="Nombre (ej. Espalda baja)" style="flex:2;background:#141420;border:1.5px solid #2e2e45;border-radius:6px;color:#ede9fe;padding:5px 8px;font-size:11px;font-family:inherit">
+      <input id="dv6-mc-new-key" placeholder="clave (sin espacios)" style="flex:1;background:#141420;border:1.5px solid #2e2e45;border-radius:6px;color:#ede9fe;padding:5px 8px;font-size:11px;font-family:inherit">
+      <button id="dv6-mc-add" style="padding:5px 11px;border-radius:6px;border:none;background:#8b5cf6;color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">Agregar</button>
+    </div>
+  </div>
+</div>`;
+    document.body.appendChild(ov);
+    ov.addEventListener('click', e => { if(e.target===ov) ov.remove(); });
+    document.getElementById('dv6-mc-close').onclick = () => ov.remove();
+    document.getElementById('dv6-mc-add').onclick   = _addCustomMedida;
+    _renderMedCfgList();
+  }
+
+  function _renderMedCfgList(){
+    const list = document.getElementById('dv6-mc-list');
+    if (!list) return;
+    list.innerHTML = '';
+    _todasMedidas().forEach(m => {
+      const vis = _medidasVis[m.key] !== false;
+      const isCustom = _customMedidas.some(c => c.key === m.key);
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 14px;border-bottom:1px solid #181828';
+      row.innerHTML = `
+        <button data-eye="${m.key}" title="${vis?'Ocultar':'Mostrar'}" style="background:none;border:none;cursor:pointer;padding:2px;color:${vis?'#a78bfa':'#3a3a55'};font-size:13px;display:flex;align-items:center">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${vis?'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>':'<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/>'}</svg>
+        </button>
+        <span style="flex:1;font-size:11px;color:${vis?'#ede9fe':'#5a5678'}">${m.label}</span>
+        <span style="font-size:9px;color:#3a3a55;font-family:monospace">${m.key}</span>
+        ${isCustom?`<button data-del="${m.key}" style="background:none;border:none;cursor:pointer;color:#3a3a55;font-size:11px;padding:2px 4px">🗑</button>`:''}`;
+      row.querySelector('[data-eye]').onclick = () => {
+        _medidasVis[m.key] = !vis;
+        _saveMedidasPrefs(); _refreshFormulaDropdown(); _renderMedCfgList();
+      };
+      row.querySelector('[data-del]')?.addEventListener('click', () => {
+        _customMedidas = _customMedidas.filter(c => c.key !== m.key);
+        delete _medidasVis[m.key];
+        _saveMedidasPrefs(); _refreshFormulaDropdown(); _renderMedCfgList();
+      });
+      list.appendChild(row);
+    });
+  }
+
+  function _addCustomMedida(){
+    const lbl = document.getElementById('dv6-mc-new-lbl')?.value.trim();
+    const rawKey = document.getElementById('dv6-mc-new-key')?.value.trim();
+    if (!lbl) return;
+    const key = rawKey ? rawKey.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'') : lbl.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'').toLowerCase();
+    if (!key || _todasMedidas().some(m=>m.key===key)) {
+      if(PAT.App) PAT.App.toast('Clave ya existe o inválida', 'warning'); return;
+    }
+    _customMedidas.push({ key, label:lbl, field:key });
+    _saveMedidasPrefs(); _refreshFormulaDropdown(); _renderMedCfgList();
+    document.getElementById('dv6-mc-new-lbl').value = '';
+    document.getElementById('dv6-mc-new-key').value = '';
+    // Notificar measure-table para que también actualice
+    document.dispatchEvent(new CustomEvent('pat:customMedidasChanged'));
+  }
+
+  _loadMedidasPrefs();
+
   function _buildVarsMap(){
     const m=_getMeasures();
     const b=m.bust*10,w=m.waist*10,h=m.hip*10,sh=m.shoulder*10,nk=m.neck*10;
@@ -4342,7 +4450,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const tiro=(m.rise||0)*10, muslo=(m.thigh||0)*10, rodilla=(m.knee||0)*10;
     const tobillo=(m.ankle||0)*10, pantalon=(m.outseam||0)*10, entrepierna=(m.inseam||0)*10;
     const shortL=(m.shortLength||0)*10, sisa=(m.armhole||0)*10, espAncho=(m.backWidth||0)*10;
-    return{
+    const vars={
       BUSTO:b,CINTURA:w,CADERA:h,ESPALDA:sh,CUELLO:nk,
       TALLE_ESP:m.backLength*10,TALLE_DEL:m.frontLength*10,
       LARGO:m.totalLength*10,MANGA:m.sleeveLength*10,
@@ -4356,6 +4464,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       tiro,muslo,rodilla,tobillo,pantalon,entrepierna,short:shortL,
       sisa,espaldaAncho:espAncho,
     };
+    _customMedidas.forEach(c => { const v=(m[c.key]||0)*10; if(v) vars[c.key]=v; });
+    return vars;
   }
 
   /** Resuelve "NombrePunto.x" / "NombrePunto.y" dentro de una fórmula —

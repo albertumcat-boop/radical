@@ -3,8 +3,9 @@ window.PAT = window.PAT || {};
 
 PAT.MeasureTable = (function () {
 
-  const LS_VIS   = 'pat_mtable_vis';
-  const LS_STATE = 'pat_mtable_state'; // { key: { total, fracciones:[{div,add}] } }
+  const LS_VIS    = 'pat_mtable_vis';
+  const LS_STATE  = 'pat_mtable_state';
+  const LS_CUSTOM = 'pat_custom_medidas'; // compartido con el constructor de fórmula
 
   const FIELDS = [
     { key:'bust',        measure:'bust',        label:'Busto / Pecho',         hint:'contorno de pecho',      defDiv:4,  talla:true  },
@@ -45,12 +46,31 @@ PAT.MeasureTable = (function () {
   function _getTalla(v){ return !v||isNaN(v)?null:(TALLAS.find(t=>v<=t.max)||TALLAS[TALLAS.length-1]).l; }
 
   // Estado en memoria
-  let _vis   = {};  // { key: bool }  true=visible
-  let _state = {};  // { key: { total, fracciones:[{div,add}] } }
-  let _hiddenOpen = false;
+  let _vis   = {};
+  let _state = {};
+  let _hiddenOpen  = false;
+  let _addFormOpen = false;
   let _modal = null;
   let _onProceed = null;
   let _currentClientId = null;
+
+  // Campos personalizados (compartidos con el constructor de fórmula)
+  function _loadCustomFields(){
+    try { return JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]'); } catch(e){ return []; }
+  }
+  function _saveCustomFields(arr){
+    try { localStorage.setItem(LS_CUSTOM, JSON.stringify(arr)); } catch(e){}
+    document.dispatchEvent(new CustomEvent('pat:customMedidasChanged'));
+  }
+  // Devuelve FIELDS base + personalizados, sin duplicados por key
+  function _allFields(){
+    const custom = _loadCustomFields();
+    const base = FIELDS.map(f => f.key);
+    const extras = custom
+      .filter(c => !base.includes(c.key))
+      .map(c => ({ key: c.key, measure: c.key, label: c.label, hint: 'medida personalizada', defDiv: 1, custom: true }));
+    return [...FIELDS, ...extras];
+  }
 
   function _loadPrefs(){
     try { _vis   = JSON.parse(localStorage.getItem(LS_VIS)   || '{}'); }catch(e){_vis={};}
@@ -201,6 +221,19 @@ PAT.MeasureTable = (function () {
     </button>
     <div class="mt-hidden-rows" id="mt-hidden-rows"></div>
   </div>
+  <div id="mt-add-section" style="border-top:1px solid #2e2e45;padding:6px 16px 8px;background:#090912">
+    <div id="mt-add-form" style="display:none;flex-direction:column;gap:5px;padding-bottom:4px">
+      <div style="font-size:10px;color:#5a5678;font-weight:600">NUEVA MEDIDA PERSONALIZADA</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input id="mt-add-lbl" placeholder="Nombre (ej. Busto alto)" class="mt-total-inp" style="flex:2;width:auto;text-align:left">
+        <input id="mt-add-key" placeholder="clave" class="mt-total-inp" style="flex:1;width:auto;text-align:left">
+        <button id="mt-add-ok" class="mt-btn-go" style="font-size:10px">Agregar</button>
+        <button id="mt-add-cancel" class="mt-btn-skip" style="font-size:10px">✕</button>
+      </div>
+      <div style="font-size:9px;color:#3a3a55">La clave se usa en fórmulas (sin espacios). Ej: busto_alto</div>
+    </div>
+    <button id="mt-add-btn" style="background:none;border:none;cursor:pointer;color:#5a5678;font-size:11px;padding:2px 0;font-family:inherit">＋ Agregar medida personalizada</button>
+  </div>
   <div class="mt-foot">
     <span class="mt-foot-note" id="mt-foot-note"></span>
     <button class="mt-btn-skip" id="mt-print" style="font-size:10px">🖨 Imprimir / PDF</button>
@@ -221,6 +254,19 @@ PAT.MeasureTable = (function () {
     document.getElementById('mt-new-ok').onclick     = _createClient;
     document.getElementById('mt-new-cancel').onclick = () => document.getElementById('mt-new-bar').classList.remove('open');
     document.getElementById('mt-hidden-toggle').onclick = _toggleHidden;
+    document.getElementById('mt-add-btn').onclick = () => {
+      _addFormOpen = !_addFormOpen;
+      const form = document.getElementById('mt-add-form');
+      form.style.display = _addFormOpen ? 'flex' : 'none';
+      if (_addFormOpen) document.getElementById('mt-add-lbl').focus();
+    };
+    document.getElementById('mt-add-ok').onclick = _addCustomField;
+    document.getElementById('mt-add-cancel').onclick = () => {
+      _addFormOpen = false;
+      document.getElementById('mt-add-form').style.display = 'none';
+    };
+    // Sincronizar si el constructor de fórmula agrega medidas personalizadas
+    document.addEventListener('pat:customMedidasChanged', _renderAll);
     document.getElementById('mt-csel').onchange = e => {
       _currentClientId = e.target.value || null;
       if (_currentClientId) _loadClientMeasures(_currentClientId);
@@ -232,7 +278,7 @@ PAT.MeasureTable = (function () {
     const scroll = document.getElementById('mt-scroll');
     if (!scroll) return;
     scroll.innerHTML = '';
-    FIELDS.forEach(f => {
+    _allFields().forEach(f => {
       if (!_isVisible(f.key)) return;
       scroll.appendChild(_buildFieldEl(f));
     });
@@ -261,6 +307,7 @@ PAT.MeasureTable = (function () {
         <span class="mt-total-lbl">Total cm</span>
         <input class="mt-total-inp" type="number" placeholder="0" step="0.5" min="0"
           value="${st.total || ''}" data-total="${f.key}">
+        ${f.custom ? `<button class="mt-fdel" data-del-field="${f.key}" title="Eliminar medida" style="margin-left:2px">🗑</button>` : ''}
       </div>`;
     div.appendChild(head);
 
@@ -281,6 +328,13 @@ PAT.MeasureTable = (function () {
 
     // wiring ojo
     head.querySelector('.mt-eye').onclick = () => _hide(f.key);
+    // wiring borrar campo personalizado
+    head.querySelector('[data-del-field]')?.addEventListener('click', () => {
+      const updated = _loadCustomFields().filter(c => c.key !== f.key);
+      _saveCustomFields(updated);
+      delete _state[f.key]; _savePrefs();
+      _renderAll();
+    });
     // wiring total
     head.querySelector('.mt-total-inp').oninput = e => {
       _state[f.key].total = e.target.value;
@@ -386,7 +440,7 @@ PAT.MeasureTable = (function () {
   }
 
   function _renderHidden(){
-    const hidden = FIELDS.filter(f => !_isVisible(f.key));
+    const hidden = _allFields().filter(f => !_isVisible(f.key));
     const section = document.getElementById('mt-hidden-section');
     const rowsDiv = document.getElementById('mt-hidden-rows');
     const label   = document.getElementById('mt-hidden-label');
@@ -438,7 +492,7 @@ PAT.MeasureTable = (function () {
     const note = document.getElementById('mt-foot-note');
     if (!note) return;
     let filled = 0;
-    FIELDS.forEach(f => { if (_isVisible(f.key) && parseFloat(_state[f.key]?.total) > 0) filled++; });
+    _allFields().forEach(f => { if (_isVisible(f.key) && parseFloat(_state[f.key]?.total) > 0) filled++; });
     note.textContent = filled > 0 ? filled + ' medida' + (filled!==1?'s':'') + ' con valor' : 'Ingresa las medidas del cliente';
   }
 
@@ -465,7 +519,7 @@ PAT.MeasureTable = (function () {
   function _loadClientMeasures(id){
     const p = PAT.MeasurementProfiles?.obtener(id);
     if (!p?.medidas) return;
-    FIELDS.forEach(f => {
+    _allFields().forEach(f => {
       const v = p.medidas[f.key] || p.medidas[f.measure];
       if (!_state[f.key]) _getState(f.key);
       if (v) _state[f.key].total = String(v);
@@ -479,7 +533,7 @@ PAT.MeasureTable = (function () {
 
   function _collectValues(){
     const vals = {};
-    FIELDS.forEach(f => {
+    _allFields().forEach(f => {
       const t = parseFloat(_state[f.key]?.total);
       if (t > 0) vals[f.key] = t;
     });
@@ -513,7 +567,7 @@ PAT.MeasureTable = (function () {
 
   // ── Aplicar medidas al panel izquierdo ────────────────────────────
   function _applyToPanel(){
-    FIELDS.forEach(f => {
+    _allFields().forEach(f => {
       const v = parseFloat(_state[f.key]?.total);
       const inp = document.querySelector(`input[data-measure="${f.measure}"]`);
       if (inp && v > 0) { inp.value = v; inp.dispatchEvent(new Event('input',{bubbles:true})); }
@@ -530,6 +584,30 @@ PAT.MeasureTable = (function () {
     if (_modal) _modal.style.display = 'none';
   }
 
+  // ── Agregar medida personalizada ──────────────────────────────────
+  function _addCustomField(){
+    const lbl = (document.getElementById('mt-add-lbl')?.value || '').trim();
+    if (!lbl) return;
+    const rawKey = (document.getElementById('mt-add-key')?.value || '').trim();
+    const key = rawKey
+      ? rawKey.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'')
+      : lbl.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'').toLowerCase();
+    if (!key) return;
+    const existing = _loadCustomFields();
+    if (_allFields().some(f => f.key === key)) {
+      if (window.PAT?.App) PAT.App.toast('Esa clave ya existe', 'warning');
+      return;
+    }
+    existing.push({ key, label: lbl, field: key });
+    _saveCustomFields(existing);
+    document.getElementById('mt-add-lbl').value = '';
+    document.getElementById('mt-add-key').value = '';
+    _addFormOpen = false;
+    document.getElementById('mt-add-form').style.display = 'none';
+    _renderAll();
+    if (window.PAT?.App) PAT.App.toast('✓ Medida "' + lbl + '" agregada', 'success');
+  }
+
   // ── Imprimir / Guardar PDF ────────────────────────────────────────
   function _print(){
     const clientName = document.getElementById('mt-csel')?.selectedOptions[0]?.text || '';
@@ -537,7 +615,7 @@ PAT.MeasureTable = (function () {
     const date  = new Date().toLocaleDateString('es-ES', {year:'numeric',month:'long',day:'numeric'});
 
     let rows = '';
-    FIELDS.forEach(f => {
+    _allFields().forEach(f => {
       const st = _state[f.key];
       if (!st || !parseFloat(st.total)) return;
       const vis = _isVisible(f.key);
@@ -554,7 +632,7 @@ PAT.MeasureTable = (function () {
       </tr>`;
     });
 
-    const hiddenCount = FIELDS.filter(f => !_isVisible(f.key) && parseFloat(_state[f.key]?.total) > 0).length;
+    const hiddenCount = _allFields().filter(f => !_isVisible(f.key) && parseFloat(_state[f.key]?.total) > 0).length;
 
     const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <title>Tabla de Medidas — ${clientName||'PatrónAI'}</title>
