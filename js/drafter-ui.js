@@ -550,6 +550,7 @@ PAT.DrafterUI = (function () {
     wrap.addEventListener('mousemove',  _mmove);
     wrap.addEventListener('mouseup',    _mup);
     wrap.addEventListener('mouseleave', _mup);
+    wrap.addEventListener('dblclick',   _mdblclick);
     wrap.addEventListener('wheel', _onWheel, { passive: false });
     document.addEventListener('keydown', _kdown);
   }
@@ -721,6 +722,13 @@ PAT.DrafterUI = (function () {
     if (_dragging) _snapshot(); // guardar estado después de arrastrar
     _isPan = false; _panStart = null;
     _dragging = null; _draggingCtrl = null;
+  }
+
+  function _mdblclick(e) {
+    if (_tool !== 'select') {
+      e.preventDefault();
+      _setTool('select');
+    }
   }
 
   function _kdown(e) {
