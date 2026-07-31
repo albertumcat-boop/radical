@@ -3969,7 +3969,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const previewEl=document.getElementById('dv6-fb-preview');
 
     function _medidaActual(){
-      return _MEDIDAS_FORMULA.find(m=>m.key===sel.value);
+      return _todasMedidas().find(m=>m.key===sel.value);
     }
     // Al cambiar la medida elegida, mostrar el valor actual (si ya hay uno
     // guardado en el panel general o en la pieza); si no hay ninguno, queda
