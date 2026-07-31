@@ -3959,8 +3959,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     // Botón Editar → abre panel de configuración de medidas
     const cfgBtn = document.getElementById('dv6-fb-cfg');
     if (cfgBtn) cfgBtn.onclick = _showMedCfgPanel;
-    // Sincronizar dropdown cuando cambian las medidas personalizadas
-    document.addEventListener('pat:customMedidasChanged', _refreshFormulaDropdown);
+    // Sincronizar dropdown cuando cambian las medidas personalizadas (ej. desde measure-table.js)
+    document.addEventListener('pat:customMedidasChanged', () => {
+      // Re-leer desde localStorage (measure-table.js pudo haber escrito ahí)
+      try { _customMedidas = JSON.parse(localStorage.getItem(_LS_CUSTOM_M)||'[]'); } catch(e){}
+      // Sincronizar a Firestore
+      _saveMedidasPrefs();
+      _refreshFormulaDropdown();
+    });
 
     const valorEl=document.getElementById('dv6-fb-valor');
     const divEl=document.getElementById('dv6-fb-div');
@@ -4344,13 +4350,45 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   let _customMedidas = [];
   let _medidasVis    = {};
 
-  function _loadMedidasPrefs(){
+  function _mUid(){ try{ return firebase?.auth?.()?.currentUser?.uid||null; }catch(e){ return null; } }
+  function _mFsDoc(){
+    try{
+      const uid=_mUid();
+      if(!uid||!firebase?.firestore) return null;
+      return firebase.firestore().collection('users').doc(uid).collection('configuracion').doc('medidas_config');
+    }catch(e){ return null; }
+  }
+
+  function _loadMedidasPrefsSync(){
     try { _customMedidas = JSON.parse(localStorage.getItem(_LS_CUSTOM_M)||'[]'); } catch(e){ _customMedidas=[]; }
     try { _medidasVis    = JSON.parse(localStorage.getItem(_LS_VIS_M)   ||'{}'); } catch(e){ _medidasVis={}; }
   }
-  function _saveMedidasPrefs(){
+  async function _loadMedidasPrefsCloud(){
+    const doc = _mFsDoc();
+    if(!doc) return;
+    try{
+      const snap = await doc.get();
+      if(snap.exists){
+        const d = snap.data();
+        _customMedidas = d.customMedidas||[];
+        _medidasVis    = d.medidasVis||{};
+        localStorage.setItem(_LS_CUSTOM_M, JSON.stringify(_customMedidas));
+        localStorage.setItem(_LS_VIS_M,    JSON.stringify(_medidasVis));
+        _refreshFormulaDropdown();
+        document.dispatchEvent(new CustomEvent('pat:customMedidasChanged'));
+      }
+    }catch(e){ console.warn('[medidas] Firestore load error', e); }
+  }
+  function _loadMedidasPrefs(){ _loadMedidasPrefsSync(); _loadMedidasPrefsCloud(); }
+
+  async function _saveMedidasPrefs(){
     localStorage.setItem(_LS_CUSTOM_M, JSON.stringify(_customMedidas));
     localStorage.setItem(_LS_VIS_M,    JSON.stringify(_medidasVis));
+    const doc = _mFsDoc();
+    if(doc){
+      try{ await doc.set({ customMedidas:_customMedidas, medidasVis:_medidasVis }, { merge:true }); }
+      catch(e){ console.warn('[medidas] Firestore write error', e); }
+    }
   }
   function _todasMedidas(){ return [..._MEDIDAS_FORMULA, ..._customMedidas]; }
   function _medidasActivas(){ return _todasMedidas().filter(m => _medidasVis[m.key] !== false); }
@@ -4442,6 +4480,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   }
 
   _loadMedidasPrefs();
+
+  // Cuando el usuario inicia sesión, cargar medidas desde Firestore
+  document.addEventListener('pat:authChanged', (e) => {
+    if (e.detail) _loadMedidasPrefsCloud();
+  });
 
   function _buildVarsMap(){
     const m=_getMeasures();
