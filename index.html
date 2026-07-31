@@ -1931,6 +1931,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _setTool('addLine');
       _instr('⚡ Modo unificado: clic vacío = nuevo punto · clic en punto = trazar línea (C=curva)');
     }, 60);
+    // Autoguardado: cada 30 s guarda el trazo en localStorage como respaldo
+    _startAutoSave();
+    // Ofrecer recuperación si hay trazo guardado antes de un cierre inesperado
+    _offerRecover();
   }
 
   // ════════════════════════════════════════════════════════════
@@ -4373,6 +4377,106 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   }
 
   // ════════════════════════════════════════════════════════════
+  // AUTOGUARDADO / RECUPERACIÓN
+  // ════════════════════════════════════════════════════════════
+  const AS_KEY = 'pat_v6_autosave';
+  let _autoSaveTimer = null;
+
+  function _autoSaveNow() {
+    if (!Object.keys(_points).length && !_lines.length) return; // nada que guardar
+    const data = {
+      name: _pieceName,
+      points: JSON.parse(JSON.stringify(_points)),
+      lines:  JSON.parse(JSON.stringify(_lines)),
+      ptCtr:  _ptCtr,
+      savedAt: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem(AS_KEY, JSON.stringify(data));
+      _showAutoSaveBadge();
+    } catch(e) {}
+  }
+
+  function _showAutoSaveBadge() {
+    let badge = document.getElementById('dv6-as-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = 'dv6-as-badge';
+      badge.style.cssText = 'font-size:9px;color:#34d399;font-family:monospace;opacity:0;transition:opacity .5s';
+      const hdr = document.querySelector('.dv6-hdr');
+      if (hdr) hdr.appendChild(badge);
+    }
+    const now = new Date();
+    badge.textContent = '✓ auto ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+    badge.style.opacity = '1';
+    setTimeout(() => { badge.style.opacity = '0'; }, 3000);
+  }
+
+  function _startAutoSave() {
+    if (_autoSaveTimer) clearInterval(_autoSaveTimer);
+    _autoSaveTimer = setInterval(_autoSaveNow, 30000); // cada 30s
+  }
+
+  function _clearAutoSave() {
+    try { localStorage.removeItem(AS_KEY); } catch(e) {}
+  }
+
+  function _offerRecover() {
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(AS_KEY) || 'null'); } catch(e) { return; }
+    if (!saved || !Object.keys(saved.points || {}).length) return;
+
+    const when = saved.savedAt ? new Date(saved.savedAt).toLocaleString() : '(fecha desconocida)';
+    const pts = Object.keys(saved.points).length;
+    const lns = (saved.lines || []).length;
+
+    // Banner de recuperación sobre el canvas
+    const banner = document.createElement('div');
+    banner.id = 'dv6-recover-banner';
+    banner.style.cssText = `
+      position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:800;
+      background:#1a1730;border:1.5px solid #8b5cf6;border-radius:10px;
+      padding:10px 16px;display:flex;align-items:center;gap:12px;
+      box-shadow:0 8px 30px rgba(0,0,0,.6);font-size:12px;color:#ede9fe;
+      max-width:90%;white-space:nowrap;
+    `;
+    banner.innerHTML = `
+      <span style="color:#a78bfa;font-size:16px">⚡</span>
+      <span>Trazo guardado automáticamente: <strong>${saved.name || 'Sin nombre'}</strong>
+        · ${pts} punto${pts!==1?'s':''}, ${lns} línea${lns!==1?'s':''}
+        · <span style="color:#5a5678;font-size:10px">${when}</span>
+      </span>
+      <button id="dv6-recover-yes" style="padding:5px 12px;border-radius:7px;border:none;
+        background:#8b5cf6;color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+        ↩ Recuperar
+      </button>
+      <button id="dv6-recover-no" style="padding:5px 10px;border-radius:7px;border:1.5px solid #3d3d58;
+        background:transparent;color:#9490b0;font-size:11px;cursor:pointer;white-space:nowrap">
+        Descartar
+      </button>
+    `;
+    const wrap = document.getElementById('dv6-wrap');
+    if (wrap) wrap.appendChild(banner);
+
+    document.getElementById('dv6-recover-yes').onclick = () => {
+      _pieceName = saved.name || 'Mi Pieza';
+      _points    = JSON.parse(JSON.stringify(saved.points));
+      _lines     = JSON.parse(JSON.stringify(saved.lines || []));
+      _ptCtr     = saved.ptCtr || 0;
+      _renderAll();
+      _renderVars();
+      document.getElementById('dv6-nm').value = _pieceName;
+      _clearAutoSave();
+      banner.remove();
+      if (PAT.App) PAT.App.toast('✓ Trazo recuperado', 'success');
+    };
+    document.getElementById('dv6-recover-no').onclick = () => {
+      _clearAutoSave();
+      banner.remove();
+    };
+  }
+
+  // ════════════════════════════════════════════════════════════
   // GUARDAR / CARGAR
   // ════════════════════════════════════════════════════════════
   function _save(){
@@ -4380,15 +4484,16 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if(PAT.SavedPatterns){
       PAT.SavedPatterns.guardar(_curSave,data).then(id=>{
         _curSave=id;_refreshSaved();
+        _clearAutoSave(); // guardado real → descartamos el autosave
         if(PAT.App){PAT.App.toast('💾 "'+_pieceName+'" guardado (sincronizado a tu cuenta)','success');if(PAT.App.refreshCustomGarments)PAT.App.refreshCustomGarments();}
       });
     } else {
-      // Respaldo si el módulo no cargó por alguna razón
       const id=_curSave||('sv6_'+Date.now());
       const store=_loadStore();
       store[id]=Object.assign({id},data,{savedAt:new Date().toISOString()});
       localStorage.setItem(MK,JSON.stringify(store));
       _curSave=id;_refreshSaved();
+      _clearAutoSave();
       if(PAT.App)PAT.App.toast('💾 "'+_pieceName+'" guardado (solo local)','success');
     }
   }
