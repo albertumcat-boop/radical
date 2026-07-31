@@ -699,6 +699,9 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
       </details>
     </div>
   </div>
+  <!-- Campos de medida adicionales (usados por el trazador vía fórmulas) -->
+  <input type="hidden" data-measure="backWidth" value="0">
+  <input type="hidden" data-measure="armhole" value="0">
 
   <!-- 3. Parámetros (colapsable) -->
   <div class="sb-sec">
@@ -6026,6 +6029,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/patterns/falda-lapiz.js"></script>
 <script src="js/patterns/vestido-cruzado.js"></script>
 <script src="js/clients.js"></script>
+<script src="js/measure-table.js"></script>
 <script src="js/toolbar-config.js"></script>
 <script src="js/help-panel.js"></script>
 <script src="js/paywall.js"></script>

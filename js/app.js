@@ -272,12 +272,16 @@ PAT.App = (function () {
       if (btn) btn.textContent = sb?.classList.contains('collapsed') ? '›' : '‹';
     });
 
-    // Trazado — abre wizard primero; si ya hay canvas abierto lo trae al frente
+    // Trazado — muestra tabla de medidas primero, luego abre el trazador
     $('btn-drafter')?.addEventListener('click', function() {
       const modal = document.getElementById('dv6-modal');
       if (modal && modal.classList.contains('open')) return; // ya abierto
-      if (PAT.Wizard) PAT.Wizard.open();
-      else if (PAT.DrafterUI) PAT.DrafterUI.open();
+      function _openDrafter() {
+        if (PAT.Wizard) PAT.Wizard.open();
+        else if (PAT.DrafterUI) PAT.DrafterUI.open();
+      }
+      if (PAT.MeasureTable) PAT.MeasureTable.open(_openDrafter);
+      else _openDrafter();
     });
 
     // Biblioteca de Bloques Base
