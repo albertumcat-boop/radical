@@ -1608,7 +1608,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       </svg>
 
       <div id="dv6-instr">＋ Modo Punto activo — haz clic en el canvas para colocar puntos · luego usa L=Línea o C=Curva para conectarlos · R=Rectángulo base rápido</div>
-      <div id="dv6-nota-panel" style="display:none" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()"></div>
+      <div id="dv6-nota-panel" data-ui="1" style="display:none" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()"></div>
       <div id="dv6-coord">x: 0mm · y: 0mm</div>
       <div id="dv6-dist"></div>
     </div>
@@ -4650,6 +4650,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     // Banner de recuperación sobre el canvas
     const banner = document.createElement('div');
     banner.id = 'dv6-recover-banner';
+    banner.setAttribute('data-ui', '1');
     banner.style.cssText = `
       position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:800;
       background:#1a1730;border:1.5px solid #8b5cf6;border-radius:10px;
