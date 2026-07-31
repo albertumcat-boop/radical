@@ -347,7 +347,7 @@ PAT.AtelierPanel = (function () {
   // ─────────────────────────────────────────────────────────────────
   function createClient(name, measures, notes) {
     const client = {
-      id:        'cli_' + Date.now(),
+      id:        'cli_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
       name,
       measures,
       notes:     notes || '',
@@ -355,7 +355,7 @@ PAT.AtelierPanel = (function () {
       updatedAt: new Date().toISOString(),
     };
     _clients.unshift(client);
-    _saveClients();
+    _saveClient(client);
     _refreshPanel();
     PAT.App.toast(`✅ Cliente "${name}" creado`, 'success');
   }
@@ -364,7 +364,7 @@ PAT.AtelierPanel = (function () {
     const idx = _clients.findIndex(c => c.id === clientId);
     if (idx === -1) return;
     _clients[idx] = { ..._clients[idx], name, measures, notes, updatedAt: new Date().toISOString() };
-    _saveClients();
+    _saveClient(_clients[idx]);
     _refreshPanel();
     PAT.App.toast(`✅ "${name}" actualizado`, 'success');
   }
@@ -374,7 +374,8 @@ PAT.AtelierPanel = (function () {
     _clients = _clients.filter(c => c.id !== clientId);
     _saveClients();
     // Borrar también el doc de Firestore (no solo dejar de sincronizarlo)
-    _fsCol()?.doc(clientId).delete().catch(() => {});
+    _fsCol()?.doc(clientId).delete()
+      .catch(e => console.warn('[AtelierPanel] Error al eliminar en Firestore:', e));
     _refreshPanel();
     PAT.App.toast(`"${name}" eliminado`, 'info');
   }
@@ -402,16 +403,15 @@ PAT.AtelierPanel = (function () {
 
   function _saveClients() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_clients)); } catch (e) {}
-    _syncToFirestore();
   }
 
-  function _syncToFirestore() {
+  function _saveClient(client) {
+    _saveClients();
     const col = _fsCol();
-    if (!col) return;
+    if (!col || !client.id) return;
     const ts = firebase.firestore.FieldValue.serverTimestamp();
-    _clients.forEach(c => {
-      col.doc(c.id || c.name).set({ ...c, updatedAt: ts }, { merge: true }).catch(() => {});
-    });
+    col.doc(client.id).set({ ...client, updatedAt: ts }, { merge: true })
+      .catch(e => console.warn('[AtelierPanel] Firestore write error:', e));
   }
 
   function getClients() { return [..._clients]; }

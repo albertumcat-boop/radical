@@ -30,6 +30,8 @@ PAT.DrafterUI = (function () {
   let _points   = {};
   let _lines    = [];
   let _ptCtr    = 0;
+  let _guides   = []; // [{type:'h',y:mm}] o [{type:'v',x:mm}]
+  let _guidesG  = null;
 
   // Historia para undo/redo
   let _history  = [];
@@ -227,6 +229,9 @@ PAT.DrafterUI = (function () {
     <button class="tb" data-tool="addLine" title="L">╱ Línea</button>
     <button class="tb" data-tool="addCurve" title="C">⌒ Curva</button>
     <button class="tb" data-tool="addFold" title="F">— Doblez</button>
+    <button class="tb" data-tool="addGuideH" title="Guía horizontal">─ Guía H</button>
+    <button class="tb" data-tool="addGuideV" title="Guía vertical">│ Guía V</button>
+    <button class="tb" id="dv6-clrguides" title="Borrar todas las guías">✕ Guías</button>
     <div class="dv6-sep"></div>
     <!-- Rectángulo base -->
     <button class="tb" id="dv6-rect" title="R">⬜ Rectángulo</button>
@@ -279,6 +284,7 @@ PAT.DrafterUI = (function () {
             <line x1="0" y1="-9999" x2="0" y2="9999" stroke="rgba(139,92,246,.18)" stroke-width=".4"/>
             <circle cx="0" cy="0" r="1" fill="rgba(139,92,246,.5)"/>
           </g>
+          <g id="dv6-guides"></g>
           <g id="dv6-dims"></g>
           <g id="dv6-lines"></g>
           <g id="dv6-ctrls"></g>
@@ -388,6 +394,7 @@ PAT.DrafterUI = (function () {
 
     _svgEl   = document.getElementById('dv6-svg');
     _canvasG = document.getElementById('dv6-canvas');
+    _guidesG = document.getElementById('dv6-guides');
     _linesG  = document.getElementById('dv6-lines');
     _pointsG = document.getElementById('dv6-pts');
     _dimG    = document.getElementById('dv6-dims');
@@ -502,6 +509,7 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-zi').onclick   = () => _doZoom(1.25);
     document.getElementById('dv6-zo').onclick   = () => _doZoom(0.8);
     document.getElementById('dv6-zf').onclick   = _fitView;
+    document.getElementById('dv6-clrguides').onclick = () => { _guides=[]; _renderGuides(); _autoSave(); };
     document.getElementById('dv6-rect').onclick = _insertRect;
     document.getElementById('dv6-undo').onclick = _undo;
     document.getElementById('dv6-redo').onclick = _redo;
@@ -591,6 +599,19 @@ PAT.DrafterUI = (function () {
     if (_tool === 'select' && nearCtrl !== -1) {
       _draggingCtrl = nearCtrl;
       _selectLine(nearCtrl);
+      return;
+    }
+
+    if (_tool === 'addGuideH' || _tool === 'addGuideV') {
+      const coord = near ? _points[near] : mm;
+      if(_tool==='addGuideH') _guides.push({type:'h', y: coord.y});
+      else                    _guides.push({type:'v', x: coord.x});
+      _renderGuides();
+      _autoSave();
+      const label = _tool==='addGuideH'
+        ? `─ Guía H trazada en Y=${Math.round(coord.y)}mm. Clic en la guía para eliminarla.`
+        : `│ Guía V trazada en X=${Math.round(coord.x)}mm. Clic en la guía para eliminarla.`;
+      _instr(label);
       return;
     }
 
@@ -769,11 +790,13 @@ PAT.DrafterUI = (function () {
 
   function _toolMsg() {
     return {
-      select:   '▶ Clic para seleccionar · Arrastrar para mover · Alt+drag para mover la vista',
-      addPoint: '＋ Clic en el canvas para agregar punto. Con Snap ON se alinea a la grilla.',
-      addLine:  '╱ Clic en punto A → clic en punto B — traza línea recta. La distancia aparece en verde.',
-      addCurve: '⌒ Clic en punto A → clic en punto B — traza curva. Arrastra el ◆ azul para ajustar.',
-      addFold:  '— Clic en punto A → clic en punto B — marca doblez (rojo) o hilo recto.',
+      select:     '▶ Clic para seleccionar · Arrastrar para mover · Alt+drag para mover la vista',
+      addPoint:   '＋ Clic en el canvas para agregar punto. Con Snap ON se alinea a la grilla.',
+      addLine:    '╱ Clic en punto A → clic en punto B — traza línea recta. La distancia aparece en verde.',
+      addCurve:   '⌒ Clic en punto A → clic en punto B — traza curva. Arrastra el ◆ azul para ajustar.',
+      addFold:    '— Clic en punto A → clic en punto B — marca doblez (rojo) o hilo recto.',
+      addGuideH:  '─ Guía H: clic en un punto existente o en cualquier lugar del canvas. La guía se extiende en todo el eje X. Clic sobre una guía para eliminarla.',
+      addGuideV:  '│ Guía V: clic en un punto existente o en cualquier lugar del canvas. La guía se extiende en todo el eje Y. Clic sobre una guía para eliminarla.',
     }[_tool]||'';
   }
 
@@ -893,7 +916,7 @@ PAT.DrafterUI = (function () {
   // ════════════════════════════════════════════════════════════
   // RENDER
   // ════════════════════════════════════════════════════════════
-  function _renderAll(){_renderLines();_renderCurveControls();_renderPoints();_renderDims();_refreshPanel();}
+  function _renderAll(){_renderGuides();_renderLines();_renderCurveControls();_renderPoints();_renderDims();_refreshPanel();}
 
   function _renderLines(){
     while(_linesG.firstChild)_linesG.removeChild(_linesG.firstChild);
@@ -926,6 +949,33 @@ PAT.DrafterUI = (function () {
       }
       el.setAttribute('stroke-width',sw);
       _linesG.appendChild(el);
+    });
+  }
+
+  function _renderGuides(){
+    while(_guidesG.firstChild)_guidesG.removeChild(_guidesG.firstChild);
+    const EXT = 9999; // mm — extend beyond any canvas
+    _guides.forEach((g, i) => {
+      const el = document.createElementNS(NS,'line');
+      if(g.type==='h'){
+        el.setAttribute('x1',-EXT); el.setAttribute('y1',g.y);
+        el.setAttribute('x2', EXT); el.setAttribute('y2',g.y);
+      } else {
+        el.setAttribute('x1',g.x); el.setAttribute('y1',-EXT);
+        el.setAttribute('x2',g.x); el.setAttribute('y2', EXT);
+      }
+      el.setAttribute('stroke','rgba(251,191,36,.55)');
+      el.setAttribute('stroke-width','0.35');
+      el.setAttribute('stroke-dasharray','4,3');
+      el.setAttribute('pointer-events','stroke');
+      el.style.cursor='pointer';
+      el.addEventListener('click', ev => {
+        ev.stopPropagation();
+        _guides.splice(i,1);
+        _renderGuides();
+        _autoSave();
+      });
+      _guidesG.appendChild(el);
     });
   }
 
@@ -1273,7 +1323,7 @@ PAT.DrafterUI = (function () {
   // ════════════════════════════════════════════════════════════
   function _save(){
     const id=_curSave||('sv6_'+Date.now());
-    const data={id,name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr,savedAt:new Date().toISOString()};
+    const data={id,name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),guides:JSON.parse(JSON.stringify(_guides)),ptCtr:_ptCtr,savedAt:new Date().toISOString()};
     const store=_loadStore();
     store[id]=data;
     localStorage.setItem(MK,JSON.stringify(store));
@@ -1293,11 +1343,12 @@ PAT.DrafterUI = (function () {
     keys.forEach(id=>{
       const item=store[id];
       const div=document.createElement('div');div.className='dv6-si';
-      div.innerHTML=`<span class="dv6-snm">${item.name}</span><button class="dv6-sdel">✕</button>`;
+      div.innerHTML=`<span class="dv6-snm">${_escDU(item.name)}</span><button class="dv6-sdel">✕</button>`;
       div.addEventListener('click',e=>{
         if(e.target.classList.contains('dv6-sdel'))return;
         _points=JSON.parse(JSON.stringify(item.points));
         _lines=JSON.parse(JSON.stringify(item.lines));
+        _guides=JSON.parse(JSON.stringify(item.guides||[]));
         _ptCtr=item.ptCtr||0;_pieceName=item.name;_curSave=id;
         document.getElementById('dv6-nm').value=_pieceName;
         _selected=null;_lnStart=null;_selectedLine=null;

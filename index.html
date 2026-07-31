@@ -3874,6 +3874,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     _updateFVal();_renderAll();
   }
 
+  function _esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
   function _refreshPanel(){
     const ptlist=document.getElementById('dv6-ptlist');
     const lnlist=document.getElementById('dv6-lnlist');
@@ -3884,8 +3886,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     ptKeys.forEach(id=>{
       const p=_points[id];
       const div=document.createElement('div');div.className='dv6-pti'+(id===_selected?' on':'');
-      const fLabel=(p.fx||p.fy)?`<span style="font-size:9px;color:#a78bfa;font-family:monospace">${p.fx?'X:'+p.fx:''}${(p.fx&&p.fy)?' ':''}${p.fy?'Y:'+p.fy:''}</span>`:'';
-      div.innerHTML=`<div class="dv6-pdot"></div><span class="dv6-pnm">${p.name}</span><span class="dv6-pco">${Math.round(p.x)},${Math.round(p.y)}mm</span>${fLabel}<button class="dv6-pdel">✕</button>`;
+      const fLabel=(p.fx||p.fy)?`<span style="font-size:9px;color:#a78bfa;font-family:monospace">${p.fx?'X:'+_esc(p.fx):''}${(p.fx&&p.fy)?' ':''}${p.fy?'Y:'+_esc(p.fy):''}</span>`:'';
+      div.innerHTML=`<div class="dv6-pdot"></div><span class="dv6-pnm">${_esc(p.name)}</span><span class="dv6-pco">${Math.round(p.x)},${Math.round(p.y)}mm</span>${fLabel}<button class="dv6-pdel">✕</button>`;
       div.addEventListener('click',e=>{if(e.target.classList.contains('dv6-pdel'))return;_selectPt(id);});
       div.querySelector('.dv6-pdel').addEventListener('click',()=>{_snapshot();_lines=_lines.filter(l=>l.from!==id&&l.to!==id);delete _points[id];if(_selected===id)_selected=null;_renderAll();});
       ptlist.appendChild(div);
@@ -4375,7 +4377,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         localStorage.setItem(_LS_CUSTOM_M, JSON.stringify(_customMedidas));
         localStorage.setItem(_LS_VIS_M,    JSON.stringify(_medidasVis));
         _refreshFormulaDropdown();
-        document.dispatchEvent(new CustomEvent('pat:customMedidasChanged'));
+        // Notificar measure-table sin re-guardar a Firestore (ya cargamos de ahí)
+        if (PAT.MeasureTable?.rerender) PAT.MeasureTable.rerender();
       }
     }catch(e){ console.warn('[medidas] Firestore load error', e); }
   }
@@ -4472,11 +4475,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       if(PAT.App) PAT.App.toast('Clave ya existe o inválida', 'warning'); return;
     }
     _customMedidas.push({ key, label:lbl, field:key });
-    _saveMedidasPrefs(); _refreshFormulaDropdown(); _renderMedCfgList();
     document.getElementById('dv6-mc-new-lbl').value = '';
     document.getElementById('dv6-mc-new-key').value = '';
-    // Notificar measure-table para que también actualice
+    // Una sola escritura: el listener centraliza _saveMedidasPrefs + _refreshFormulaDropdown
     document.dispatchEvent(new CustomEvent('pat:customMedidasChanged'));
+    _renderMedCfgList();
   }
 
   _loadMedidasPrefs();
@@ -4725,6 +4728,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _pieceName = saved.name || 'Mi Pieza';
       _points    = JSON.parse(JSON.stringify(saved.points));
       _lines     = JSON.parse(JSON.stringify(saved.lines || []));
+      _guides    = JSON.parse(JSON.stringify(saved.guides || []));
       _ptCtr     = saved.ptCtr || 0;
       _renderAll();
       _renderVars();
@@ -5057,7 +5061,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     keys.forEach(id=>{
       const item=store[id];
       const div=document.createElement('div');div.className='dv6-si';
-      div.innerHTML=`<span class="dv6-snm">${item.name}</span><button class="dv6-sdel">✕</button>`;
+      div.innerHTML=`<span class="dv6-snm">${_esc(item.name)}</span><button class="dv6-sdel">✕</button>`;
       div.addEventListener('click',e=>{
         if(e.target.classList.contains('dv6-sdel'))return;
         _points=JSON.parse(JSON.stringify(item.points));

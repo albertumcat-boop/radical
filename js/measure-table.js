@@ -695,6 +695,13 @@ ${hiddenCount > 0 ? `<p style="margin-top:10px;font-size:10px;color:#9ca3af;font
     _modal.style.display = 'flex';
   }
 
-  return { open };
+  function rerender(){
+    // Re-carga campos personalizados desde localStorage y re-renderiza
+    const updated = _loadCustomFields();
+    _allFields(); // re-evaluates dynamically from _loadCustomFields
+    _renderAll();
+  }
+
+  return { open, rerender };
 
 })();
