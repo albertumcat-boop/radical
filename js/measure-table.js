@@ -443,9 +443,12 @@ PAT.MeasureTable = (function () {
   }
 
   // ── Clientes ──────────────────────────────────────────────────────
-  function _loadClients(){
+  async function _loadClients(){
     const sel = document.getElementById('mt-csel');
     if (!sel) return;
+    sel.innerHTML = '<option value="" disabled>Cargando clientes…</option>';
+    // Siempre refresca desde Firestore para que sea consistente entre dispositivos
+    if (PAT.MeasurementProfiles?.loadAll) await PAT.MeasurementProfiles.loadAll();
     sel.innerHTML = '<option value="">— Sin cliente —</option>';
     if (!PAT.MeasurementProfiles) return;
     PAT.MeasurementProfiles.listar().forEach(p => {
