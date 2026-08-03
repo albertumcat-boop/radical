@@ -2051,6 +2051,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             <button class="dv6-fb sec" id="dv6-share-btn" title="Compartir esta pieza">📤 Compartir</button>
             <button class="dv6-fb sec" id="dv6-historial-btn" style="border-color:rgba(251,191,36,.4);color:#fbbf24" title="Ver versiones anteriores">⏮ Historial versiones</button>
             <div style="height:1px;background:#2a2640;margin:2px 0"></div>
+            <button class="dv6-fb sec" id="dv6-grade-all-btn" style="border-color:rgba(139,92,246,.5);color:#c4b5fd" title="Genera todas las tallas XS→XXL automáticamente">📐 Graduar tallas XS→XXL</button>
+            <div style="height:1px;background:#2a2640;margin:2px 0"></div>
             <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo como base para el asistente">📌 Guardar como base</button>
             <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada">✖ Quitar base</button>
             <button class="dv6-fb sec" id="dv6-addsample-btn" style="display:none" title="Agregar muestra para graduar">📊 Agregar muestra</button>
@@ -2060,6 +2062,50 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Gradación automática XS→XXL -->
+<div id="modal-grade-all" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(6,5,14,.85);backdrop-filter:blur(8px);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+  <div style="background:#1a1828;border:1px solid #332d54;border-radius:16px;width:min(860px,100%);padding:0;box-shadow:0 32px 80px rgba(0,0,0,.7);margin:auto">
+    <!-- header -->
+    <div style="padding:18px 22px 14px;border-bottom:1px solid #2e2e45;display:flex;align-items:center;gap:12px;position:sticky;top:0;background:#1a1828;border-radius:16px 16px 0 0;z-index:2">
+      <span style="font-size:1.15rem;font-weight:800;color:#ede9fe;flex:1">📐 Gradación automática XS → XXL</span>
+      <button id="mga-pdf-btn" style="padding:7px 14px;background:#7c3aed;border:none;border-radius:8px;color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">🖨 PDF todas las tallas</button>
+      <button id="mga-dl-btn" style="padding:7px 14px;background:#1e3a5f;border:1px solid #3b82f6;border-radius:8px;color:#93c5fd;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit">⬇ Descargar JSONs</button>
+      <button id="mga-close-btn" style="background:none;border:none;color:#5a5678;font-size:1.2rem;cursor:pointer;padding:2px 8px;border-radius:6px">✕</button>
+    </div>
+    <!-- tabla tallas base -->
+    <div style="padding:14px 22px 6px">
+      <p style="font-size:.78rem;color:#9490b0;margin:0 0 10px">Medidas estándar utilizadas (puedes editarlas antes de generar):</p>
+      <div style="overflow-x:auto">
+        <table id="mga-size-table" style="width:100%;border-collapse:collapse;font-size:.78rem">
+          <thead>
+            <tr style="color:#5a5678;text-align:center">
+              <th style="text-align:left;padding:4px 8px;border-bottom:1px solid #2e2e45">Talla</th>
+              <th style="padding:4px 8px;border-bottom:1px solid #2e2e45">Busto</th>
+              <th style="padding:4px 8px;border-bottom:1px solid #2e2e45">Cintura</th>
+              <th style="padding:4px 8px;border-bottom:1px solid #2e2e45">Cadera</th>
+              <th style="padding:4px 8px;border-bottom:1px solid #2e2e45">Hombros</th>
+              <th style="padding:4px 8px;border-bottom:1px solid #2e2e45">Cuello</th>
+              <th style="padding:4px 8px;border-bottom:1px solid #2e2e45">Talle esp</th>
+              <th style="padding:4px 8px;border-bottom:1px solid #2e2e45">Largo</th>
+              <th style="padding:4px 8px;border-bottom:1px solid #2e2e45">Incluir</th>
+            </tr>
+          </thead>
+          <tbody id="mga-size-tbody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button id="mga-gen-btn" style="flex:1;padding:10px;background:#7c3aed;border:none;border-radius:8px;color:#fff;font-size:.88rem;font-weight:800;cursor:pointer;font-family:inherit">⚙ Generar gradación</button>
+      </div>
+    </div>
+    <!-- resultados -->
+    <div id="mga-results" style="padding:14px 22px 22px;display:none">
+      <div style="height:1px;background:#2e2e45;margin-bottom:14px"></div>
+      <p style="font-size:.78rem;font-weight:700;color:#c4b5fd;margin:0 0 10px">Resultados — haz clic en una talla para ver el patrón o descargarlo:</p>
+      <div id="mga-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
     </div>
   </div>
 </div>
@@ -2606,6 +2652,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-grade-ov').onclick = _closeGradeModal;
     document.getElementById('gr-cancel').onclick = _closeGradeModal;
     document.getElementById('gr-apply').onclick = _applyGrade;
+
+    document.getElementById('dv6-grade-all-btn').onclick = ()=>{ document.getElementById('dv6-more-menu').style.display='none'; _openGradeAllModal(); };
+    document.getElementById('mga-close-btn').onclick = _closeGradeAllModal;
+    document.getElementById('mga-gen-btn').onclick = _generarGradacion;
+    document.getElementById('mga-dl-btn').onclick = _descargarTodosJSON;
+    document.getElementById('mga-pdf-btn').onclick = _imprimirTodasTallas;
+    document.getElementById('modal-grade-all').onclick = e=>{ if(e.target===e.currentTarget)_closeGradeAllModal(); };
 
     document.getElementById('dv6-pnm').oninput = _applyProps;
     document.getElementById('dv6-px').oninput  = _applyProps;
@@ -4689,6 +4742,227 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _closeGradeModal(){
     document.getElementById('dv6-grade-modal').classList.remove('open');
+  }
+
+  // ── Gradación automática XS→XXL ──────────────────────────────
+  const _TALLAS_STD = [
+    { id:'XS', bust:80,  waist:60,  hip:86,  shoulder:36, neck:34, backLength:37, totalLength:58 },
+    { id:'S',  bust:84,  waist:64,  hip:90,  shoulder:37, neck:35, backLength:38, totalLength:60 },
+    { id:'M',  bust:88,  waist:68,  hip:94,  shoulder:38, neck:36, backLength:40, totalLength:63 },
+    { id:'L',  bust:92,  waist:72,  hip:98,  shoulder:39, neck:37, backLength:41, totalLength:65 },
+    { id:'XL', bust:96,  waist:76,  hip:102, shoulder:40, neck:38, backLength:42, totalLength:67 },
+    { id:'XXL',bust:100, waist:80,  hip:106, shoulder:41, neck:39, backLength:43, totalLength:69 },
+  ];
+
+  let _gradeTallasData = [];  // [{id, points, lines, ptCtr}]
+
+  function _openGradeAllModal(){
+    if(!Object.keys(_points).length){ if(PAT.App)PAT.App.toast('El canvas está vacío','error');return; }
+    const modal = document.getElementById('modal-grade-all');
+    modal.style.display = 'flex';
+    // Render tabla editable de tallas
+    const tbody = document.getElementById('mga-size-tbody');
+    tbody.innerHTML = _TALLAS_STD.map((t,i)=>`
+      <tr data-talla="${t.id}" style="background:${i%2?'#16142a':'#1a1828'}">
+        <td style="padding:5px 8px;font-weight:700;color:#ede9fe">${t.id}</td>
+        <td><input class="mga-inp" data-f="bust" style="width:52px" type="number" step="0.5" value="${t.bust}"></td>
+        <td><input class="mga-inp" data-f="waist" style="width:52px" type="number" step="0.5" value="${t.waist}"></td>
+        <td><input class="mga-inp" data-f="hip" style="width:52px" type="number" step="0.5" value="${t.hip}"></td>
+        <td><input class="mga-inp" data-f="shoulder" style="width:50px" type="number" step="0.5" value="${t.shoulder}"></td>
+        <td><input class="mga-inp" data-f="neck" style="width:50px" type="number" step="0.5" value="${t.neck}"></td>
+        <td><input class="mga-inp" data-f="backLength" style="width:50px" type="number" step="0.5" value="${t.backLength}"></td>
+        <td><input class="mga-inp" data-f="totalLength" style="width:50px" type="number" step="0.5" value="${t.totalLength}"></td>
+        <td style="text-align:center"><input type="checkbox" class="mga-chk" checked></td>
+      </tr>
+    `).join('');
+    // style inputs
+    modal.querySelectorAll('.mga-inp').forEach(el=>{
+      el.style.cssText='background:#141420;border:1px solid #2e2e45;color:#ede9fe;border-radius:4px;padding:3px 5px;font-size:.75rem;font-family:monospace;text-align:center;width:52px';
+    });
+    document.getElementById('mga-results').style.display = 'none';
+    document.getElementById('mga-cards').innerHTML = '';
+    _gradeTallasData = [];
+  }
+
+  function _closeGradeAllModal(){
+    document.getElementById('modal-grade-all').style.display = 'none';
+  }
+
+  function _calcGradedPoints(newM){
+    const oldM = _getMeasures();
+    const scaleX = (newM.bust/4*10) / (oldM.bust/4*10) || 1;
+    const scaleY = (newM.backLength*10) / (oldM.backLength*10) || 1;
+
+    const newVars = {
+      BUSTO:newM.bust*10,CINTURA:newM.waist*10,CADERA:newM.hip*10,
+      ESPALDA:newM.shoulder*10,CUELLO:newM.neck*10,
+      TALLE_ESP:newM.backLength*10,TALLE_DEL:(newM.totalLength-5)*10,
+      LARGO:newM.totalLength*10,MANGA:60*10,FALDA:60*10,CADERA_PROF:20*10,
+      B4:newM.bust*10/4,B6:newM.bust*10/6,B8:newM.bust*10/8,
+      B10:newM.bust*10/10,B12:newM.bust*10/12,
+      W4:newM.waist*10/4,H4:newM.hip*10/4,E2:newM.shoulder*10/2,
+      pecho:newM.bust*10,cintura:newM.waist*10,cadera:newM.hip*10,
+      hombros:newM.shoulder*10,cuello:newM.neck*10,
+      talle:newM.backLength*10,largo:newM.totalLength*10,
+      manga:60*10,falda:60*10,
+    };
+    function evalV(expr){
+      if(!expr)return null;
+      let c=String(expr).trim();
+      Object.entries(newVars).forEach(([k,v])=>{c=c.replace(new RegExp('\\b'+k+'\\b','g'),v.toFixed(4));});
+      if(!/^[\d\s+\-*/().]+$/.test(c))return null;
+      try{return Function('"use strict";return('+c+')')();}catch(e){return null;}
+    }
+
+    const pts = {};
+    Object.entries(_points).forEach(([id,p])=>{
+      const np = Object.assign({},p);
+      if(p.fx||p.fy){
+        if(p.fx){const v=evalV(p.fx);if(v!==null)np.x=v;}
+        if(p.fy){const v=evalV(p.fy);if(v!==null)np.y=v;}
+        if(p.fx&&!p.fy) np.y=p.y*scaleY;
+        if(p.fy&&!p.fx) np.x=p.x*scaleX;
+      }else{
+        np.x=p.x*scaleX;
+        np.y=p.y*scaleY;
+      }
+      pts[id]=np;
+    });
+
+    const lns = _lines.map(ln=>{
+      const nl=Object.assign({},ln);
+      if(nl.type==='curve') nl.ctrl=ln.ctrl*(scaleX+scaleY)/2;
+      return nl;
+    });
+
+    return {points:pts, lines:lns, ptCtr:_ptCtr};
+  }
+
+  function _ptsToSVG(pts, lns, w, h){
+    const ids=Object.keys(pts);
+    if(!ids.length) return '<svg viewBox="0 0 100 100"></svg>';
+    const xs=ids.map(id=>pts[id].x), ys=ids.map(id=>pts[id].y);
+    const minX=Math.min(...xs), maxX=Math.max(...xs);
+    const minY=Math.min(...ys), maxY=Math.max(...ys);
+    const rangeX=(maxX-minX)||1, rangeY=(maxY-minY)||1;
+    const pad=8;
+    const sx=(w-pad*2)/rangeX, sy=(h-pad*2)/rangeY;
+    const sc=Math.min(sx,sy);
+    const toX=x=>pad+(x-minX)*sc;
+    const toY=y=>pad+(y-minY)*sc;
+    const vw=rangeX*sc+pad*2, vh=rangeY*sc+pad*2;
+    let paths='';
+    lns.forEach(ln=>{
+      if(ln.type==='construction')return;
+      const a=pts[ln.from],b=pts[ln.to];
+      if(!a||!b)return;
+      if(ln.type==='curve'&&ln.ctrl){
+        const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+        const dx=b.x-a.x, dy=b.y-a.y;
+        const len=Math.sqrt(dx*dx+dy*dy)||1;
+        const cx=mx-dy/len*ln.ctrl, cy=my+dx/len*ln.ctrl;
+        paths+=`<path d="M${toX(a.x).toFixed(1)},${toY(a.y).toFixed(1)} Q${toX(cx).toFixed(1)},${toY(cy).toFixed(1)} ${toX(b.x).toFixed(1)},${toY(b.y).toFixed(1)}" fill="none" stroke="#8b5cf6" stroke-width="1.5"/>`;
+      } else {
+        paths+=`<line x1="${toX(a.x).toFixed(1)}" y1="${toY(a.y).toFixed(1)}" x2="${toX(b.x).toFixed(1)}" y2="${toY(b.y).toFixed(1)}" stroke="#8b5cf6" stroke-width="1.5"/>`;
+      }
+    });
+    ids.forEach(id=>{const p=pts[id];paths+=`<circle cx="${toX(p.x).toFixed(1)}" cy="${toY(p.y).toFixed(1)}" r="2" fill="#c4b5fd"/>`;});
+    return `<svg viewBox="0 0 ${vw.toFixed(1)} ${vh.toFixed(1)}" xmlns="http://www.w3.org/2000/svg">${paths}</svg>`;
+  }
+
+  function _generarGradacion(){
+    const modal = document.getElementById('modal-grade-all');
+    const rows = modal.querySelectorAll('[data-talla]');
+    const selected = [];
+    rows.forEach(row=>{
+      if(!row.querySelector('.mga-chk').checked) return;
+      const tid = row.dataset.talla;
+      const m={};
+      row.querySelectorAll('.mga-inp').forEach(inp=>{ m[inp.dataset.f]=parseFloat(inp.value)||0; });
+      selected.push({id:tid, ...m});
+    });
+    if(!selected.length){ if(PAT.App)PAT.App.toast('Selecciona al menos una talla','error');return; }
+
+    const pieceName = document.getElementById('dv6-sv-name')?.value || 'pieza';
+    _gradeTallasData = [];
+
+    selected.forEach(sz=>{
+      const {points,lines,ptCtr} = _calcGradedPoints(sz);
+      _gradeTallasData.push({id:sz.id, name:`${pieceName} ${sz.id}`, points, lines, ptCtr});
+    });
+
+    // Mostrar cards
+    const cards = document.getElementById('mga-cards');
+    cards.innerHTML = '';
+    _gradeTallasData.forEach(g=>{
+      const svgStr = _ptsToSVG(g.points, g.lines, 180, 140);
+      const card = document.createElement('div');
+      card.style.cssText='background:#141420;border:1.5px solid #2e2e45;border-radius:10px;padding:10px;cursor:pointer;transition:border-color .15s';
+      card.onmouseenter=()=>{card.style.borderColor='#7c3aed';};
+      card.onmouseleave=()=>{card.style.borderColor='#2e2e45';};
+      card.innerHTML=`
+        <div style="font-weight:800;font-size:.9rem;color:#c4b5fd;margin-bottom:6px">${g.id}</div>
+        <div style="background:#0d0c1a;border-radius:6px;padding:4px;margin-bottom:8px">${svgStr}</div>
+        <div style="font-size:.7rem;color:#5a5678;margin-bottom:6px">${Object.keys(g.points).length} puntos · ${g.lines.length} líneas</div>
+        <div style="display:flex;gap:5px">
+          <button class="mga-load-btn" data-gid="${g.id}" style="flex:1;padding:5px;background:#1e3a5f;border:1px solid #3b82f6;border-radius:6px;color:#93c5fd;font-size:.72rem;cursor:pointer;font-family:inherit">✏ Editar</button>
+          <button class="mga-dl-one-btn" data-gid="${g.id}" style="flex:1;padding:5px;background:#14213d;border:1px solid #334155;border-radius:6px;color:#7190b4;font-size:.72rem;cursor:pointer;font-family:inherit">⬇ JSON</button>
+        </div>`;
+      cards.appendChild(card);
+    });
+
+    // Botones editar / descargar individual
+    cards.querySelectorAll('.mga-load-btn').forEach(btn=>{
+      btn.onclick=()=>{
+        const g=_gradeTallasData.find(x=>x.id===btn.dataset.gid);
+        if(!g)return;
+        _points=JSON.parse(JSON.stringify(g.points));
+        _lines=JSON.parse(JSON.stringify(g.lines));
+        _ptCtr=g.ptCtr;
+        if(document.getElementById('dv6-sv-name')) document.getElementById('dv6-sv-name').value=g.name;
+        _renderAll();_fitView();_refreshHistory();
+        _closeGradeAllModal();
+        if(PAT.App)PAT.App.toast(`Talla ${g.id} cargada en el editor`,'success');
+      };
+    });
+    cards.querySelectorAll('.mga-dl-one-btn').forEach(btn=>{
+      btn.onclick=()=>{
+        const g=_gradeTallasData.find(x=>x.id===btn.dataset.gid);
+        if(!g)return;
+        _dlJSON(g);
+      };
+    });
+
+    document.getElementById('mga-results').style.display='';
+    if(PAT.App)PAT.App.toast(`✅ ${_gradeTallasData.length} tallas generadas`,'success');
+  }
+
+  function _dlJSON(g){
+    const blob=new Blob([JSON.stringify({name:g.name,points:g.points,lines:g.lines,ptCtr:g.ptCtr},null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`${g.name.replace(/\s+/g,'-')}.patronai.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function _descargarTodosJSON(){
+    if(!_gradeTallasData.length){if(PAT.App)PAT.App.toast('Genera la gradación primero','error');return;}
+    _gradeTallasData.forEach(g=>{ setTimeout(()=>_dlJSON(g),100); });
+  }
+
+  function _imprimirTodasTallas(){
+    if(!_gradeTallasData.length){if(PAT.App)PAT.App.toast('Genera la gradación primero','error');return;}
+    if(!PAT.PDFExport){if(PAT.App)PAT.App.toast('Módulo PDF no disponible','error');return;}
+    const pieces = _gradeTallasData.map(g=>({
+      name: g.name,
+      svg: _ptsToSVG(g.points, g.lines, 600, 500),
+    }));
+    if(PAT.PDFExport.exportPiecesPDF){
+      PAT.PDFExport.exportPiecesPDF(pieces,{title:'Gradación completa'});
+    } else {
+      if(PAT.App)PAT.App.toast('Función PDF no disponible — usa "Descargar JSONs"','error');
+    }
   }
 
   function _applyGrade(){
