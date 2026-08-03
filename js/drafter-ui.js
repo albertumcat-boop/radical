@@ -592,10 +592,12 @@ PAT.DrafterUI = (function () {
     const rawMm = _screenToMm(e.clientX, e.clientY);
     const mm    = _snap(rawMm);
     const threshMm = 8 / (_zoom * SC);
-    const near = _nearest(mm, threshMm);
+    // Usar rawMm para detección de puntos: el snap puede desplazar el cursor
+    // hasta snapSize/2 mm del punto real, fallando el umbral a zoom alto.
+    const near = _nearest(rawMm, threshMm);
 
     // ¿Clic en punto de control de curva?
-    const nearCtrl = _nearestCtrl(mm, threshMm * 1.5);
+    const nearCtrl = _nearestCtrl(rawMm, threshMm * 1.5);
     if (_tool === 'select' && nearCtrl !== -1) {
       _draggingCtrl = nearCtrl;
       _selectLine(nearCtrl);
@@ -885,10 +887,10 @@ PAT.DrafterUI = (function () {
     const C=_addPt(W,H,'C','TALLE_ESP');
     const D=_addPt(0,H,'D','TALLE_ESP');
     _lines=[
-      {from:A,to:B,type:'line',ctrl:0},
-      {from:B,to:C,type:'line',ctrl:0},
-      {from:C,to:D,type:'line',ctrl:0},
-      {from:D,to:A,type:'fold',ctrl:0},
+      {from:A,to:B,type:'line',ctrl:0,construction:true},
+      {from:B,to:C,type:'line',ctrl:0,construction:true},
+      {from:C,to:D,type:'line',ctrl:0,construction:true},
+      {from:D,to:A,type:'fold',ctrl:0,construction:true},
     ];
     _pieceName='Rectángulo Base';
     document.getElementById('dv6-nm').value=_pieceName;
@@ -947,7 +949,12 @@ PAT.DrafterUI = (function () {
         el.setAttribute('stroke',ln.type==='fold'?'#f87171':'#e2e8f0');
         if(ln.type==='fold')el.setAttribute('stroke-dasharray','3,1.5');
       }
-      el.setAttribute('stroke-width',sw);
+      el.setAttribute('stroke-width', ln.construction ? sw*0.6 : sw);
+      if(ln.construction){
+        el.setAttribute('stroke','rgba(251,191,36,.45)');
+        el.setAttribute('stroke-dasharray','3,3');
+        el.setAttribute('opacity','0.75');
+      }
       _linesG.appendChild(el);
     });
   }
@@ -970,6 +977,8 @@ PAT.DrafterUI = (function () {
       el.setAttribute('pointer-events','stroke');
       el.style.cursor='pointer';
       el.addEventListener('click', ev => {
+        // No interceptar si el usuario está trazando puntos o guías
+        if(_tool==='addPoint'||_tool==='addGuideH'||_tool==='addGuideV') return;
         ev.stopPropagation();
         _guides.splice(i,1);
         _renderGuides();
@@ -1038,6 +1047,24 @@ PAT.DrafterUI = (function () {
 
       _pointsG.appendChild(g);
     });
+  }
+
+  function _addMidpoint(i){
+    const ln=_lines[i];
+    const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
+    _snapshot();
+    const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    const name='M'+_ptCtr;
+    const mid=_addPt(mx,my,name,'');
+    // Dividir la línea en dos: A→mid y mid→B
+    _lines.splice(i,1,
+      {from:ln.from,to:mid,type:ln.type,ctrl:ln.ctrl||0,construction:ln.construction||false},
+      {from:mid,to:ln.to,type:ln.type,ctrl:ln.ctrl||0,construction:ln.construction||false}
+    );
+    _selectLine(null);
+    _renderAll();
+    _autoSave();
+    _instr(`⊕ Punto ${name} en la mitad (${Math.round(mx)},${Math.round(my)}mm). La línea se dividió en dos.`);
   }
 
   function _renderDims(){
@@ -1150,12 +1177,30 @@ PAT.DrafterUI = (function () {
     document.getElementById('dv6-lncnt').textContent=_lines.length;
     _lines.forEach((ln,i)=>{
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
-      const col=ln.type==='fold'?'#f87171':ln.type==='curve'?'#60a5fa':'#e2e8f0';
-      const bg=ln.type==='fold'?'repeating-linear-gradient(90deg,#f87171 0,#f87171 4px,transparent 4px,transparent 8px)':col;
+      const col=ln.construction?'rgba(251,191,36,.6)':ln.type==='fold'?'#f87171':ln.type==='curve'?'#60a5fa':'#e2e8f0';
+      const bg=ln.construction?'repeating-linear-gradient(90deg,rgba(251,191,36,.5) 0,rgba(251,191,36,.5) 3px,transparent 3px,transparent 6px)':ln.type==='fold'?'repeating-linear-gradient(90deg,#f87171 0,#f87171 4px,transparent 4px,transparent 8px)':col;
       const div=document.createElement('div');div.className='dv6-lni'+(i===_selectedLine?' on':'');
-      div.innerHTML=`<div class="dv6-lbar" style="background:${bg}"></div><span class="dv6-llb">${a.name}→${b.name} <span style="color:#3d3d58">(${ln.type}${ln.type==='curve'?' '+ln.ctrl+'mm':''})</span></span><button class="dv6-ldel">✕</button>`;
+      const typeLabel=ln.construction?'construc.':ln.type+(ln.type==='curve'?' '+ln.ctrl+'mm':'');
+      div.innerHTML=`<div class="dv6-lbar" style="background:${bg}"></div><span class="dv6-llb">${_escDU(a.name)}→${_escDU(b.name)} <span style="color:#3d3d58">(${typeLabel})</span></span><button class="dv6-ldel">✕</button>`;
       div.addEventListener('click',e=>{if(e.target.classList.contains('dv6-ldel'))return;_selectLine(i===_selectedLine?null:i);_refreshPanel();});
       div.querySelector('.dv6-ldel').addEventListener('click',()=>{_snapshot();_lines.splice(i,1);if(_selectedLine===i)_selectLine(null);_renderAll();});
+      // Controles extra cuando la línea está seleccionada
+      if(i===_selectedLine){
+        const extra=document.createElement('div');
+        extra.style.cssText='display:flex;gap:4px;padding:3px 6px 4px 24px';
+        const btnMid=document.createElement('button');
+        btnMid.className='tb';btnMid.style.cssText='font-size:10px;padding:2px 7px';
+        btnMid.textContent='⊕ Punto en mitad';
+        btnMid.onclick=()=>_addMidpoint(i);
+        const btnConstr=document.createElement('button');
+        btnConstr.className='tb'+(ln.construction?' active':'');
+        btnConstr.style.cssText='font-size:10px;padding:2px 7px'+(ln.construction?';background:rgba(251,191,36,.15);color:#fbbf24':'');
+        btnConstr.textContent=ln.construction?'◈ Construcción ON':'◇ Construcción';
+        btnConstr.title='Líneas de construcción no aparecen en el patrón final ni en el PDF';
+        btnConstr.onclick=()=>{_snapshot();ln.construction=!ln.construction;_renderAll();_refreshPanel();_autoSave();};
+        extra.appendChild(btnMid);extra.appendChild(btnConstr);
+        div.appendChild(extra);
+      }
       lnlist.appendChild(div);
     });
   }
@@ -1306,7 +1351,14 @@ PAT.DrafterUI = (function () {
   function _buildVarsMap(){
     const m=_getMeasures();
     const b=m.bust*10,w=m.waist*10,h=m.hip*10,sh=m.shoulder*10,nk=m.neck*10;
-    return{BUSTO:b,CINTURA:w,CADERA:h,ESPALDA:sh,CUELLO:nk,TALLE_ESP:m.backLength*10,TALLE_DEL:m.frontLength*10,LARGO:m.totalLength*10,MANGA:m.sleeveLength*10,FALDA:m.skirtLength*10,CADERA_PROF:m.hipDepth*10,B4:b/4,B6:b/6,B8:b/8,B10:b/10,B12:b/12,W4:w/4,H4:h/4,E2:sh/2};
+    const vars={BUSTO:b,CINTURA:w,CADERA:h,ESPALDA:sh,CUELLO:nk,TALLE_ESP:m.backLength*10,TALLE_DEL:m.frontLength*10,LARGO:m.totalLength*10,MANGA:m.sleeveLength*10,FALDA:m.skirtLength*10,CADERA_PROF:m.hipDepth*10,B4:b/4,B6:b/6,B8:b/8,B10:b/10,B12:b/12,W4:w/4,H4:h/4,E2:sh/2};
+    // Variables de coordenadas de cada punto: NombrePunto_X y NombrePunto_Y
+    Object.values(_points).forEach(p=>{
+      const safe=p.name.replace(/[^a-zA-Z0-9]/g,'_');
+      vars[safe+'_X']=p.x;
+      vars[safe+'_Y']=p.y;
+    });
+    return vars;
   }
 
   function _evalF(expr){
@@ -1377,6 +1429,7 @@ PAT.DrafterUI = (function () {
     const gt=document.createElementNS(svgNS,'g');gt.setAttribute('transform',`translate(${-minX},${-minY})`);
     let d='';
     _lines.forEach(ln=>{
+      if(ln.construction)return; // excluir líneas de construcción
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       if(!d)d=`M ${a.x} ${a.y}`;
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
@@ -1384,6 +1437,7 @@ PAT.DrafterUI = (function () {
     });
     if(d){const f=document.createElementNS(svgNS,'path');f.setAttribute('d',d);f.setAttribute('fill','rgba(139,92,246,.08)');f.setAttribute('stroke','none');gt.appendChild(f);}
     _lines.forEach(ln=>{
+      if(ln.construction)return; // excluir líneas de construcción
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
       if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);const el=document.createElementNS(svgNS,'path');el.setAttribute('d',`M ${a.x} ${a.y} Q ${cpx} ${cpy} ${b.x} ${b.y}`);el.setAttribute('stroke','#1f2937');el.setAttribute('stroke-width','1');el.setAttribute('fill','none');gt.appendChild(el);}
       else{const el=document.createElementNS(svgNS,'line');el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);el.setAttribute('stroke',ln.type==='fold'?'#dc2626':'#1f2937');el.setAttribute('stroke-width','1');if(ln.type==='fold')el.setAttribute('stroke-dasharray','4,2');gt.appendChild(el);}

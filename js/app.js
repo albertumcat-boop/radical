@@ -340,12 +340,18 @@ document.getElementById('logo-mark')?.addEventListener('click', function() {
 
     // ── Cargar ────────────────────────────────────────────────
     $('btn-load')?.addEventListener('click', async () => {
-      // ID nuevo: saved-list
       const list = $('saved-list');
       if (list) list.innerHTML = '<p style="color:#5a5678;padding:16px;text-align:center">Cargando…</p>';
       openModal('modal-load');
-      try { renderPatterns(await PAT.Firebase.loadPatterns()); }
-      catch (e) { if (list) list.innerHTML = '<p style="color:#f87171;padding:16px">Error al cargar</p>'; }
+      try {
+        // Patrones del asistente (wizard)
+        const wizardPats = await PAT.Firebase.loadPatterns().catch(() => []);
+        // Patrones del editor a mano (PAT.SavedPatterns)
+        const editorPats = PAT.SavedPatterns
+          ? Object.values(PAT.SavedPatterns.obtenerTodos())
+          : [];
+        renderPatterns(wizardPats, editorPats);
+      } catch (e) { if (list) list.innerHTML = '<p style="color:#f87171;padding:16px">Error al cargar</p>'; }
     });
     $('cancel-load')?.addEventListener('click', () => closeModal('modal-load'));
 
@@ -549,42 +555,89 @@ if (overrides && overrides[overrideKey]) {
   }
 
   // ─── LISTA DE PATRONES ─────────────────────────────────────────
-  function renderPatterns(list) {
-    // ID nuevo: saved-list
+  function renderPatterns(list, editorList) {
     const el = $('saved-list');
     if (!el) return;
-    if (!list?.length) {
+    const hasWizard = list?.length > 0;
+    const hasEditor = editorList?.length > 0;
+    if (!hasWizard && !hasEditor) {
       el.innerHTML = '<p style="color:#5a5678;padding:16px;text-align:center">No hay patrones guardados.</p>';
       return;
     }
     el.innerHTML = '';
-    list.forEach(p => {
-      const d = document.createElement('div');
-      d.className = 'pat-item';
-      const ds = p.createdAt
-        ? (typeof p.createdAt.toDate === 'function'
-          ? p.createdAt.toDate().toLocaleDateString('es')
-          : new Date(p.createdAt).toLocaleDateString('es'))
-        : '—';
-      d.innerHTML = `
-        <div>
-          <div class="pat-name">${p.name || 'Sin nombre'}</div>
-          <div class="pat-meta">${p.garment || '?'} · ${p.measures?.bust || '?'}cm · ${ds}</div>
-        </div>
-        <div class="pat-acts">
-          <button class="load-p" title="Cargar">↩</button>
-          <button class="del-p" title="Eliminar" style="color:var(--red)">✕</button>
-        </div>`;
-      d.querySelector('.load-p').addEventListener('click', e => { e.stopPropagation(); loadPat(p); });
-      d.querySelector('.del-p').addEventListener('click', async e => {
-        e.stopPropagation();
-        if (!confirm(`¿Eliminar "${p.name}"?`)) return;
-        await PAT.Firebase.deletePattern(p.id);
-        toast(`"${p.name}" eliminado`, 'success');
-        d.remove();
+
+    // Patrones del editor (dibujados a mano)
+    if (hasEditor) {
+      const hdr = document.createElement('div');
+      hdr.style.cssText = 'font-size:11px;font-weight:600;color:#a78bfa;padding:10px 16px 4px;letter-spacing:.04em;text-transform:uppercase';
+      hdr.textContent = '✏️ Piezas del editor';
+      el.appendChild(hdr);
+      editorList.forEach(p => {
+        const d = document.createElement('div');
+        d.className = 'pat-item';
+        const ds = p.savedAt ? new Date(p.savedAt).toLocaleDateString('es') : '—';
+        d.innerHTML = `
+          <div>
+            <div class="pat-name">${p.name || 'Sin nombre'}</div>
+            <div class="pat-meta">Editor de piezas · ${ds}</div>
+          </div>
+          <div class="pat-acts">
+            <button class="load-p" title="Abrir en editor">✏️</button>
+            <button class="del-p" title="Eliminar" style="color:var(--red)">✕</button>
+          </div>`;
+        d.querySelector('.load-p').addEventListener('click', e => {
+          e.stopPropagation();
+          closeModal('modal-load');
+          if (PAT.PatternDrafter?.open) PAT.PatternDrafter.open(p);
+          else toast('Abre el editor primero con "+ Punto"', 'info');
+        });
+        d.querySelector('.del-p').addEventListener('click', async e => {
+          e.stopPropagation();
+          if (!confirm(`¿Eliminar "${p.name}"?`)) return;
+          await PAT.SavedPatterns.eliminar(p.id);
+          toast(`"${p.name}" eliminado`, 'success');
+          d.remove();
+        });
+        el.appendChild(d);
       });
-      el.appendChild(d);
-    });
+    }
+
+    // Patrones del asistente (wizard)
+    if (hasWizard) {
+      if (hasEditor) {
+        const hdr = document.createElement('div');
+        hdr.style.cssText = 'font-size:11px;font-weight:600;color:#60a5fa;padding:10px 16px 4px;letter-spacing:.04em;text-transform:uppercase';
+        hdr.textContent = '🤖 Patrones del asistente';
+        el.appendChild(hdr);
+      }
+      list.forEach(p => {
+        const d = document.createElement('div');
+        d.className = 'pat-item';
+        const ds = p.createdAt
+          ? (typeof p.createdAt.toDate === 'function'
+            ? p.createdAt.toDate().toLocaleDateString('es')
+            : new Date(p.createdAt).toLocaleDateString('es'))
+          : '—';
+        d.innerHTML = `
+          <div>
+            <div class="pat-name">${p.name || 'Sin nombre'}</div>
+            <div class="pat-meta">${p.garment || '?'} · ${p.measures?.bust || '?'}cm · ${ds}</div>
+          </div>
+          <div class="pat-acts">
+            <button class="load-p" title="Cargar">↩</button>
+            <button class="del-p" title="Eliminar" style="color:var(--red)">✕</button>
+          </div>`;
+        d.querySelector('.load-p').addEventListener('click', e => { e.stopPropagation(); loadPat(p); });
+        d.querySelector('.del-p').addEventListener('click', async e => {
+          e.stopPropagation();
+          if (!confirm(`¿Eliminar "${p.name}"?`)) return;
+          await PAT.Firebase.deletePattern(p.id);
+          toast(`"${p.name}" eliminado`, 'success');
+          d.remove();
+        });
+        el.appendChild(d);
+      });
+    }
   }
 
   function loadPat(p) {
