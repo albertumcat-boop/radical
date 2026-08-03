@@ -391,7 +391,11 @@ PAT.AuthTier = (function () {
     try {
       const db = firebase.firestore();
       const doc = await db.collection('users').doc(uid).get();
-      if (!doc.exists) return;
+      if (!doc.exists) {
+        // Usuario sin documento en Firestore → free tier pero SÍ autenticado
+        activateTier('free');
+        return;
+      }
 
       const data = doc.data();
       const storedTier = data.tier || 'free';
