@@ -1651,6 +1651,25 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       <div id="dv6-nota-panel" data-ui="1" style="display:none" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()"></div>
       <div id="dv6-coord">x: 0mm · y: 0mm</div>
       <div id="dv6-dist"></div>
+      <div id="dv6-multi-move" style="display:none;position:absolute;bottom:48px;left:50%;transform:translateX(-50%);
+        background:rgba(6,6,12,.92);border:1px solid rgba(251,191,36,.4);border-radius:8px;
+        padding:8px 12px;display:none;align-items:center;gap:8px;font-size:12px;color:#fbbf24;
+        font-family:monospace;z-index:20;white-space:nowrap"
+        onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">
+        <span style="opacity:.7">⬚ Mover</span>
+        <label style="color:#ccc">Δx</label>
+        <input id="dv6-mv-x" type="number" step="0.1" value="0"
+          style="width:64px;background:#111;border:1px solid rgba(251,191,36,.4);color:#fbbf24;
+          border-radius:4px;padding:2px 6px;font-size:12px;text-align:right">
+        <label style="color:#ccc">Δy</label>
+        <input id="dv6-mv-y" type="number" step="0.1" value="0"
+          style="width:64px;background:#111;border:1px solid rgba(251,191,36,.4);color:#fbbf24;
+          border-radius:4px;padding:2px 6px;font-size:12px;text-align:right">
+        <span style="color:#888;font-size:10px">mm</span>
+        <button id="dv6-mv-btn"
+          style="background:#fbbf24;color:#111;border:none;border-radius:5px;padding:3px 12px;
+          font-weight:700;cursor:pointer;font-size:12px">Mover</button>
+      </div>
     </div>
 
     <!-- ══ PANEL DERECHO ══ -->
@@ -2322,6 +2341,28 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         ? '⬚ Multi: arrastra en vacío para seleccionar área · clic en punto para agregar/quitar · arrastra un seleccionado para moverlos todos · ESC limpia'
         : '▶ Modo normal');
     };
+    document.getElementById('dv6-mv-btn').addEventListener('click', function() {
+      const dx = parseFloat(document.getElementById('dv6-mv-x').value) || 0;
+      const dy = parseFloat(document.getElementById('dv6-mv-y').value) || 0;
+      if (dx === 0 && dy === 0) return;
+      _snapshot();
+      _multiSel.forEach(id => {
+        if (!_points[id]) return;
+        _points[id].x += dx;
+        _points[id].y += dy;
+        _points[id].formula = '';
+      });
+      document.getElementById('dv6-mv-x').value = '0';
+      document.getElementById('dv6-mv-y').value = '0';
+      _renderAll();
+    });
+    document.getElementById('dv6-mv-x').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('dv6-mv-btn').click();
+    });
+    document.getElementById('dv6-mv-y').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('dv6-mv-btn').click();
+    });
+
     document.getElementById('dv6-undo').onclick = _undo;
     document.getElementById('dv6-redo').onclick = _redo;
     document.getElementById('dv6-clr').onclick  = () => { if (confirm('¿Limpiar todo?')) { _snapshot(); _clearAll(); } };
@@ -3694,7 +3735,12 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   // ════════════════════════════════════════════════════════════
   // RENDER
   // ════════════════════════════════════════════════════════════
-  function _renderAll(){_renderLines();_renderCurveControls();_renderPoints();_renderDims();_refreshPanel();_updateLineInfo();}
+  function _renderAll(){_renderLines();_renderCurveControls();_renderPoints();_renderDims();_refreshPanel();_updateLineInfo();_updateMultiMovePanel();}
+  function _updateMultiMovePanel(){
+    const panel = document.getElementById('dv6-multi-move');
+    if (!panel) return;
+    panel.style.display = (_multiMode && _multiSel.size > 0) ? 'flex' : 'none';
+  }
 
   function _renderLines(){
     while(_linesG.firstChild)_linesG.removeChild(_linesG.firstChild);
