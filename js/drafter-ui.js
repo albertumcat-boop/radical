@@ -59,6 +59,26 @@ PAT.DrafterUI = (function () {
     if (_modal) { _modal.classList.add('open'); _renderVars(); _refreshSaved(); return; }
     _css(); _build();
   }
+  function openWith(pat) {
+    open(); // abre o crea el modal
+    if (!pat) return;
+    // Esperar a que _build() termine si el modal se acababa de crear
+    const _load = () => {
+      _points = JSON.parse(JSON.stringify(pat.points || {}));
+      _lines  = JSON.parse(JSON.stringify(pat.lines  || []));
+      _guides = JSON.parse(JSON.stringify(pat.guides || []));
+      _ptCtr  = pat.ptCtr || 0;
+      _pieceName = pat.name || 'Sin nombre';
+      _curSave   = pat.id   || null;
+      const nm = document.getElementById('dv6-nm');
+      if (nm) nm.value = _pieceName;
+      _selected = null; _lnStart = null; _selectedLine = null;
+      if (_tempLine) _tempLine.setAttribute('opacity', '0');
+      _snapshot(); _renderAll(); _fitView();
+    };
+    if (_modal) _load();
+    else setTimeout(_load, 80); // modal recién construido, esperar un tick
+  }
   function close() { if (_modal) _modal.classList.remove('open'); }
 
   // ════════════════════════════════════════════════════════════
@@ -1456,5 +1476,5 @@ PAT.DrafterUI = (function () {
     if(PAT.App){PAT.App.toast('✅ "'+_pieceName+'" agregado','success');if(PAT.App.fitScreen)setTimeout(PAT.App.fitScreen,120);}
   }
 
-  return { open, close };
+  return { open, openWith, close };
 })();

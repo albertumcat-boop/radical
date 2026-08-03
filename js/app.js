@@ -596,8 +596,8 @@ if (overrides && overrides[overrideKey]) {
         d.querySelector('.load-p').addEventListener('click', e => {
           e.stopPropagation();
           closeModal('modal-load');
-          if (PAT.PatternDrafter?.open) PAT.PatternDrafter.open(p);
-          else toast('Abre el editor primero con "+ Punto"', 'info');
+          if (PAT.DrafterUI?.openWith) PAT.DrafterUI.openWith(p);
+          else toast('Editor no disponible', 'info');
         });
         d.querySelector('.del-p').addEventListener('click', async e => {
           e.stopPropagation();
