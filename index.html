@@ -4144,16 +4144,34 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         return;
       }
       _guardarValor();
-      const formula=_compose();
+      const baseFormula=_compose(); // ej. "pecho/4"
+      const p=_points[_selected];
+      const isY = targetId==='dv6-pfy';
+      const isX = targetId==='dv6-pfx';
+
+      // Si hay un punto de referencia A seleccionado en "Desde otro punto",
+      // componer la fórmula como "Ref.y ± (formula)" en lugar de un valor
+      // absoluto — así el punto mantiene la dirección elegida al trazar.
+      let formula = baseFormula;
+      const refAEl = document.getElementById('dv6-fb2-pointA');
+      const refId  = refAEl ? refAEl.value : null;
+      const refPt  = (refId && _points[refId]) ? _points[refId] : null;
+      if (refPt) {
+        const refName = refPt.name; // ej. "B"
+        if (isY) {
+          // Dirección: si el punto está por debajo de la referencia → sumar (+)
+          //            si está por encima → restar (-)
+          const sign = p.y >= refPt.y ? '+' : '-';
+          formula = `${refName}.y ${sign} (${baseFormula})`;
+        } else if (isX) {
+          const sign = p.x >= refPt.x ? '+' : '-';
+          formula = `${refName}.x ${sign} (${baseFormula})`;
+        }
+      }
+
       const el=document.getElementById(targetId);
       el.value=formula;
-      const p=_points[_selected];
-      if(targetId==='dv6-pfx') p.fx=formula; else p.fy=formula;
-      // Mover el punto YA a la posición que da la fórmula — antes solo se
-      // guardaba el texto y se mostraba la vista previa, pero el punto se
-      // quedaba donde estuviera trazado a mano hasta que escribieras algo
-      // en el campo de texto. Ahora se aplica al instante, igual que al
-      // escribir la fórmula directamente.
+      if(isX) p.fx=formula; else p.fy=formula;
       const vx=p.fx?_evalF(p.fx):null;
       const vy=p.fy?_evalF(p.fy):null;
       if(vx!==null&&p.fx){p.x=vx;document.getElementById('dv6-px').value=_fmtCoord(vx);}
