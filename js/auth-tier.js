@@ -431,16 +431,17 @@ PAT.AuthTier = (function () {
       // escriba trialStart con fecha pasada en docs sin ese campo.
     } catch (e) {
       console.warn('[AuthTier] No se pudo cargar tier desde Firestore:', e.message);
+      // Aunque falle Firestore, el usuario está autenticado — mostrar badge de free
+      if (!_tierVerified) { _tierVerified = true; _renderBadge(); }
     }
   }
 
   // Re-renderizar badge cuando Firebase resuelve la sesión
-  // (cubre el caso donde onAuthStateChanged dispara antes de que init() termine)
   document.addEventListener('pat:authChanged', (e) => {
     if (e.detail) {
-      // Sesión activa: si loadTierFromFirestore aún no actualizó el badge, forzar
+      // Siempre re-renderizar: el usuario está logueado aunque el tier aún no esté verificado
       if (!_tierVerified) loadTierFromFirestore();
-      else _renderBadge();
+      _renderBadge();
     } else {
       // Cerró sesión
       _currentTier = 'free'; _tierVerified = false;
