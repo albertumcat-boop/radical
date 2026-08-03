@@ -1278,7 +1278,6 @@ PAT.DrafterUI = (function () {
     const _load = () => {
       _points = JSON.parse(JSON.stringify(pat.points || {}));
       _lines  = JSON.parse(JSON.stringify(pat.lines  || []));
-      _guides = JSON.parse(JSON.stringify(pat.guides || []));
       _ptCtr  = pat.ptCtr || 0;
       _pieceName = pat.name || 'Sin nombre';
       _curSave   = pat.id   || null;
@@ -4856,7 +4855,6 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _pieceName = saved.name || 'Mi Pieza';
       _points    = JSON.parse(JSON.stringify(saved.points));
       _lines     = JSON.parse(JSON.stringify(saved.lines || []));
-      _guides    = JSON.parse(JSON.stringify(saved.guides || []));
       _ptCtr     = saved.ptCtr || 0;
       _renderAll();
       _renderVars();
