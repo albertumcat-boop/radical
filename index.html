@@ -1245,6 +1245,8 @@ PAT.DrafterUI = (function () {
   let _draggingSCtrl = null; // {idx, which:'cp1'|'cp2'} del control de curva S que se arrastra
   let _dragOff     = {x:0,y:0};
   let _tool        = 'select';
+  let _measureAnchor = null; // {x,y} mm — ancla de la cinta métrica
+  let _midptA        = null; // primer punto para herramienta punto-mitad
   let _lnStart     = null;
   let _pan         = {x:0,y:0};
   let _panStart    = null;
@@ -1505,6 +1507,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <button class="tb" data-tool="addSCurve" title="V" style="border-color:rgba(52,211,153,.3);color:#34d399">〜 Curva S</button>
     <button class="tb" data-tool="addFold" title="F">— Doblez</button>
     <button class="tb" data-tool="addDart" title="D" style="border-color:rgba(251,191,36,.25);color:#fbbf24">📌 Pinza</button>
+    <button class="tb" data-tool="measure" title="M — Cinta métrica: clic para anclar, mueve para medir" style="border-color:rgba(52,211,153,.35);color:#34d399">📏 Medir</button>
+    <button class="tb" data-tool="midpointTool" title="Punto en la mitad entre dos puntos" style="border-color:rgba(167,139,250,.35);color:#a78bfa">⊕ Mitad</button>
     <div class="dv6-sep"></div>
     <!-- Rectángulo base -->
     <button class="tb" id="dv6-rect" title="R">⬜ Rectángulo</button>
@@ -1616,6 +1620,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         <!-- Línea temporal FUERA del canvas — usa coordenadas SVG directas -->
         <line id="dv6-tmp" x1="0" y1="0" x2="0" y2="0"
           stroke="#34d399" stroke-width="1.5" stroke-dasharray="8,4" opacity="0" pointer-events="none"/>
+        <!-- Línea de cinta métrica (herramienta Medir) -->
+        <g id="dv6-ruler" opacity="0" pointer-events="none">
+          <line id="dv6-ruler-line" x1="0" y1="0" x2="0" y2="0"
+            stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="5,3"/>
+          <circle id="dv6-ruler-a" cx="0" cy="0" r="4" fill="#fbbf24" opacity="0.9"/>
+          <circle id="dv6-ruler-b" cx="0" cy="0" r="3" fill="none" stroke="#fbbf24" stroke-width="1.5"/>
+          <text id="dv6-ruler-txt" font-family="monospace" font-size="8" fill="#fbbf24"
+            text-anchor="middle" dominant-baseline="auto"></text>
+        </g>
         <!-- Punto de snap FUERA del canvas -->
         <circle id="dv6-snapcircle" cx="0" cy="0" r="6" fill="none"
           stroke="#fbbf24" stroke-width="1.5" opacity="0" pointer-events="none"/>
@@ -2608,6 +2621,44 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     }
     // ────────────────────────────────────────────────────────────────
 
+    // ── HERRAMIENTA CINTA MÉTRICA ─────────────────────────────────
+    if (_tool === 'measure') {
+      if (!_measureAnchor) {
+        // Primer clic: anclar en punto existente o en posición libre
+        const anchorPt = near ? _points[near] : mm;
+        _measureAnchor = { x: anchorPt.x, y: anchorPt.y, name: near ? _points[near].name : null };
+        _instr(`📏 Anclado en ${_measureAnchor.name || Math.round(_measureAnchor.x)+','+Math.round(_measureAnchor.y)}mm — mueve el cursor para medir`);
+      } else {
+        // Segundo clic: limpiar ancla
+        _measureAnchor = null;
+        const ruler = document.getElementById('dv6-ruler');
+        if (ruler) ruler.setAttribute('opacity', '0');
+        _instr('📏 Cinta métrica — clic para anclar un punto de inicio');
+      }
+      return;
+    }
+
+    // ── HERRAMIENTA PUNTO EN LA MITAD ────────────────────────────
+    if (_tool === 'midpointTool') {
+      if (!_midptA) {
+        if (!near) { _instr('⊕ Clic sobre el primer punto (círculo morado)'); return; }
+        _midptA = near;
+        _renderAll();
+        _instr(`⊕ Primer punto: ${_points[near].name} — ahora clic en el segundo punto`);
+      } else {
+        if (!near || near === _midptA) { _instr('⊕ Clic sobre el SEGUNDO punto (diferente al primero)'); return; }
+        const a = _points[_midptA], b = _points[near];
+        _snapshot();
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        const mname = 'M' + _ptCtr;
+        _addPt(mx, my, mname, '');
+        _midptA = null;
+        _renderAll();
+        _instr(`⊕ Punto ${mname} creado en la mitad entre ${a.name} y ${b.name} — ${Math.round(mx)},${Math.round(my)}mm`);
+      }
+      return;
+    }
+
     if (_tool === 'addPoint') {
       _snapshot();
       _addPt(mm.x, mm.y);
@@ -2834,6 +2885,36 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const distEl = document.getElementById('dv6-dist');
       if (distEl) distEl.style.display = 'none';
     }
+
+    // ── Cinta métrica en tiempo real ──────────────────────────────
+    const ruler = document.getElementById('dv6-ruler');
+    if (_tool === 'measure' && _measureAnchor && ruler) {
+      const svgA = _mmToSvg(_measureAnchor.x, _measureAnchor.y);
+      const svgB = _mmToSvg(mm.x, mm.y);
+      document.getElementById('dv6-ruler-line').setAttribute('x1', svgA.x);
+      document.getElementById('dv6-ruler-line').setAttribute('y1', svgA.y);
+      document.getElementById('dv6-ruler-line').setAttribute('x2', svgB.x);
+      document.getElementById('dv6-ruler-line').setAttribute('y2', svgB.y);
+      document.getElementById('dv6-ruler-a').setAttribute('cx', svgA.x);
+      document.getElementById('dv6-ruler-a').setAttribute('cy', svgA.y);
+      document.getElementById('dv6-ruler-b').setAttribute('cx', svgB.x);
+      document.getElementById('dv6-ruler-b').setAttribute('cy', svgB.y);
+      const txt = document.getElementById('dv6-ruler-txt');
+      const dist = Math.hypot(mm.x - _measureAnchor.x, mm.y - _measureAnchor.y);
+      txt.setAttribute('x', (svgA.x + svgB.x) / 2);
+      txt.setAttribute('y', (svgA.y + svgB.y) / 2 - 6);
+      txt.textContent = `${dist.toFixed(1)}mm = ${(dist/10).toFixed(2)}cm`;
+      ruler.setAttribute('opacity', '1');
+      // También actualizar el contador lateral
+      const distEl = document.getElementById('dv6-dist');
+      if (distEl) {
+        const fromLabel = _measureAnchor.name || `${Math.round(_measureAnchor.x)},${Math.round(_measureAnchor.y)}`;
+        distEl.textContent = `📏 ${dist.toFixed(1)}mm = ${(dist/10).toFixed(2)}cm desde ${fromLabel}`;
+        distEl.style.display = 'block';
+      }
+    } else if (_tool !== 'measure' && ruler) {
+      ruler.setAttribute('opacity', '0');
+    }
   }
 
   function _mup(e) {
@@ -2869,7 +2950,12 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   // ════════════════════════════════════════════════════════════
   function _setTool(t) {
     _tool=t; _lnStart=null;
+    // Limpiar estado de herramientas especiales
+    _measureAnchor = null;
+    _midptA = null;
     _tempLine.setAttribute('opacity','0');
+    const ruler = document.getElementById('dv6-ruler');
+    if (ruler) ruler.setAttribute('opacity','0');
     document.getElementById('dv6-dist').style.display='none';
     document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
     const w=document.getElementById('dv6-wrap');
@@ -2880,13 +2966,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _toolMsg() {
     return {
-      select:   '▶ Seleccionar: clic en punto para editar · Arrastrar para mover · Alt+drag = mover vista · M = Espejo',
-      addPoint: '＋ Clic en el canvas para agregar punto. Con Snap ON se alinea a la grilla.',
-      addLine:  '╱ Clic en punto A → clic en punto B — traza línea recta. La distancia aparece en verde.',
-      addCurve: '⌒ Clic en punto A → clic en punto B — traza curva. Arrastra el ◆ azul para ajustar.',
-      addSCurve: '〜 Clic en punto A → clic en punto B — traza curva en S (un extremo cóncavo, el otro convexo). Ajusta cada extremo con los sliders del panel.',
-      addFold:  '— Doblez/Hilo: Clic en punto A → clic en punto B. Línea roja punteada = doblez de papel (centro frente/espalda).',
-      addDart:  '📌 Pinza: Clic 1=APEX (punta) → Clic 2=lado DERECHO → Clic 3=lado IZQUIERDO. Líneas naranjas = costura de pinza.',
+      select:      '▶ Seleccionar: clic en punto para editar · Arrastrar para mover · Alt+drag = mover vista · M = Espejo',
+      addPoint:    '＋ Clic en el canvas para agregar punto. Con Snap ON se alinea a la grilla.',
+      addLine:     '╱ Clic en punto A → clic en punto B — traza línea recta. La distancia aparece en verde.',
+      addCurve:    '⌒ Clic en punto A → clic en punto B — traza curva. Arrastra el ◆ azul para ajustar.',
+      addSCurve:   '〜 Clic en punto A → clic en punto B — traza curva en S (un extremo cóncavo, el otro convexo). Ajusta cada extremo con los sliders del panel.',
+      addFold:     '— Doblez/Hilo: Clic en punto A → clic en punto B. Línea roja punteada = doblez de papel (centro frente/espalda).',
+      addDart:     '📌 Pinza: Clic 1=APEX (punta) → Clic 2=lado DERECHO → Clic 3=lado IZQUIERDO. Líneas naranjas = costura de pinza.',
+      measure:     '📏 Cinta métrica: clic para fijar punto de inicio (o sobre punto existente) → mueve para ver distancia → clic de nuevo para limpiar.',
+      midpointTool:'⊕ Punto en la mitad: clic en el PRIMER punto → clic en el SEGUNDO punto → se crea M en el centro exacto.',
     }[_tool]||'';
   }
 
@@ -3738,12 +3826,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
       const c=document.createElementNS(NS,'circle');
       c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',r);
-      c.setAttribute('fill',id===_selected?'#fbbf24':id===_lnStart?'#34d399':'#8b5cf6');
-      c.setAttribute('stroke','#06060c');c.setAttribute('stroke-width','0.3');g.appendChild(c);
+      const isMidA = id===_midptA;
+      c.setAttribute('fill',id===_selected?'#fbbf24':id===_lnStart?'#34d399':isMidA?'#c084fc':'#8b5cf6');
+      if(isMidA){c.setAttribute('stroke','#a78bfa');c.setAttribute('stroke-width','1.2');}
+      else{c.setAttribute('stroke','#06060c');c.setAttribute('stroke-width','0.3');}
+      g.appendChild(c);
 
       const t=document.createElementNS(NS,'text');
       t.setAttribute('x',p.x+r*1.6);t.setAttribute('y',p.y-r*0.7);
-      t.setAttribute('font-size',fs);t.setAttribute('fill',id===_selected?'#fbbf24':'#a78bfa');
+      t.setAttribute('font-size',fs);t.setAttribute('fill',id===_selected?'#fbbf24':isMidA?'#c084fc':'#a78bfa');
       t.setAttribute('font-family','Arial');t.setAttribute('font-weight','bold');
       t.textContent=p.name;g.appendChild(t);
 
