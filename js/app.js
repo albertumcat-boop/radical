@@ -697,6 +697,7 @@ if (overrides && overrides[overrideKey]) {
   return {
     toast, fitScreen, setZoom, generate, applyTierUI, getState: () => ({ ...state }),
     refreshCustomGarments: _injectCustomGarmentButtons,
+    switchView,
   };
 
 })();

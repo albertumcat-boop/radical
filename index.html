@@ -743,7 +743,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
 
   <!-- Acciones -->
   <div class="sb-sec" style="display:flex;flex-direction:column;gap:7px">
-    <button class="sb-btn prim" id="btn-generate" onclick="PAT.App&&PAT.App.generate(0)">
+    <button class="sb-btn prim" id="btn-generate" onclick="if(PAT.App){PAT.App.generate(0);PAT.App.switchView('pattern');PAT.App.toast('Patrón generado','success');}">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
       Generar patrón
     </button>
@@ -6460,17 +6460,12 @@ document.addEventListener('DOMContentLoaded', function() {
       var saved2 = localStorage.getItem('patronai_atelier_method');
       var ctx = saved2 ? JSON.parse(saved2).method : '';
       var m = state.measures || {};
-      var resp = await fetch('https://api.anthropic.com/v1/messages',{
+      var resp = await fetch('/api/ai-transform',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
-          messages:[{role:'user',content:
-            'Eres experto en patronaje de '+(state.garment||'prenda')+
-            '. Medidas: Busto '+(m.bust||88)+'cm, Cintura '+(m.waist||68)+'cm, Cadera '+(m.hip||94)+'cm.'+
-            (ctx?' Método: '+ctx:'')+'. Transformación: "'+prompt+
-            '". JSON: {"descripcion":"...","cambios":["..."]}'}]})
+        body:JSON.stringify({garment:state.garment,measures:m,method:ctx,prompt:prompt})
       });
-      var data = await resp.json();
-      var r = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+      var r = await resp.json();
+      if(!resp.ok) throw new Error(r.error||'Error de IA');
       var rd=document.getElementById('ai-result'),rt=document.getElementById('ai-result-text');
       if(rd&&rt){
         rt.innerHTML='<p style="margin-bottom:8px">'+(r.descripcion||'')+'</p>'+
