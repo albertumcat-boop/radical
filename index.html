@@ -6456,25 +6456,38 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!prompt) { if(PAT.App) PAT.App.toast('Describe qué diseño quieres','warning'); return; }
     this.disabled=true; this.textContent='⟳ Aplicando...';
     try {
-      var state = PAT.App ? PAT.App.getState() : {};
+      var appState = PAT.App ? PAT.App.getState() : {};
       var saved2 = localStorage.getItem('patronai_atelier_method');
       var ctx = saved2 ? JSON.parse(saved2).method : '';
-      var m = state.measures || {};
+      var m = appState.measures || {};
+      // Captura el estado actual del drafter (puntos + líneas del canvas)
+      var drafterState = (PAT.DrafterUI && PAT.DrafterUI.tieneContenido && PAT.DrafterUI.tieneContenido())
+        ? PAT.DrafterUI.getState()
+        : null;
       var resp = await fetch('/api/ai-transform',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({garment:state.garment,measures:m,method:ctx,prompt:prompt})
+        body:JSON.stringify({
+          garment: appState.garment,
+          measures: m,
+          method: ctx,
+          prompt: prompt,
+          drafterState: drafterState
+        })
       });
       var r = await resp.json();
       if(!resp.ok) throw new Error(r.error||'Error de IA');
-      var rd=document.getElementById('ai-result'),rt=document.getElementById('ai-result-text');
-      if(rd&&rt){
-        rt.innerHTML='<p style="margin-bottom:8px">'+(r.descripcion||'')+'</p>'+
-          '<ul style="padding-left:16px">'+(r.cambios||[]).map(function(c){return'<li>'+c+'</li>';}).join('')+'</ul>';
-        rd.style.display='block';
+      // Cargar el patrón modificado directamente en el canvas del drafter
+      if(r.drafterState && PAT.DrafterUI) {
+        PAT.DrafterUI.cargarBloque(r.drafterState);
+        // Abrir el drafter si no está abierto
+        if(PAT.DrafterUI.open) PAT.DrafterUI.open();
+        if(PAT.App) PAT.App.toast('✦ Patrón transformado — revisa el editor','success');
+      } else {
+        if(PAT.App) PAT.App.toast('✦ Transformación lista','success');
       }
-      if(PAT.App) PAT.App.toast('✦ Transformación lista','success');
     } catch(e){
-      if(PAT.App) PAT.App.toast('Error al conectar con IA','error');
+      if(PAT.App) PAT.App.toast((e.message||'Error al conectar con IA'),'error');
+      console.error('[AI Transform]', e);
     } finally {
       this.disabled=false; this.innerHTML='✦ Aplicar transformación';
     }
