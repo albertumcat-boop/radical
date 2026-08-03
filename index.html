@@ -1753,7 +1753,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
                sube 1cm" → recorre 5cm desde A hacia B, y luego se desplaza
                1cm perpendicular. -->
           <div style="margin:6px 14px 10px;padding:8px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
-            <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600">📍 DESDE OTRO PUNTO / SOBRE UNA LÍNEA</div>
+            <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600;display:flex;align-items:center;justify-content:space-between">
+              <span>📍 DESDE OTRO PUNTO / SOBRE UNA LÍNEA</span>
+              <button id="dv6-fb2-toggle" title="Mostrar/ocultar" style="background:transparent;border:1px solid #3a3660;color:#8b87a8;border-radius:4px;font-size:10px;padding:1px 6px;cursor:pointer;line-height:1.4">▲</button>
+            </div>
+            <div id="dv6-fb2-body">
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
               <span class="dv6-plb" style="width:18px">A</span>
               <select class="dv6-pi" id="dv6-fb2-pointA" style="flex:1"></select>
@@ -1780,6 +1784,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             <div id="dv6-fb2-preview" style="font-size:11px;color:#34d399;padding:4px 2px;font-weight:600">= —</div>
             <div class="dv6-prow" style="padding:4px 0 0">
               <button type="button" class="tb" id="dv6-fb2-go" style="width:100%;justify-content:center;font-size:10px;padding:5px 0">→ Ubicar punto aquí</button>
+            </div>
             </div>
           </div>
           <div class="dv6-prow" style="padding-bottom:8px">
@@ -4484,6 +4489,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     dirSel.onchange=_actualizarPreview2;
     cmEl.oninput=_actualizarPreview2;
     document.getElementById('dv6-fb2-go').onclick=_ubicar;
+
+    // Toggle colapso sección "Desde otro punto"
+    const fb2Toggle = document.getElementById('dv6-fb2-toggle');
+    const fb2Body   = document.getElementById('dv6-fb2-body');
+    if (fb2Toggle && fb2Body) {
+      fb2Toggle.addEventListener('click', function() {
+        const collapsed = fb2Body.style.display === 'none';
+        fb2Body.style.display = collapsed ? '' : 'none';
+        fb2Toggle.textContent = collapsed ? '▲' : '▼';
+        fb2Toggle.style.color = collapsed ? '#8b87a8' : '#a78bfa';
+      });
+    }
 
     _refresh();
     return {refresh:_refresh};
