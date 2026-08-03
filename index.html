@@ -1820,6 +1820,38 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
               </div>
             </div>
             <div class="dv6-prow" style="padding:2px 0"><span class="dv6-plb">Nombre</span><input class="dv6-pi" id="dv6-pnm" maxlength="4" placeholder="A, B, 1…"></div>
+            <div class="dv6-prow" style="padding:2px 0;align-items:flex-start;gap:4px">
+              <span class="dv6-plb" style="padding-top:3px">Rol graduar</span>
+              <select class="dv6-pi" id="dv6-pgrade-role" title="Tipo de punto para gradación automática XS→XXL" style="flex:1;font-size:10px">
+                <option value="">— proporcional (sin rol) —</option>
+                <optgroup label="Centro">
+                  <option value="centro">Centro (no se mueve)</option>
+                  <option value="escote_centro">Escote centro</option>
+                  <option value="dobladillo_centro">Dobladillo centro</option>
+                </optgroup>
+                <optgroup label="Escote y hombro">
+                  <option value="hombro_cuello">Hombro — lado cuello</option>
+                  <option value="hombro_lateral">Hombro — extremo lateral</option>
+                </optgroup>
+                <optgroup label="Sisa y pecho">
+                  <option value="sisa_superior">Sisa superior</option>
+                  <option value="sisa_lateral">Sisa lateral</option>
+                  <option value="pecho_lateral">Pecho / busto lateral</option>
+                </optgroup>
+                <optgroup label="Talle y cadera">
+                  <option value="cintura_lateral">Cintura lateral</option>
+                  <option value="cadera_lateral">Cadera lateral</option>
+                </optgroup>
+                <optgroup label="Dobladillo">
+                  <option value="dobladillo_lateral">Dobladillo lateral</option>
+                </optgroup>
+                <optgroup label="Pantalón">
+                  <option value="tiro_delantero">Tiro delantero</option>
+                  <option value="tiro_trasero">Tiro trasero</option>
+                  <option value="rodilla_lateral">Rodilla / tobillo lateral</option>
+                </optgroup>
+              </select>
+            </div>
             <div style="border-top:1px solid #2a2640;margin:6px 0"></div>
             <div class="dv6-prow" style="padding:2px 0;gap:4px">
               <select class="dv6-pi" id="dv6-fb-medida" style="flex:1"></select>
@@ -2097,7 +2129,19 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           <tbody id="mga-size-tbody"></tbody>
         </table>
       </div>
-      <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 10px;background:#141420;border:1px solid #2e2e45;border-radius:8px">
+        <span style="font-size:.78rem;color:#9490b0;flex-shrink:0">Mi patrón base es talla:</span>
+        <select id="mga-base-talla" style="background:#1a1828;border:1px solid #332d54;color:#ede9fe;border-radius:6px;padding:4px 8px;font-size:.82rem;font-family:inherit">
+          <option value="0">XS</option>
+          <option value="1">S</option>
+          <option value="2" selected>M</option>
+          <option value="3">L</option>
+          <option value="4">XL</option>
+          <option value="5">XXL</option>
+        </select>
+        <span style="font-size:.72rem;color:#5a5678">Los puntos con Rol usarán incrementos desde esta talla</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
         <button id="mga-gen-btn" style="flex:1;padding:10px;background:#7c3aed;border:none;border-radius:8px;color:#fff;font-size:.88rem;font-weight:800;cursor:pointer;font-family:inherit">⚙ Generar gradación</button>
       </div>
     </div>
@@ -2663,6 +2707,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-pnm').oninput = _applyProps;
     document.getElementById('dv6-px').oninput  = _applyProps;
     document.getElementById('dv6-py').oninput  = _applyProps;
+    document.getElementById('dv6-pgrade-role').onchange = function(){
+      if(_selected&&_points[_selected]) _points[_selected].gradeRole=this.value;
+    };
     document.getElementById('dv6-unit-mm').onclick = function(){ _setCoordUnit('mm'); };
     document.getElementById('dv6-unit-cm').onclick = function(){ _setCoordUnit('cm'); };
     _setCoordUnit(_coordUnit); // refleja el estado guardado (botón activo + etiquetas) al cargar
@@ -4317,6 +4364,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-py').value=_fmtCoord(p.y);
     document.getElementById('dv6-pfx').value=p.fx||'';
     document.getElementById('dv6-pfy').value=p.fy||'';
+    document.getElementById('dv6-pgrade-role').value=p.gradeRole||'';
     _updateFVal();
     if (_refreshFormulaBuilder) _refreshFormulaBuilder();
   }
@@ -4788,10 +4836,29 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('modal-grade-all').style.display = 'none';
   }
 
-  function _calcGradedPoints(newM){
+  // Incrementos (dx, dy) en mm por cada paso de talla (ej: S→M, M→L)
+  const _GRADE_RULES = {
+    centro:            { dx:0,   dy:0  },
+    escote_centro:     { dx:0,   dy:0  },
+    dobladillo_centro: { dx:0,   dy:10 },
+    hombro_cuello:     { dx:2,   dy:0  },
+    hombro_lateral:    { dx:5,   dy:0  },
+    sisa_superior:     { dx:5,   dy:3  },
+    sisa_lateral:      { dx:10,  dy:5  },
+    pecho_lateral:     { dx:10,  dy:5  },
+    cintura_lateral:   { dx:8,   dy:8  },
+    cadera_lateral:    { dx:10,  dy:10 },
+    dobladillo_lateral:{ dx:10,  dy:10 },
+    tiro_delantero:    { dx:5,   dy:5  },
+    tiro_trasero:      { dx:8,   dy:5  },
+    rodilla_lateral:   { dx:5,   dy:15 },
+  };
+
+  function _calcGradedPoints(newM, stepFromBase){
     const oldM = _getMeasures();
     const scaleX = (newM.bust/4*10) / (oldM.bust/4*10) || 1;
     const scaleY = (newM.backLength*10) / (oldM.backLength*10) || 1;
+    const step = (typeof stepFromBase === 'number') ? stepFromBase : null;
 
     const newVars = {
       BUSTO:newM.bust*10,CINTURA:newM.waist*10,CADERA:newM.hip*10,
@@ -4822,7 +4889,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         if(p.fy){const v=evalV(p.fy);if(v!==null)np.y=v;}
         if(p.fx&&!p.fy) np.y=p.y*scaleY;
         if(p.fy&&!p.fx) np.x=p.x*scaleX;
-      }else{
+      } else if(p.gradeRole && step !== null && _GRADE_RULES[p.gradeRole]){
+        // Punto con rol asignado: incremento fijo por paso de talla
+        const rule = _GRADE_RULES[p.gradeRole];
+        np.x = p.x + rule.dx * step;
+        np.y = p.y + rule.dy * step;
+      } else {
+        // Sin fórmula ni rol: escala proporcional
         np.x=p.x*scaleX;
         np.y=p.y*scaleY;
       }
@@ -4883,12 +4956,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     });
     if(!selected.length){ if(PAT.App)PAT.App.toast('Selecciona al menos una talla','error');return; }
 
+    const baseTallaIdx = parseInt(document.getElementById('mga-base-talla').value) || 2;
     const pieceName = document.getElementById('dv6-sv-name')?.value || 'pieza';
     _gradeTallasData = [];
 
     selected.forEach(sz=>{
-      const {points,lines,ptCtr} = _calcGradedPoints(sz);
-      _gradeTallasData.push({id:sz.id, name:`${pieceName} ${sz.id}`, points, lines, ptCtr});
+      const targetIdx = _TALLAS_STD.findIndex(t=>t.id===sz.id);
+      const stepFromBase = targetIdx - baseTallaIdx;
+      const {points,lines,ptCtr} = _calcGradedPoints(sz, stepFromBase);
+      _gradeTallasData.push({id:sz.id, name:`${pieceName} ${sz.id}`, points, lines, ptCtr, stepFromBase});
     });
 
     // Mostrar cards

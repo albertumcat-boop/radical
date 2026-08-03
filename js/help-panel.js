@@ -379,6 +379,54 @@ PAT.HelpPanel = (function () {
           svg: ''
         }
       ]
+    },
+    // ─────────────────────────────────────────────────────────────────
+    {
+      id: 'formulas',
+      icon: '🧮',
+      title: 'Tutorial: fórmulas para graduar',
+      steps: [
+        {
+          title: '¿Por qué usar fórmulas?',
+          text: 'Sin fórmulas, los puntos tienen coordenadas fijas (ej: X=220, Y=180). Al graduar a otra talla, el sistema los escala proporcionalmente — es una aproximación. Con fórmulas, el punto se RECALCULA exactamente según las medidas de cada talla: si el busto cambia, el punto se mueve a la posición correcta automáticamente. Un patrón con fórmulas gradura perfectamente a cualquier talla.',
+          svg: ''
+        },
+        {
+          title: 'Las variables de medida disponibles',
+          text: 'Puedes usar estas variables en las fórmulas (los valores son en mm internamente):\n\nBUSTO — contorno de busto (ej: 880 para 88cm)\nCINTURA — contorno de cintura\nCADERA — contorno de cadera\nESPALDA — ancho de hombros\nCUELLO — contorno de cuello\nTALLE_ESP — talle espalda\nLARGO — largo total de la prenda\n\nAtajos comunes:\nB4 = BUSTO÷4, B6 = BUSTO÷6, B8 = BUSTO÷8\nW4 = CINTURA÷4, H4 = CADERA÷4',
+          svg: ''
+        },
+        {
+          title: 'Referencia a otro punto',
+          text: 'Si ya tienes el punto A ubicado, puedes decir: "el punto B está 5cm a la derecha de A". La fórmula sería:\n\nFórm. X: A.x + 50\nFórm. Y: A.y\n\n(las unidades son mm, entonces 5cm = 50mm)\n\nSi A se mueve, B se mueve con él automáticamente. Así se construye una cadena de puntos que se recalculan solos.',
+          svg: ''
+        },
+        {
+          title: 'Ejemplo: espalda básica paso a paso',
+          text: 'Punto 0 — origen (esquina superior izquierda):\nX: 0   Y: 0\n\nPunto A — extremo de escote:\nX: CUELLO/6 + 20   Y: 0\n\nPunto B — hombro lateral:\nX: ESPALDA/2   Y: 20\n\nPunto C — sisa lateral (nivel pecho):\nX: ESPALDA/2 + 10   Y: TALLE_ESP/3\n\nPunto D — cintura lateral:\nX: B4 + 10   Y: TALLE_ESP\n\nPunto E — dobladillo lateral:\nX: H4 + 10   Y: LARGO\n\nPunto F — dobladillo centro:\nX: 0   Y: LARGO',
+          svg: ''
+        },
+        {
+          title: 'Cómo ingresar una fórmula en el editor',
+          text: '1. Crea o selecciona un punto.\n2. En el panel derecho, ve al CONSTRUCTOR DE FÓRMULA.\n3. Elige la medida base (ej: Busto) en el primer dropdown.\n4. Elige la división (ej: Cuarta ÷4).\n5. Elige + o − y escribe la constante en cm.\n6. Haz clic en "→ Insertar en X" o "→ Insertar en Y".\nEl punto se mueve al instante y la fórmula queda guardada.',
+          svg: ''
+        },
+        {
+          title: 'Fórmula manual (campo de texto)',
+          text: 'También puedes escribir la fórmula directamente en los campos Fórm. X y Fórm. Y del panel de punto. Ejemplos válidos:\n\nB4 + 20\n(CINTURA/4) - 5\nA.y + TALLE_ESP\nBUSTO/6 + 15\nC.x - 30\n\nReglas: solo números, operadores +−×÷ y paréntesis. Las medidas van en MAYÚSCULAS. Los puntos se escriben como NombrePunto.x o NombrePunto.y.',
+          svg: ''
+        },
+        {
+          title: 'El rol de gradación del punto',
+          text: 'Además de las fórmulas, cada punto tiene un campo "Rol para graduar" en el panel. Si asignas un rol (ej: "Cadera lateral"), al graduar a XS→XXL el sistema aplica los incrementos estándar de ese tipo de punto en lugar de escalar proporcionalmente. Esto es especialmente útil para puntos sin fórmula que sí tienen una posición reconocible en el patrón.',
+          svg: ''
+        },
+        {
+          title: 'Cuándo usar fórmula y cuándo usar rol',
+          text: 'USA FÓRMULA cuando el punto se calcula directamente de una medida (hombro = ESPALDA/2, cintura = B4 + constante). El resultado es exacto para cualquier talla.\n\nUSA ROL cuando el punto está en una posición "conocida" del patrón pero no tiene una fórmula simple (ej: un punto de sisa trazado a ojo que quieres que se desplace el estándar entre tallas).\n\nSin ninguno de los dos: el punto se escala proporcionalmente según busto y talle (aproximación).',
+          svg: ''
+        }
+      ]
     }
   ];
 
