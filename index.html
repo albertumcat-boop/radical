@@ -2741,6 +2741,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     }
 
     if (_tool === 'addPoint') {
+      if (near) { _selectPt(near); _instr('📍 Punto '+_points[near].name+' adoptado (ya existe en esa posición)'); return; }
       _snapshot();
       _addPt(mm.x, mm.y);
       return;
@@ -3830,24 +3831,32 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     // siguiente segmento no continúa desde ahí, se levanta el lápiz (M en vez
     // de L) — así se evita dibujar una diagonal espuria entre puntos que no
     // son consecutivos en el contorno real.
-    let d='';
-    let _lastTo=null;
-    _lines.forEach(ln=>{
-      // El doblez (fold) SÍ es un tramo real del contorno de la pieza (conecta
-      // dos segmentos de la silueta) — excluirlo rompía la continuidad del
-      // relleno y creaba líneas espurias entre puntos no consecutivos.
-      // Solo se excluyen las líneas de referencia (construction) y las pinzas
-      // internas (dart), que no forman parte del borde exterior.
-      if(ln.type==='construction'||ln.type==='dart')return; // excluir del relleno
-      const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
-      if(!d){d=`M ${a.x} ${a.y}`;}
-      else if(_lastTo!==ln.from){d+=` M ${a.x} ${a.y}`;} // no conecta: levantar lápiz, no diagonal
-      if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln.ctrl);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
-      else if(ln.type==='scurve'){const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);d+=` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`;}
-      else d+=` L ${b.x} ${b.y}`;
-      _lastTo=ln.to;
-    });
-    if(d){const f=document.createElementNS(NS,'path');f.setAttribute('d',d);f.setAttribute('fill','rgba(139,92,246,.06)');f.setAttribute('stroke','none');f.setAttribute('pointer-events','none');_linesG.appendChild(f);}
+    // Relleno — solo se dibuja si la cadena de líneas forma un polígono
+    // CERRADO (el último punto llega al primero). Las rutas abiertas (L-shapes,
+    // U-shapes, etc.) NO reciben relleno porque SVG cierra implícitamente el
+    // path dibujando una diagonal espuria que crea sombras azules confusas.
+    {
+      let d='', _lastTo=null, _firstFrom=null, _broken=false;
+      _lines.forEach(ln=>{
+        if(ln.type==='construction'||ln.type==='dart')return;
+        const a=_points[ln.from],b=_points[ln.to];if(!a||!b)return;
+        if(!d){d=`M ${a.x} ${a.y}`;_firstFrom=ln.from;}
+        else if(_lastTo!==ln.from){_broken=true;return;} // subpath roto: abortar
+        if(ln.type==='curve'){const{cpx,cpy}=_curveCP(a,b,ln);d+=` Q ${cpx} ${cpy} ${b.x} ${b.y}`;}
+        else if(ln.type==='scurve'){const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);d+=` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`;}
+        else d+=` L ${b.x} ${b.y}`;
+        _lastTo=ln.to;
+      });
+      // Solo renderizar relleno si el camino es continuo Y está cerrado
+      if(d && !_broken && _lastTo===_firstFrom){
+        const f=document.createElementNS(NS,'path');
+        f.setAttribute('d',d+' Z');
+        f.setAttribute('fill','rgba(139,92,246,.06)');
+        f.setAttribute('stroke','none');
+        f.setAttribute('pointer-events','none');
+        _linesG.appendChild(f);
+      }
+    }
 
     // ── Contorno y tipos especiales ───────────────────────────────────────────
     _lines.forEach((ln,i)=>{
