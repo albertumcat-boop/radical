@@ -3015,8 +3015,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       document.getElementById('dv6-ruler-b').setAttribute('cy', svgB.y);
       const txt = document.getElementById('dv6-ruler-txt');
       const dist = Math.hypot(mm.x - _measureAnchor.x, mm.y - _measureAnchor.y);
-      txt.setAttribute('x', (svgA.x + svgB.x) / 2);
-      txt.setAttribute('y', (svgA.y + svgB.y) / 2 - 6);
+      txt.setAttribute('x', svgB.x + 10);
+      txt.setAttribute('y', svgB.y - 8);
+      txt.setAttribute('text-anchor', 'start');
       txt.textContent = `${dist.toFixed(1)}mm = ${(dist/10).toFixed(2)}cm`;
       ruler.setAttribute('opacity', '1');
       // También actualizar el contador lateral
