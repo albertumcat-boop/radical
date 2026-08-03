@@ -943,6 +943,114 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
   </div>
 </div>
 
+<!-- Onboarding -->
+<div id="modal-onboarding" class="modal" style="z-index:9500">
+  <div class="m-ov"></div>
+  <div class="m-box" style="max-width:480px;padding:0;overflow:hidden">
+
+    <!-- Cabecera -->
+    <div style="background:linear-gradient(135deg,#1a0f35,#2d1b6e);padding:28px 28px 20px;text-align:center">
+      <div style="font-size:28px;margin-bottom:8px">✂️</div>
+      <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-.3px">Bienvenida a PatrónAI Pro</div>
+      <div style="font-size:12px;color:#a78bfa;margin-top:5px">Configura tu primer patrón en 3 pasos</div>
+      <!-- Indicador de pasos -->
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:16px">
+        <div class="ob-step-dot active" id="ob-dot-1"></div>
+        <div class="ob-step-dot" id="ob-dot-2"></div>
+        <div class="ob-step-dot" id="ob-dot-3"></div>
+      </div>
+    </div>
+
+    <!-- Paso 1: Prenda -->
+    <div class="ob-step" id="ob-step-1" style="padding:24px 28px">
+      <div style="font-size:13px;font-weight:700;color:#e8e4f0;margin-bottom:6px">Paso 1 — ¿Qué vas a trazar?</div>
+      <div style="font-size:11px;color:#9490b0;margin-bottom:16px">Elige la prenda base. Podrás cambiarla después.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="ob-garment-btn" data-garment="franela">👕 Franela / Camiseta</button>
+        <button class="ob-garment-btn" data-garment="blusa">👚 Blusa con pinzas</button>
+        <button class="ob-garment-btn" data-garment="camisa">👔 Camisa</button>
+        <button class="ob-garment-btn" data-garment="vestido">👗 Vestido básico</button>
+        <button class="ob-garment-btn" data-garment="falda">🩱 Falda recta</button>
+        <button class="ob-garment-btn" data-garment="pantalon">👖 Pantalón</button>
+        <button class="ob-garment-btn" data-garment="blazer">🥼 Blazer</button>
+        <button class="ob-garment-btn" data-garment="short">🩳 Short</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:20px">
+        <button class="ob-btn-next" id="ob-next-1" disabled>Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Paso 2: Medidas -->
+    <div class="ob-step" id="ob-step-2" style="display:none;padding:24px 28px">
+      <div style="font-size:13px;font-weight:700;color:#e8e4f0;margin-bottom:6px">Paso 2 — Medidas del cliente</div>
+      <div style="font-size:11px;color:#9490b0;margin-bottom:16px">Ingresa las medidas en centímetros. Puedes editarlas después.</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:10px">
+          <div style="flex:1"><label style="font-size:10px;color:#9490b0;display:block;margin-bottom:3px">Busto (cm)</label><input type="number" id="ob-bust" class="ob-inp" value="88" min="60" max="160" step="0.5"></div>
+          <div style="flex:1"><label style="font-size:10px;color:#9490b0;display:block;margin-bottom:3px">Cintura (cm)</label><input type="number" id="ob-waist" class="ob-inp" value="68" min="50" max="140" step="0.5"></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1"><label style="font-size:10px;color:#9490b0;display:block;margin-bottom:3px">Cadera (cm)</label><input type="number" id="ob-hip" class="ob-inp" value="94" min="60" max="160" step="0.5"></div>
+          <div style="flex:1"><label style="font-size:10px;color:#9490b0;display:block;margin-bottom:3px">Largo prenda (cm)</label><input type="number" id="ob-length" class="ob-inp" value="65" min="20" max="160" step="0.5"></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1"><label style="font-size:10px;color:#9490b0;display:block;margin-bottom:3px">Talle espalda (cm)</label><input type="number" id="ob-back" class="ob-inp" value="40" min="25" max="60" step="0.5"></div>
+          <div style="flex:1"><label style="font-size:10px;color:#9490b0;display:block;margin-bottom:3px">Largo manga (cm)</label><input type="number" id="ob-sleeve" class="ob-inp" value="60" min="10" max="80" step="0.5"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:20px">
+        <button class="ob-btn-back" id="ob-back-2">← Atrás</button>
+        <button class="ob-btn-next" id="ob-next-2">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Paso 3: Listo -->
+    <div class="ob-step" id="ob-step-3" style="display:none;padding:24px 28px;text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">🎉</div>
+      <div style="font-size:15px;font-weight:800;color:#e8e4f0;margin-bottom:8px">¡Todo listo!</div>
+      <div id="ob-summary" style="font-size:12px;color:#9490b0;margin-bottom:6px;line-height:1.7"></div>
+      <div style="font-size:11px;color:#5a5678;margin-bottom:20px">El patrón base se generará automáticamente con tus medidas. Podrás editarlo punto por punto en el editor.</div>
+      <button class="ob-btn-next" id="ob-finish" style="width:100%;font-size:14px;padding:14px">✂️ Generar patrón y empezar</button>
+      <div style="margin-top:12px">
+        <button id="ob-skip" style="background:none;border:none;color:#5a5678;font-size:11px;cursor:pointer;font-family:inherit">Saltar → entrar sin configurar</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.ob-step-dot{width:8px;height:8px;border-radius:50%;background:rgba(167,139,250,.25);transition:background .2s}
+.ob-step-dot.active{background:#a78bfa}
+.ob-garment-btn{
+  padding:10px 8px;border:1.5px solid #2a2640;border-radius:10px;
+  background:#141420;color:#c4b5fd;font-size:12px;font-family:inherit;
+  cursor:pointer;text-align:center;transition:all .15s;font-weight:500;
+}
+.ob-garment-btn:hover,.ob-garment-btn.selected{
+  border-color:#8b5cf6;background:rgba(139,92,246,.15);color:#ede9fe;
+}
+.ob-inp{
+  width:100%;background:#141420;border:1.5px solid #2a2640;
+  color:#e8e4f0;border-radius:8px;padding:8px 10px;font-size:13px;
+  font-family:inherit;outline:none;box-sizing:border-box;
+}
+.ob-inp:focus{border-color:#8b5cf6}
+.ob-btn-next{
+  padding:10px 22px;border:none;border-radius:9px;
+  background:#8b5cf6;color:#fff;font-family:inherit;
+  font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;
+}
+.ob-btn-next:hover:not(:disabled){background:#7c3aed}
+.ob-btn-next:disabled{opacity:.35;cursor:not-allowed}
+.ob-btn-back{
+  padding:10px 18px;border:1.5px solid #2a2640;border-radius:9px;
+  background:transparent;color:#9490b0;font-family:inherit;
+  font-size:13px;cursor:pointer;transition:all .15s;
+}
+.ob-btn-back:hover{border-color:#8b5cf6;color:#c4b5fd}
+</style>
+
 <!-- AI Studio -->
 <div id="modal-ai" class="modal">
   <div class="m-ov"></div>
@@ -6847,5 +6955,118 @@ if ('serviceWorker' in navigator) {
 <!-- PWA manifest -->
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#8b5cf6">
+
+<script>
+// ── Onboarding ─────────────────────────────────────────────────────────────
+(function() {
+  var OB_KEY = 'patronai_onboarding_done';
+  var _selectedGarment = null;
+
+  function _show() {
+    var m = document.getElementById('modal-onboarding');
+    if (m) m.classList.add('open');
+  }
+
+  function _hide() {
+    var m = document.getElementById('modal-onboarding');
+    if (m) m.classList.remove('open');
+    localStorage.setItem(OB_KEY, '1');
+  }
+
+  function _goTo(step) {
+    [1,2,3].forEach(function(s) {
+      var el = document.getElementById('ob-step-' + s);
+      var dot = document.getElementById('ob-dot-' + s);
+      if (el) el.style.display = s === step ? '' : 'none';
+      if (dot) dot.classList.toggle('active', s === step);
+    });
+  }
+
+  function _init() {
+    document.querySelectorAll('.ob-garment-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.ob-garment-btn').forEach(function(b){ b.classList.remove('selected'); });
+        this.classList.add('selected');
+        _selectedGarment = this.dataset.garment;
+        var nextBtn = document.getElementById('ob-next-1');
+        if (nextBtn) nextBtn.disabled = false;
+      });
+    });
+
+    var next1 = document.getElementById('ob-next-1');
+    if (next1) next1.onclick = function() { _goTo(2); };
+
+    var back2 = document.getElementById('ob-back-2');
+    if (back2) back2.onclick = function() { _goTo(1); };
+
+    var next2 = document.getElementById('ob-next-2');
+    if (next2) next2.onclick = function() {
+      var bust   = parseFloat(document.getElementById('ob-bust').value)   || 88;
+      var waist  = parseFloat(document.getElementById('ob-waist').value)  || 68;
+      var hip    = parseFloat(document.getElementById('ob-hip').value)    || 94;
+      var length = parseFloat(document.getElementById('ob-length').value) || 65;
+      var back   = parseFloat(document.getElementById('ob-back').value)   || 40;
+      var sleeve = parseFloat(document.getElementById('ob-sleeve').value) || 60;
+      var GARMENT_NAMES = {
+        franela:'Franela / Camiseta', blusa:'Blusa con pinzas', camisa:'Camisa',
+        vestido:'Vestido básico', falda:'Falda recta', pantalon:'Pantalón',
+        blazer:'Blazer', short:'Short'
+      };
+      var summary = document.getElementById('ob-summary');
+      if (summary) {
+        summary.innerHTML =
+          '<strong style="color:#c4b5fd">' + (GARMENT_NAMES[_selectedGarment] || _selectedGarment || '—') + '</strong><br>' +
+          'Busto ' + bust + ' · Cintura ' + waist + ' · Cadera ' + hip + ' cm<br>' +
+          'Largo ' + length + ' · Talle esp. ' + back + ' · Manga ' + sleeve + ' cm';
+      }
+      _goTo(3);
+    };
+
+    var finish = document.getElementById('ob-finish');
+    if (finish) finish.onclick = function() {
+      var bust   = parseFloat(document.getElementById('ob-bust').value)   || 88;
+      var waist  = parseFloat(document.getElementById('ob-waist').value)  || 68;
+      var hip    = parseFloat(document.getElementById('ob-hip').value)    || 94;
+      var length = parseFloat(document.getElementById('ob-length').value) || 65;
+      var back   = parseFloat(document.getElementById('ob-back').value)   || 40;
+      var sleeve = parseFloat(document.getElementById('ob-sleeve').value) || 60;
+
+      var fields = {
+        'inp-bust': bust, 'inp-waist': waist, 'inp-hip': hip,
+        'inp-length': length, 'inp-backLength': back, 'inp-sleeveLength': sleeve
+      };
+      Object.entries(fields).forEach(function(pair) {
+        var el = document.getElementById(pair[0]);
+        if (el) { el.value = pair[1]; el.dispatchEvent(new Event('input', {bubbles:true})); }
+      });
+
+      if (_selectedGarment) {
+        var gBtn = document.querySelector('.garment-btn[data-garment="'+_selectedGarment+'"]');
+        if (gBtn) gBtn.click();
+      }
+
+      _hide();
+      if (PAT.App) {
+        PAT.App.generate(0);
+        PAT.App.switchView('pattern');
+        PAT.App.toast('✂️ Patrón generado con tus medidas','success');
+      }
+    };
+
+    var skip = document.getElementById('ob-skip');
+    if (skip) skip.onclick = _hide;
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    _init();
+    if (!localStorage.getItem(OB_KEY)) {
+      setTimeout(_show, 800);
+    }
+  });
+
+  window.PAT = window.PAT || {};
+  PAT.Onboarding = { show: _show, reset: function(){ localStorage.removeItem(OB_KEY); _show(); } };
+})();
+</script>
 </body>
 </html>
