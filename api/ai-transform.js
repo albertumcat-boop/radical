@@ -1,8 +1,8 @@
 // api/ai-transform.js — Proxy seguro para Anthropic API
 // La clave ANTHROPIC_API_KEY se configura como variable de entorno en Vercel.
-// El browser NUNCA ve la clave.
+// El browser NUNCA ve la clave ni sufre bloqueo CORS.
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -48,10 +48,10 @@ export default async function handler(req, res) {
 
     const text = (data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim();
     let parsed;
-    try { parsed = JSON.parse(text); } catch { parsed = { descripcion: text, cambios: [] }; }
+    try { parsed = JSON.parse(text); } catch (e) { parsed = { descripcion: text, cambios: [] }; }
 
     res.status(200).json(parsed);
   } catch (err) {
     res.status(500).json({ error: 'Error al conectar con IA: ' + err.message });
   }
-}
+};
