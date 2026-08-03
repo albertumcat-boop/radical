@@ -2922,7 +2922,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     for(let i=0;i<_lines.length;i++){
       const ln=_lines[i];if(ln.type!=='curve')continue;
       const a=_points[ln.from],b=_points[ln.to];if(!a||!b)continue;
-      const {cpx,cpy}=_curveCP(a,b,ln.ctrl);
+      const {cpx,cpy}=_curveCP(a,b,ln); // pasar ln completo para respetar cpx/cpy absolutos
       // 1. Cerca del punto de control (diamante)
       if(Math.hypot(cpx-mm.x,cpy-mm.y)<thresh*2)return i;
       // 2. Cerca de cualquier punto de la curva Bézier (muestreo)
