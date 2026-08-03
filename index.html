@@ -1648,7 +1648,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       </svg>
 
       <div id="dv6-instr">＋ Modo Punto activo — haz clic en el canvas para colocar puntos · luego usa L=Línea o C=Curva para conectarlos · R=Rectángulo base rápido</div>
-      <div id="dv6-nota-panel" data-ui="1" style="display:none" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()"></div>
+      <div id="dv6-nota-panel" data-ui="1" style="display:none" onpointerdown="event.stopPropagation()" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()"></div>
       <div id="dv6-coord">x: 0mm · y: 0mm</div>
       <div id="dv6-dist"></div>
       <div id="dv6-multi-move" style="display:none;position:absolute;bottom:48px;left:50%;transform:translateX(-50%);
@@ -1687,14 +1687,19 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           Clic en un punto para editarlo · Arrástralo para moverlo
         </div>
         <div id="dv6-pform" style="display:none">
-          <!-- Campos ocultos requeridos por el JS -->
-          <input type="number" id="dv6-px" style="display:none" step="0.5">
-          <input type="number" id="dv6-py" style="display:none" step="0.5">
+          <!-- Coordenadas editables del punto seleccionado -->
+          <div style="margin:4px 14px 6px;padding:6px 8px;background:#141420;border:1px solid #2a2640;border-radius:7px">
+            <div style="font-size:9px;color:#5a5678;margin-bottom:5px;font-weight:600;letter-spacing:.5px">POSICIÓN <span id="dv6-fv" style="color:#a78bfa;font-size:9px;font-family:monospace;font-weight:700">—</span></div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span id="dv6-lbl-x" style="font-size:10px;color:#8b87a8;width:18px;font-weight:600">X</span>
+              <input type="number" id="dv6-px" class="dv6-pi" step="0.5" style="flex:1;min-width:0">
+              <span id="dv6-lbl-y" style="font-size:10px;color:#8b87a8;width:18px;font-weight:600">Y</span>
+              <input type="number" id="dv6-py" class="dv6-pi" step="0.5" style="flex:1;min-width:0">
+            </div>
+          </div>
+          <!-- Campos ocultos de fórmula requeridos por el JS -->
           <input id="dv6-pfx" style="display:none">
           <input id="dv6-pfy" style="display:none">
-          <div id="dv6-fv" style="display:none">—</div>
-          <span id="dv6-lbl-x" style="display:none"></span>
-          <span id="dv6-lbl-y" style="display:none"></span>
 
           <!-- Constructor de fórmula — incluye Unidades y Nombre -->
           <div style="margin:6px 14px 10px;padding:8px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
@@ -1755,7 +1760,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           <div style="margin:6px 14px 10px;padding:8px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
             <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600;display:flex;align-items:center;justify-content:space-between">
               <span>📍 DESDE OTRO PUNTO / SOBRE UNA LÍNEA</span>
-              <button id="dv6-fb2-toggle" title="Mostrar/ocultar" style="background:transparent;border:1px solid #3a3660;color:#8b87a8;border-radius:4px;font-size:10px;padding:1px 6px;cursor:pointer;line-height:1.4">▲</button>
+              <button id="dv6-fb2-toggle" title="Activar/desactivar esta sección" style="background:#1a3a1a;border:1px solid #2d6a2d;color:#4ade80;border-radius:4px;font-size:10px;padding:1px 8px;cursor:pointer;line-height:1.4;font-weight:700">ON</button>
             </div>
             <div id="dv6-fb2-body">
             <div class="dv6-prow" style="padding:2px 0;gap:6px">
@@ -3770,11 +3775,21 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
       const px=-dy/len*2.5,py=dx/len*2.5; // perpendicular para ticks
 
-      // Línea punteada — más visible (antes #4a4870 era casi invisible
-      // sobre el fondo oscuro del canvas).
-      const el=document.createElementNS(NS,'line');
-      el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);
-      el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);
+      // Línea punteada — preserva la curva si la tenía
+      const realType = ln._realType || 'line';
+      let el;
+      if ((realType === 'curve') && (ln.cpx !== undefined)) {
+        el = document.createElementNS(NS, 'path');
+        el.setAttribute('d', `M ${a.x} ${a.y} Q ${ln.cpx} ${ln.cpy} ${b.x} ${b.y}`);
+      } else if (realType === 'scurve') {
+        const {cp1x,cp1y,cp2x,cp2y} = _scurveCPs(a, b, ln);
+        el = document.createElementNS(NS, 'path');
+        el.setAttribute('d', `M ${a.x} ${a.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`);
+      } else {
+        el = document.createElementNS(NS, 'line');
+        el.setAttribute('x1', a.x); el.setAttribute('y1', a.y);
+        el.setAttribute('x2', b.x); el.setAttribute('y2', b.y);
+      }
       el.setAttribute('stroke','#7c7aa8');
       el.setAttribute('stroke-width','0.45');
       el.setAttribute('stroke-dasharray','5,3');
@@ -4327,7 +4342,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       let formula = baseFormula;
       const refAEl = document.getElementById('dv6-fb2-pointA');
       const refId  = refAEl ? refAEl.value : null;
-      const refPt  = (refId && _points[refId]) ? _points[refId] : null;
+      const refPt  = (refId && _points[refId] && (!window._fb2IsActive || window._fb2IsActive())) ? _points[refId] : null;
       if (refPt) {
         const refName = refPt.name; // ej. "B"
         if (isY) {
@@ -4490,17 +4505,30 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     cmEl.oninput=_actualizarPreview2;
     document.getElementById('dv6-fb2-go').onclick=_ubicar;
 
-    // Toggle colapso sección "Desde otro punto"
+    // Toggle ON/OFF sección "Desde otro punto"
+    let _fb2Active = true;
     const fb2Toggle = document.getElementById('dv6-fb2-toggle');
     const fb2Body   = document.getElementById('dv6-fb2-body');
-    if (fb2Toggle && fb2Body) {
-      fb2Toggle.addEventListener('click', function() {
-        const collapsed = fb2Body.style.display === 'none';
-        fb2Body.style.display = collapsed ? '' : 'none';
-        fb2Toggle.textContent = collapsed ? '▲' : '▼';
-        fb2Toggle.style.color = collapsed ? '#8b87a8' : '#a78bfa';
-      });
+    function _fb2SetActive(on) {
+      _fb2Active = on;
+      if (fb2Toggle) {
+        fb2Toggle.textContent = on ? 'ON' : 'OFF';
+        fb2Toggle.style.background = on ? '#1a3a1a' : '#3a1a1a';
+        fb2Toggle.style.borderColor = on ? '#2d6a2d' : '#6a2d2d';
+        fb2Toggle.style.color       = on ? '#4ade80' : '#f87171';
+      }
+      if (fb2Body) {
+        fb2Body.style.opacity = on ? '1' : '0.35';
+        fb2Body.querySelectorAll('input,select,button').forEach(el => {
+          el.disabled = !on;
+        });
+      }
     }
+    if (fb2Toggle) {
+      fb2Toggle.addEventListener('click', () => _fb2SetActive(!_fb2Active));
+    }
+    // Exponer estado para que _insertar lo consulte
+    window._fb2IsActive = () => _fb2Active;
 
     _refresh();
     return {refresh:_refresh};
