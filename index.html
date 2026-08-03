@@ -1247,9 +1247,10 @@ PAT.DrafterUI = (function () {
   let _tool        = 'select';
   let _measureAnchor = null; // {x,y} mm — ancla de la cinta métrica
   let _midptA        = null; // primer punto para herramienta punto-mitad
-  let _multiSel    = new Set(); // IDs de puntos en selección múltiple
-  let _multiMode   = false;    // toggle ⬚ Multi activo
-  let _rectSel     = null;     // {x0,y0} mm — inicio del rectángulo de selección
+  let _multiSel      = new Set(); // IDs de puntos en selección múltiple
+  let _multiMode     = false;    // toggle ⬚ Multi activo
+  let _rectSel       = null;     // {x0,y0} mm — inicio del rectángulo de selección
+  let _multiDragStart = null;    // {x,y} mm — posición al inicio del drag multi
   let _lnStart     = null;
   let _pan         = {x:0,y:0};
   let _panStart    = null;
@@ -2732,6 +2733,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             // Ya está seleccionado: iniciar drag de todos los seleccionados
             _dragging = near;
             _dragOff = { x: mm.x - _points[near].x, y: mm.y - _points[near].y };
+            _multiDragStart = { x: _points[near].x, y: _points[near].y };
           } else {
             _multiSel.add(near);
             _renderAll();
@@ -2890,13 +2892,22 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const dx = newX - _points[_dragging].x;
       const dy = newY - _points[_dragging].y;
       if (_multiMode && _multiSel.size > 1 && _multiSel.has(_dragging)) {
-        // Mover todos los puntos seleccionados el mismo delta
         _multiSel.forEach(id => {
           if (!_points[id]) return;
           _points[id].x += dx;
           _points[id].y += dy;
           _points[id].formula = '';
         });
+        const distEl = document.getElementById('dv6-dist');
+        if (distEl && _multiDragStart) {
+          const totalDx = newX - _multiDragStart.x;
+          const totalDy = newY - _multiDragStart.y;
+          const totalDist = Math.hypot(totalDx, totalDy);
+          const signX = totalDx >= 0 ? '+' : '';
+          const signY = totalDy >= 0 ? '+' : '';
+          distEl.textContent = `⬚ ${_multiSel.size} pts · Δx=${signX}${totalDx.toFixed(1)} · Δy=${signY}${totalDy.toFixed(1)} · ⟷${totalDist.toFixed(1)}mm`;
+          distEl.style.display = 'block';
+        }
       } else {
         _points[_dragging].x = newX;
         _points[_dragging].y = newY;
