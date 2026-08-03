@@ -318,5 +318,111 @@ PAT.PDFExport = (function() {
     pdf.text('▣ VERIFICAR ESCALA ANTES DE IMPRIMIR', x+s/2, y-2, { align:'center' });
   }
 
-  return { exportTiledPDF };
+  /**
+   * Exporta cada pieza guardada en el drafter como sección separada dentro
+   * de un mismo PDF. Cada pieza ocupa sus propias páginas de mosaico con
+   * portada de nombre, número de pieza y marca de doblez.
+   */
+  function exportPiecesPDF(pieces, params) {
+    if (!pieces || !pieces.length) {
+      PAT.App && PAT.App.toast('No hay piezas guardadas para exportar', 'error');
+      return;
+    }
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      PAT.App && PAT.App.toast('Cargando exportador PDF…', 'info');
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = () => exportPiecesPDF(pieces, params);
+      document.head.appendChild(s);
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const paper  = PAT.PAPER[params.paper || 'letter'];
+    const margin = PAT.MARGIN;
+    const printW = paper.w - margin.left - margin.right;
+    const printH = paper.h - margin.top  - margin.bottom;
+
+    const pdf = new jsPDF({ unit: 'mm', format: params.paper || 'letter' });
+    let firstPage = true;
+
+    pieces.forEach((piece, idx) => {
+      if (!piece.svgEl) return;
+
+      // ── Portada de pieza ──────────────────────────────────────────
+      if (!firstPage) pdf.addPage(); firstPage = false;
+      pdf.setFillColor(255,255,255);
+      pdf.rect(0,0,paper.w,paper.h,'F');
+      pdf.setFontSize(22); pdf.setTextColor(80,40,160);
+      pdf.text(piece.name || ('Pieza '+(idx+1)), paper.w/2, paper.h/2 - 10, {align:'center'});
+      pdf.setFontSize(11); pdf.setTextColor(120,120,140);
+      pdf.text('Pieza '+(idx+1)+' de '+pieces.length, paper.w/2, paper.h/2+2, {align:'center'});
+      if (piece.bounds) {
+        pdf.setFontSize(9);
+        pdf.text(Math.round(piece.bounds.w)+'mm × '+Math.round(piece.bounds.h)+'mm', paper.w/2, paper.h/2+10, {align:'center'});
+      }
+
+      // ── Mosaico de la pieza ───────────────────────────────────────
+      if (!piece.bounds) return;
+      const tileW = printW - PAT.TILE_OVERLAP;
+      const tileH = printH - PAT.TILE_OVERLAP;
+      const cols = Math.ceil(piece.bounds.w / tileW);
+      const rows = Math.ceil(piece.bounds.h / tileH);
+
+      // Renderizar SVG a canvas
+      const pxPerMm = 8;
+      const cvs = document.createElement('canvas');
+      cvs.width  = Math.ceil(piece.bounds.w * pxPerMm);
+      cvs.height = Math.ceil(piece.bounds.h * pxPerMm);
+      const ctx2 = cvs.getContext('2d');
+      ctx2.fillStyle = '#fff'; ctx2.fillRect(0,0,cvs.width,cvs.height);
+
+      const svgStr = new XMLSerializer().serializeToString(piece.svgEl);
+      const blob   = new Blob([svgStr],{type:'image/svg+xml'});
+      const url    = URL.createObjectURL(blob);
+      const img    = new Image();
+      img.onload = () => {
+        ctx2.drawImage(img, 0, 0, cvs.width, cvs.height);
+        URL.revokeObjectURL(url);
+
+        for (let row=0; row<rows; row++) {
+          for (let col=0; col<cols; col++) {
+            pdf.addPage();
+            pdf.setFillColor(255,255,255);
+            pdf.rect(0,0,paper.w,paper.h,'F');
+
+            const srcX = col * tileW * pxPerMm;
+            const srcY = row * tileH * pxPerMm;
+            const srcW = Math.min(tileW * pxPerMm, cvs.width  - srcX);
+            const srcH = Math.min(tileH * pxPerMm, cvs.height - srcY);
+            if (srcW <= 0 || srcH <= 0) continue;
+
+            const tileCvs = document.createElement('canvas');
+            tileCvs.width = srcW; tileCvs.height = srcH;
+            tileCvs.getContext('2d').drawImage(cvs, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+
+            pdf.addImage(tileCvs.toDataURL('image/png'), 'PNG',
+              margin.left, margin.top,
+              srcW/pxPerMm, srcH/pxPerMm);
+
+            // Número de página y pieza
+            pdf.setFontSize(7); pdf.setTextColor(140,140,160);
+            pdf.text((piece.name||'Pieza '+(idx+1))+' · Hoja '+(row*cols+col+1)+'/'+rows*cols,
+              margin.left, paper.h - 4);
+
+            drawRegistrationMarks(pdf, margin, printW, printH);
+          }
+        }
+
+        // Guardar cuando termine la última pieza
+        if (idx === pieces.length - 1) {
+          pdf.save((params.patternName||'patron')+'_piezas.pdf');
+          PAT.App && PAT.App.toast('✅ PDF por piezas descargado','success');
+        }
+      };
+      img.src = url;
+    });
+  }
+
+  return { exportTiledPDF, exportPiecesPDF };
 })();

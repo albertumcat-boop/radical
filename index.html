@@ -1541,7 +1541,6 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <button class="tb yel" id="dv6-validate" style="border-color:rgba(251,191,36,.4)">🔍 Verificar</button>
     <button class="tb" id="dv6-mirror" title="M — Copiar en espejo">🪞 Espejo</button>
     <div class="dv6-sep"></div>
-    <button class="tb" id="dv6-demo" style="border-color:rgba(52,211,153,.4);color:#34d399" title="Trazar espalda básica automáticamente">▶ Demo Espalda</button>
     <button class="tb" id="dv6-sistemas" style="border-color:rgba(251,191,36,.4);color:#fbbf24" title="Cargar desde sistema de patronaje registrado">🧵 Sistemas</button>
     <div class="dv6-sep"></div>
     <button class="tb" id="dv6-bgimg-btn" style="border-color:rgba(124,58,237,.4);color:#7c3aed" title="Trazar sobre una imagen de referencia">🖼️ Imagen</button>
@@ -1935,7 +1934,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           <button class="dv6-fb sec" id="dv6-more-btn" style="width:100%;display:flex;justify-content:center;align-items:center;gap:6px">⋯ Más opciones</button>
           <div id="dv6-more-menu" style="display:none;position:absolute;left:0;right:0;bottom:calc(100% + 4px);background:#19162c;border:1px solid #332d54;border-radius:8px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:50;flex-direction:column;gap:4px">
             <button class="dv6-fb sec" id="dv6-svb">💾 Guardar sin agregar</button>
-            <button class="dv6-fb sec" id="dv6-print-btn" title="PDF a escala 1:1 para imprimir">🖨 Imprimir PDF</button>
+            <button class="dv6-fb sec" id="dv6-print-btn" title="PDF a escala 1:1 para imprimir">🖨 Imprimir esta pieza</button>
+            <button class="dv6-fb sec" id="dv6-print-all-btn" title="Genera un PDF con cada pieza guardada en sección separada">🖨 PDF todas las piezas</button>
             <button class="dv6-fb sec" id="dv6-download-btn" title="Descargar como SVG vectorial">⬇ Descargar SVG</button>
             <button class="dv6-fb sec" id="dv6-export-json-btn" title="Descargar como JSON editable (reimportable)">⬇ Descargar JSON editable</button>
             <button class="dv6-fb sec" id="dv6-import-json-btn" title="Cargar un JSON de patrón descargado previamente">⬆ Importar JSON</button>
@@ -1945,8 +1945,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             <div style="height:1px;background:#2a2640;margin:2px 0"></div>
             <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo como base para el asistente">📌 Guardar como base</button>
             <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada">✖ Quitar base</button>
-            <button class="dv6-fb sec" id="dv6-addsample-btn" title="Agregar muestra para graduar">📊 Agregar muestra</button>
-            <button class="dv6-fb sec" id="dv6-viewsamples-btn" title="Ver muestras guardadas">📊 Ver muestras</button>
+            <button class="dv6-fb sec" id="dv6-addsample-btn" style="display:none" title="Agregar muestra para graduar">📊 Agregar muestra</button>
+            <button class="dv6-fb sec" id="dv6-viewsamples-btn" style="display:none" title="Ver muestras guardadas">📊 Ver muestras</button>
+            <button class="dv6-fb sec" id="dv6-demo" style="border-color:rgba(52,211,153,.3);color:#34d399" title="Trazar espalda básica automáticamente">▶ Demo Espalda</button>
             <button class="dv6-fb sec" id="dv6-rpb">📋 Reporte / auditoría</button>
           </div>
         </div>
@@ -2010,7 +2011,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     // Abrir en modo unificado (addLine) — click vacío=punto, click punto=línea
     setTimeout(() => {
       _setTool('addLine');
-      _instr('⚡ Modo unificado: clic vacío = nuevo punto · clic en punto = trazar línea (C=curva)');
+      // Mostrar instrucción de modo unificado solo las primeras 3 veces
+      const _uninstrKey='patronai_uninstr_count';
+      const _uninstrCount=parseInt(localStorage.getItem(_uninstrKey)||'0');
+      if(_uninstrCount<3){
+        _instr('⚡ Modo unificado: clic vacío = nuevo punto · clic en punto = trazar línea (C=curva)');
+        localStorage.setItem(_uninstrKey,String(_uninstrCount+1));
+      }
     }, 60);
     // Autoguardado: cada 30 s guarda el trazo en localStorage como respaldo
     _startAutoSave();
@@ -2459,6 +2466,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-rpb').onclick  = _showReporte;
     document.getElementById('dv6-line-struct-btn').onclick = _toggleLineStructure;
     document.getElementById('dv6-print-btn').onclick    = _imprimirPieza;
+    document.getElementById('dv6-print-all-btn').onclick = _imprimirTodasPiezas;
     document.getElementById('dv6-download-btn').onclick = _descargarPieza;
     document.getElementById('dv6-share-btn').onclick    = _compartirPieza;
     document.getElementById('dv6-export-json-btn').onclick = _exportarJSON;
@@ -4241,7 +4249,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     el.innerHTML='';
     vars.forEach(v=>{
       const sp=document.createElement('span');sp.className='dv6-vc';
-      sp.title=v.v+'mm';sp.textContent=v.k;
+      const LABELS={B4:'Cuarto de busto',B6:'Sexto de busto',B8:'Octavo de busto',
+        E2:'Mitad de espalda',H4:'Cuarto de cadera',W4:'Cuarto de cintura',
+        TALLE_ESP:'Talle espalda',TALLE_DEL:'Talle delantero',
+        LARGO:'Largo total',MANGA:'Largo de manga',CUELLO:'Cuello',FALDA:'Largo de falda'};
+      sp.title=(LABELS[v.k]||v.k)+' = '+v.v+'mm';sp.textContent=LABELS[v.k]||v.k;
       sp.onclick=()=>{
         if(_selected&&_points[_selected]){
           // Insertar variable en el campo con foco (pfx o pfy), o pfx por defecto
@@ -5770,6 +5782,55 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     return {svg,W,H};
   }
 
+  function _imprimirTodasPiezas(){
+    if(!PAT.SavedPatterns){if(PAT.App)PAT.App.toast('No hay piezas guardadas','error');return;}
+    const todos=PAT.SavedPatterns.obtenerTodos();
+    const piezas=Object.values(todos);
+    if(!piezas.length){if(PAT.App)PAT.App.toast('No hay piezas guardadas aún','error');return;}
+    // Construir SVG de cada pieza para pasarla a exportPiecesPDF
+    const pieces=piezas.map(p=>{
+      if(!p.points||!Object.keys(p.points).length)return null;
+      // Renderizar temporalmente en un SVG offscreen
+      const NS='http://www.w3.org/2000/svg';
+      const svg=document.createElementNS(NS,'svg');
+      let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+      Object.values(p.points).forEach(pt=>{
+        minX=Math.min(minX,pt.x);minY=Math.min(minY,pt.y);
+        maxX=Math.max(maxX,pt.x);maxY=Math.max(maxY,pt.y);
+      });
+      const pad=10;
+      const W=maxX-minX+pad*2, H=maxY-minY+pad*2;
+      svg.setAttribute('viewBox',`${minX-pad} ${minY-pad} ${W} ${H}`);
+      svg.setAttribute('width',W); svg.setAttribute('height',H);
+      // Dibujar líneas
+      (p.lines||[]).forEach(ln=>{
+        const a=p.points[ln.from],b=p.points[ln.to];if(!a||!b)return;
+        const line=document.createElementNS(NS,'line');
+        line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);
+        line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);
+        line.setAttribute('stroke', ln.type==='construction'?'#aaa':'#222');
+        line.setAttribute('stroke-width','0.8');
+        if(ln.type==='construction')line.setAttribute('stroke-dasharray','3,2');
+        svg.appendChild(line);
+      });
+      // Dibujar puntos
+      Object.values(p.points).forEach(pt=>{
+        const c=document.createElementNS(NS,'circle');
+        c.setAttribute('cx',pt.x);c.setAttribute('cy',pt.y);c.setAttribute('r','1.2');
+        c.setAttribute('fill','#5b21b6');svg.appendChild(c);
+        const t=document.createElementNS(NS,'text');
+        t.setAttribute('x',pt.x+2);t.setAttribute('y',pt.y-2);
+        t.setAttribute('font-size','4');t.setAttribute('fill','#5b21b6');
+        t.textContent=pt.name||'';svg.appendChild(t);
+      });
+      return {name:p.name||'Pieza',svgEl:svg,bounds:{w:W,h:H}};
+    }).filter(Boolean);
+    if(!pieces.length){if(PAT.App)PAT.App.toast('Las piezas no tienen puntos para imprimir','error');return;}
+    if(PAT.PDFExport&&PAT.PDFExport.exportPiecesPDF){
+      PAT.PDFExport.exportPiecesPDF(pieces,{paper:'letter',patternName:_pieceName||'patron'});
+    }
+  }
+
   function _imprimirPieza(){
     if(!Object.keys(_points).length){if(PAT.App)PAT.App.toast('No hay puntos para imprimir','error');return;}
     const seamActive = !!_seamOn;
@@ -6504,6 +6565,25 @@ document.addEventListener('DOMContentLoaded', function() {
   var btnAI = document.getElementById('btn-ai-studio');
   if (btnAI) btnAI.onclick = function() {
     document.getElementById('modal-ai').classList.add('open');
+    // Prellenar prompt según la prenda activa si el textarea está vacío
+    var promptEl = document.getElementById('ai-prompt');
+    if (promptEl && !promptEl.value.trim()) {
+      var PROMPTS = {
+        franela:  'Quiero añadir escote en V y pinza de busto al costado',
+        blusa:    'Quiero manga acampanada y escote cuadrado',
+        camisa:   'Quiero convertirla en camisa tipo safari con bolsillos en el pecho',
+        falda:    'Quiero que sea evasé con cierre invisible lateral',
+        vestido:  'Quiero escote corazón y falda con vuelo desde la cintura',
+        pantalon: 'Quiero bota ancha y pretina elástica',
+        short:    'Quiero añadir vuelo y bolsillos laterales con vista',
+        blazer:   'Quiero corte princesa y solapas más estrechas',
+        chaleco:  'Quiero escote en V profundo y cierre de botones forrados',
+        'falda-lapiz': 'Quiero abertura trasera y pretina con lazo',
+        'vestido-cruzado': 'Quiero manga 3/4 y escote más pronunciado',
+      };
+      var g = PAT.App ? PAT.App.getState().garment : '';
+      if (PROMPTS[g]) promptEl.placeholder = PROMPTS[g];
+    }
   };
 
   // Menús desplegables del sidebar (Patronaje avanzado / Recursos / Mi Equipo)
