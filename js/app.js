@@ -346,10 +346,18 @@ document.getElementById('logo-mark')?.addEventListener('click', function() {
       try {
         // Patrones del asistente (wizard)
         const wizardPats = await PAT.Firebase.loadPatterns().catch(() => []);
-        // Patrones del editor a mano (PAT.SavedPatterns)
-        const editorPats = PAT.SavedPatterns
+        // Patrones del editor a mano: cache de SavedPatterns ó localStorage directo
+        let editorPats = PAT.SavedPatterns
           ? Object.values(PAT.SavedPatterns.obtenerTodos())
           : [];
+        // Fallback: si la cache está vacía, leer localStorage directamente
+        // (puede pasar si onSnapshot aún no disparó al momento del click)
+        if (!editorPats.length) {
+          try {
+            const ls = JSON.parse(localStorage.getItem('pat_v6') || '{}');
+            editorPats = Object.values(ls);
+          } catch (_) {}
+        }
         renderPatterns(wizardPats, editorPats);
       } catch (e) { if (list) list.innerHTML = '<p style="color:#f87171;padding:16px">Error al cargar</p>'; }
     });
