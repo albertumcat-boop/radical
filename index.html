@@ -1636,6 +1636,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <div class="dv6-sep"></div>
     <!-- Tallas -->
     <button class="tb yel" id="dv6-grade">📏 Escalar talla</button>
+    <button class="tb" id="dv6-seams-btn" style="border-color:rgba(167,139,250,.5);color:#a78bfa" title="Etiquetar costuras para gradación vectorial">🧵 Costuras</button>
     <div class="dv6-sep"></div>
     <!-- Vista -->
     <button class="tb" id="dv6-zi">＋</button>
@@ -2693,6 +2694,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     };
 
     document.getElementById('dv6-grade').onclick = _openGradeModal;
+    document.getElementById('dv6-seams-btn').onclick = _startSeamCapture;
     document.getElementById('dv6-grade-ov').onclick = _closeGradeModal;
     document.getElementById('gr-cancel').onclick = _closeGradeModal;
     document.getElementById('gr-apply').onclick = _applyGrade;
@@ -2819,6 +2821,17 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       _isPan = true;
       _panStart = { x: e.clientX - _pan.x, y: e.clientY - _pan.y };
+      return;
+    }
+
+    // ── MODO CAPTURA DE COSTURA ──────────────────────────────────
+    if (_seamCapturing) {
+      const rawMmS = _screenToMm(e.clientX, e.clientY);
+      const threshS = 14 / (_zoom * SC);
+      const nearS = _nearest(rawMmS, threshS);
+      if (nearS) { _addToSeamPath(nearS); }
+      else { _instr('Haz clic sobre un punto existente para agregarlo a la costura'); }
+      e.stopPropagation();
       return;
     }
 
@@ -3983,7 +3996,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   // ════════════════════════════════════════════════════════════
   // RENDER
   // ════════════════════════════════════════════════════════════
-  function _renderAll(){_renderLines();_renderCurveControls();_renderPoints();_renderDims();_refreshPanel();_updateLineInfo();_updateMultiMovePanel();}
+  function _renderAll(){_renderLines();_renderCurveControls();_renderPoints();_renderDims();_renderSeams();_refreshPanel();_updateLineInfo();_updateMultiMovePanel();}
   function _updateMultiMovePanel(){
     const panel = document.getElementById('dv6-multi-move');
     if (!panel) return;
@@ -4804,6 +4817,28 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   let _gradeTallasData = [];  // [{id, points, lines, ptCtr}]
 
+  // ── COSTURAS ETIQUETADAS ─────────────────────────────────────────
+  // Cada costura: {id, role, pointIds:[...ordenados]}
+  // role → qué tipo de costura es semánticamente
+  // pointIds → IDs de puntos en orden que forman el camino
+  let _seams = [];
+  let _seamCapturing = false;
+  let _seamPath = [];      // IDs acumulados en la captura actual
+
+  const SEAM_ROLES = [
+    { id:'escote',       label:'Escote',           color:'#60a5fa', perp:2,  para:0  },
+    { id:'caida_hombro', label:'Caída de hombro',  color:'#a78bfa', perp:5,  para:0  },
+    { id:'sisa',         label:'Sisa',              color:'#f472b6', perp:10, para:5  },
+    { id:'costado',      label:'Costado',           color:'#34d399', perp:9,  para:8  },
+    { id:'cintura',      label:'Cintura',           color:'#fbbf24', perp:8,  para:0  },
+    { id:'cadera',       label:'Cadera',            color:'#fb923c', perp:10, para:0  },
+    { id:'dobladillo',   label:'Dobladillo',        color:'#22d3ee', perp:0,  para:10 },
+    { id:'tiro_del',     label:'Tiro delantero',    color:'#e879f9', perp:5,  para:5  },
+    { id:'tiro_tra',     label:'Tiro trasero',      color:'#c084fc', perp:8,  para:5  },
+    { id:'rodilla',      label:'Rodilla / tobillo', color:'#4ade80', perp:5,  para:15 },
+    { id:'centro',       label:'Centro (fijo)',     color:'#94a3b8', perp:0,  para:0  },
+  ];
+
   function _openGradeAllModal(){
     if(!Object.keys(_points).length){ if(PAT.App)PAT.App.toast('El canvas está vacío','error');return; }
     const modal = document.getElementById('modal-grade-all');
@@ -4860,6 +4895,39 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const scaleY = (newM.backLength*10) / (oldM.backLength*10) || 1;
     const step = (typeof stepFromBase === 'number') ? stepFromBase : null;
 
+    // ── Pre-calcular movimientos de costura vectoriales ──────────
+    // Para cada punto: acumular los vectores de gradación que le
+    // corresponden según las costuras en que participa.
+    // Si un punto pertenece a DOS costuras → resolución por intersección.
+    const seamMoves = {}; // { ptId: [{x,y, seamDir}] } — un entry por costura
+
+    if (step !== null && _seams.length) {
+      _seams.forEach(seam => {
+        const def = SEAM_ROLES.find(r => r.id === seam.role);
+        if (!def) return;
+        const ids = seam.pointIds.filter(id => _points[id]);
+        if (ids.length < 2) return;
+
+        // Dirección global de la costura (primer→último punto)
+        const pFirst = _points[ids[0]];
+        const pLast  = _points[ids[ids.length - 1]];
+        const seamDir  = _vecNorm({x: pLast.x - pFirst.x, y: pLast.y - pFirst.y});
+        const seamPerp = _vecPerp(seamDir);
+
+        // Vector de gradación de esta costura por step
+        const gv = {
+          x: (seamPerp.x * def.perp + seamDir.x * def.para) * step,
+          y: (seamPerp.y * def.perp + seamDir.y * def.para) * step,
+          seamDir,
+        };
+
+        ids.forEach(id => {
+          if (!seamMoves[id]) seamMoves[id] = [];
+          seamMoves[id].push(gv);
+        });
+      });
+    }
+
     const newVars = {
       BUSTO:newM.bust*10,CINTURA:newM.waist*10,CADERA:newM.hip*10,
       ESPALDA:newM.shoulder*10,CUELLO:newM.neck*10,
@@ -4889,13 +4957,28 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         if(p.fy){const v=evalV(p.fy);if(v!==null)np.y=v;}
         if(p.fx&&!p.fy) np.y=p.y*scaleY;
         if(p.fy&&!p.fx) np.x=p.x*scaleX;
+      } else if(seamMoves[id] && seamMoves[id].length === 1){
+        // Un punto en exactamente UNA costura → aplica su vector
+        np.x = p.x + seamMoves[id][0].x;
+        np.y = p.y + seamMoves[id][0].y;
+      } else if(seamMoves[id] && seamMoves[id].length >= 2){
+        // Punto de UNIÓN entre dos costuras → intersección de líneas graduadas
+        const mv0 = seamMoves[id][0];
+        const mv1 = seamMoves[id][1];
+        // Línea gradada 1: pasa por (p + mv0) en dirección seamDir0
+        const p0g = {x: p.x + mv0.x, y: p.y + mv0.y};
+        // Línea gradada 2: pasa por (p + mv1) en dirección seamDir1
+        const p1g = {x: p.x + mv1.x, y: p.y + mv1.y};
+        const inter = _lineIntersect(p0g, mv0.seamDir, p1g, mv1.seamDir);
+        np.x = inter.x;
+        np.y = inter.y;
       } else if(p.gradeRole && step !== null && _GRADE_RULES[p.gradeRole]){
-        // Punto con rol asignado: incremento fijo por paso de talla
+        // Fallback: rol de punto individual (sistema anterior)
         const rule = _GRADE_RULES[p.gradeRole];
         np.x = p.x + rule.dx * step;
         np.y = p.y + rule.dy * step;
       } else {
-        // Sin fórmula ni rol: escala proporcional
+        // Sin costura ni rol ni fórmula: escala proporcional
         np.x=p.x*scaleX;
         np.y=p.y*scaleY;
       }
@@ -5025,6 +5108,243 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   function _descargarTodosJSON(){
     if(!_gradeTallasData.length){if(PAT.App)PAT.App.toast('Genera la gradación primero','error');return;}
     _gradeTallasData.forEach(g=>{ setTimeout(()=>_dlJSON(g),100); });
+  }
+
+  // ── Geometría vectorial ──────────────────────────────────────────
+  function _vecNorm(v){ const l=Math.hypot(v.x,v.y); return l?{x:v.x/l,y:v.y/l}:{x:1,y:0}; }
+  function _vecPerp(v){ return {x:-v.y,y:v.x}; } // rota 90° antihorario → "hacia afuera"
+  function _lineIntersect(p1,d1,p2,d2){
+    // p1+t*d1 = p2+s*d2  →  resolve por producto cruzado
+    const dx=p2.x-p1.x, dy=p2.y-p1.y;
+    const cross=d1.x*d2.y - d1.y*d2.x;
+    if(Math.abs(cross)<0.0001){ // paralelas — usa punto medio
+      return {x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2};
+    }
+    const t=(dx*d2.y - dy*d2.x)/cross;
+    return {x:p1.x+t*d1.x, y:p1.y+t*d1.y};
+  }
+
+  // ── Costuras: CRUD ───────────────────────────────────────────────
+  function _startSeamCapture(){
+    _seamCapturing=true;
+    _seamPath=[];
+    _renderSeamCaptureUI();
+    _instr('🧵 Haz clic en los puntos en orden para definir la costura. Los puntos quedan resaltados en morado.');
+    if(PAT.App)PAT.App.toast('Modo costura activo — clic en puntos en orden','success');
+  }
+
+  function _stopSeamCapture(){
+    _seamCapturing=false;
+    _seamPath=[];
+    _hideSeamCaptureUI();
+    _renderAll();
+  }
+
+  function _addToSeamPath(ptId){
+    if(_seamPath.includes(ptId)){
+      // segundo clic en el mismo punto → quitar
+      _seamPath=_seamPath.filter(x=>x!==ptId);
+    } else {
+      _seamPath.push(ptId);
+    }
+    _renderAll();
+    _updateSeamPathPreview();
+  }
+
+  function _saveSeam(role){
+    if(_seamPath.length<2){
+      if(PAT.App)PAT.App.toast('Selecciona al menos 2 puntos','error'); return;
+    }
+    const id='seam_'+Date.now();
+    _seams.push({id, role, pointIds:[..._seamPath]});
+    _snapshot();
+    _stopSeamCapture();
+    _renderAll();
+    const def=SEAM_ROLES.find(r=>r.id===role);
+    if(PAT.App)PAT.App.toast('✅ Costura "'+( def?def.label:role)+'" guardada con '+_seamPath.length+' puntos','success');
+  }
+
+  function _deleteSeam(id){
+    _seams=_seams.filter(s=>s.id!==id);
+    _snapshot();
+    _renderAll();
+    _renderSeamList();
+  }
+
+  function _clearAllSeams(){
+    if(!_seams.length)return;
+    if(!confirm('¿Eliminar todas las costuras etiquetadas?'))return;
+    _seams=[];
+    _snapshot();
+    _renderAll();
+    _renderSeamList();
+  }
+
+  // ── Costura: UI panel ────────────────────────────────────────────
+  function _injectSeamPanel(){
+    if(document.getElementById('seam-panel'))return;
+
+    const roleOpts=SEAM_ROLES.map(r=>`<option value="${r.id}">${r.label}</option>`).join('');
+
+    const panel=document.createElement('div');
+    panel.id='seam-panel';
+    panel.style.cssText='position:fixed;top:80px;right:340px;z-index:800;background:#1a1828;border:1.5px solid #7c3aed;border-radius:12px;width:230px;box-shadow:0 16px 40px rgba(0,0,0,.7);display:none;flex-direction:column;gap:0';
+    panel.innerHTML=`
+      <div style="padding:10px 14px;border-bottom:1px solid #2e2e45;display:flex;align-items:center;gap:8px">
+        <span style="font-size:.85rem;font-weight:800;color:#c4b5fd;flex:1">🧵 Etiquetar costura</span>
+        <button id="sp-close" style="background:none;border:none;color:#5a5678;cursor:pointer;font-size:1rem">✕</button>
+      </div>
+      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">
+        <p style="font-size:.72rem;color:#9490b0;margin:0">
+          Haz clic en los puntos <b style="color:#c4b5fd">en orden</b> que forman la costura.<br>
+          Clic repetido en un punto lo quita.
+        </p>
+        <div id="sp-path-preview" style="font-size:.72rem;color:#5a5678;font-family:monospace;min-height:18px">Sin puntos seleccionados</div>
+        <select id="sp-role" style="background:#141420;border:1px solid #332d54;color:#ede9fe;border-radius:6px;padding:5px 8px;font-size:.8rem;font-family:inherit">${roleOpts}</select>
+        <button id="sp-save" style="padding:8px;background:#7c3aed;border:none;border-radius:7px;color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit">✓ Guardar costura</button>
+        <button id="sp-cancel" style="padding:6px;background:transparent;border:1px solid #2e2e45;border-radius:7px;color:#9490b0;font-size:.78rem;cursor:pointer;font-family:inherit">✕ Cancelar</button>
+        <div style="border-top:1px solid #2e2e45;padding-top:8px">
+          <div style="font-size:.68rem;color:#5a5678;font-weight:700;text-transform:uppercase;margin-bottom:6px">Costuras guardadas</div>
+          <div id="sp-seam-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto"></div>
+          <button id="sp-clear-all" style="margin-top:6px;width:100%;padding:4px;background:transparent;border:1px solid rgba(239,68,68,.4);border-radius:5px;color:#f87171;font-size:.72rem;cursor:pointer;font-family:inherit">🗑 Borrar todas</button>
+        </div>
+      </div>`;
+    document.body.appendChild(panel);
+
+    document.getElementById('sp-close').onclick  = _stopSeamCapture;
+    document.getElementById('sp-cancel').onclick = _stopSeamCapture;
+    document.getElementById('sp-save').onclick   = ()=>_saveSeam(document.getElementById('sp-role').value);
+    document.getElementById('sp-clear-all').onclick = _clearAllSeams;
+  }
+
+  function _renderSeamCaptureUI(){
+    _injectSeamPanel();
+    document.getElementById('seam-panel').style.display='flex';
+    _renderSeamList();
+    _updateSeamPathPreview();
+  }
+
+  function _hideSeamCaptureUI(){
+    const p=document.getElementById('seam-panel');
+    if(p) p.style.display='none';
+  }
+
+  function _updateSeamPathPreview(){
+    const el=document.getElementById('sp-path-preview');
+    if(!el)return;
+    if(!_seamPath.length){ el.textContent='Sin puntos seleccionados'; el.style.color='#5a5678'; return; }
+    const names=_seamPath.map(id=>(_points[id]&&_points[id].name)||id);
+    el.textContent=names.join(' → ');
+    el.style.color='#c4b5fd';
+  }
+
+  function _renderSeamList(){
+    const el=document.getElementById('sp-seam-list'); if(!el)return;
+    if(!_seams.length){ el.innerHTML='<span style="font-size:.72rem;color:#5a5678">Sin costuras aún</span>'; return; }
+    el.innerHTML=_seams.map(s=>{
+      const def=SEAM_ROLES.find(r=>r.id===s.role)||{label:s.role,color:'#888'};
+      const names=s.pointIds.map(id=>(_points[id]&&_points[id].name)||'?').join('→');
+      return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0">
+        <span style="width:8px;height:8px;border-radius:50%;background:${def.color};flex-shrink:0"></span>
+        <span style="flex:1;font-size:.7rem;color:#ede9fe;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${names}">${def.label}: ${names}</span>
+        <button data-del="${s.id}" style="background:none;border:none;color:#5a5678;cursor:pointer;font-size:.75rem;flex-shrink:0">✕</button>
+      </div>`;
+    }).join('');
+    el.querySelectorAll('[data-del]').forEach(btn=>{ btn.onclick=()=>_deleteSeam(btn.dataset.del); });
+  }
+
+  // ── Costura: render sobre el canvas ─────────────────────────────
+  function _renderSeams(){
+    // Eliminar SVG de costuras anterior
+    let seamG=document.getElementById('dv6-seams-g');
+    if(!seamG){
+      seamG=document.createElementNS('http://www.w3.org/2000/svg','g');
+      seamG.id='dv6-seams-g';
+      // Insertar antes que _ptsG para que quede detrás de los puntos
+      const svg=document.querySelector('.dv6-svg');
+      if(svg) svg.insertBefore(seamG, svg.firstChild);
+    }
+    while(seamG.firstChild)seamG.removeChild(seamG.firstChild);
+
+    const sc=_zoom*SC; // píxeles por mm
+
+    _seams.forEach(seam=>{
+      const def=SEAM_ROLES.find(r=>r.id===seam.role)||{color:'#888',label:seam.role};
+      const pts=seam.pointIds.map(id=>_points[id]).filter(Boolean);
+      if(pts.length<2)return;
+
+      // Dibujar la línea de costura sobre el canvas
+      const screenPts=pts.map(p=>({
+        sx: _pan.x + p.x*sc,
+        sy: _pan.y + p.y*sc,
+      }));
+
+      // Línea gruesa de color
+      for(let i=0;i<screenPts.length-1;i++){
+        const a=screenPts[i], b=screenPts[i+1];
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',a.sx.toFixed(1));
+        line.setAttribute('y1',a.sy.toFixed(1));
+        line.setAttribute('x2',b.sx.toFixed(1));
+        line.setAttribute('y2',b.sy.toFixed(1));
+        line.setAttribute('stroke',def.color);
+        line.setAttribute('stroke-width','3');
+        line.setAttribute('stroke-opacity','0.55');
+        line.setAttribute('stroke-linecap','round');
+        seamG.appendChild(line);
+      }
+
+      // Etiqueta en el punto medio del camino
+      const mid=screenPts[Math.floor(screenPts.length/2)];
+      const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+      lbl.setAttribute('x',(mid.sx+6).toFixed(1));
+      lbl.setAttribute('y',(mid.sy-6).toFixed(1));
+      lbl.setAttribute('fill',def.color);
+      lbl.setAttribute('font-size','9');
+      lbl.setAttribute('font-weight','700');
+      lbl.setAttribute('font-family','sans-serif');
+      lbl.setAttribute('opacity','0.85');
+      lbl.textContent=def.label;
+      seamG.appendChild(lbl);
+
+      // Puntos de la costura (círculos pequeños)
+      screenPts.forEach(sp=>{
+        const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx',sp.sx.toFixed(1));
+        c.setAttribute('cy',sp.sy.toFixed(1));
+        c.setAttribute('r','4');
+        c.setAttribute('fill','none');
+        c.setAttribute('stroke',def.color);
+        c.setAttribute('stroke-width','1.5');
+        c.setAttribute('opacity','0.7');
+        seamG.appendChild(c);
+      });
+    });
+
+    // Resaltar camino en captura activa
+    if(_seamCapturing && _seamPath.length){
+      const capPts=_seamPath.map(id=>_points[id]).filter(Boolean);
+      for(let i=0;i<capPts.length-1;i++){
+        const a=capPts[i], b=capPts[i+1];
+        const sx1=_pan.x+a.x*sc, sy1=_pan.y+a.y*sc;
+        const sx2=_pan.x+b.x*sc, sy2=_pan.y+b.y*sc;
+        const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+        ln.setAttribute('x1',sx1.toFixed(1)); ln.setAttribute('y1',sy1.toFixed(1));
+        ln.setAttribute('x2',sx2.toFixed(1)); ln.setAttribute('y2',sy2.toFixed(1));
+        ln.setAttribute('stroke','#c4b5fd');
+        ln.setAttribute('stroke-width','2.5');
+        ln.setAttribute('stroke-dasharray','5,3');
+        seamG.appendChild(ln);
+      }
+      capPts.forEach(p=>{
+        const sx=_pan.x+p.x*sc, sy=_pan.y+p.y*sc;
+        const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx',sx.toFixed(1)); c.setAttribute('cy',sy.toFixed(1));
+        c.setAttribute('r','6'); c.setAttribute('fill','none');
+        c.setAttribute('stroke','#c4b5fd'); c.setAttribute('stroke-width','2');
+        seamG.appendChild(c);
+      });
+    }
   }
 
   function _imprimirTodasTallas(){
@@ -6321,7 +6641,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _exportarJSON(){
     if(!Object.keys(_points).length){if(PAT.App)PAT.App.toast('No hay puntos para exportar','error');return;}
-    const data={name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr};
+    const data={name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr,seams:JSON.parse(JSON.stringify(_seams))};
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
@@ -6341,6 +6661,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         _points=JSON.parse(JSON.stringify(data.points));
         _lines=JSON.parse(JSON.stringify(data.lines));
         _ptCtr=data.ptCtr||Object.keys(_points).length;
+        _seams=data.seams?JSON.parse(JSON.stringify(data.seams)):[];
         _pieceName=data.name||'Importado';
         const nm=document.getElementById('dv6-nm'); if(nm)nm.value=_pieceName;
         _selected=null; _lnStart=null; _selectedLine=null;

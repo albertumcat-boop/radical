@@ -417,13 +417,23 @@ PAT.HelpPanel = (function () {
           svg: ''
         },
         {
-          title: 'El rol de gradación del punto',
-          text: 'Además de las fórmulas, cada punto tiene un campo "Rol para graduar" en el panel. Si asignas un rol (ej: "Cadera lateral"), al graduar a XS→XXL el sistema aplica los incrementos estándar de ese tipo de punto en lugar de escalar proporcionalmente. Esto es especialmente útil para puntos sin fórmula que sí tienen una posición reconocible en el patrón.',
+          title: '🧵 Sistema de costuras etiquetadas',
+          text: 'El botón "🧵 Costuras" en la barra superior activa el modo de etiquetado. Haz clic en los puntos EN ORDEN que forman una costura (ej: los 4 puntos que forman la sisa) y luego elige el tipo: Sisa, Caída de hombro, Costado, etc. El sistema guarda ese camino como una costura con reglas de gradación propias.',
           svg: ''
         },
         {
-          title: 'Cuándo usar fórmula y cuándo usar rol',
-          text: 'USA FÓRMULA cuando el punto se calcula directamente de una medida (hombro = ESPALDA/2, cintura = B4 + constante). El resultado es exacto para cualquier talla.\n\nUSA ROL cuando el punto está en una posición "conocida" del patrón pero no tiene una fórmula simple (ej: un punto de sisa trazado a ojo que quieres que se desplace el estándar entre tallas).\n\nSin ninguno de los dos: el punto se escala proporcionalmente según busto y talle (aproximación).',
+          title: 'Por qué las costuras gradan mejor que los puntos',
+          text: 'Cuando etiquetas una costura, el sistema conoce su DIRECCIÓN real. Al graduar, mueve cada punto perpendicular a esa costura — no en X/Y absoluto. Así el hombro inclinado se desplaza a lo largo de su inclinación real, no en horizontal puro.',
+          svg: ''
+        },
+        {
+          title: 'Puntos de unión entre dos costuras',
+          text: 'Si un punto pertenece a DOS costuras etiquetadas (ej: donde termina "Caída de hombro" y empieza "Sisa"), el sistema resuelve automáticamente la posición correcta por INTERSECCIÓN de las dos líneas graduadas. El punto va exactamente donde ambas costuras se encontrarían en la talla nueva — sin huecos ni traslapes.',
+          svg: ''
+        },
+        {
+          title: 'Orden de prioridad en la gradación',
+          text: '1. FÓRMULA — el punto tiene fx o fy: recalcula exacto con las medidas de la talla nueva.\n2. COSTURA — el punto está en una costura etiquetada: usa gradación vectorial (perpendicular a la costura).\n3. ROL DE PUNTO — tiene "Rol para graduar" en el panel: usa incremento fijo dx/dy por paso.\n4. NINGUNO — escala proporcional según busto y talle (aproximación).\n\nUsa fórmulas siempre que puedas. Usa costuras para los puntos trazados a ojo que sí tienen posición reconocible.',
           svg: ''
         }
       ]
