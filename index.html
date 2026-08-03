@@ -1950,6 +1950,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           <button class="dv6-fb sec" id="dv6-import-json-btn" style="flex:1" title="Carga un archivo JSON de patrón previamente descargado">⬆ Importar JSON</button>
           <input type="file" id="dv6-import-json-file" accept=".json,application/json" style="display:none">
         </div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="dv6-fb sec" id="dv6-historial-btn" style="flex:1;border-color:rgba(251,191,36,.4);color:#fbbf24" title="Ver y restaurar versiones anteriores de este patrón">⏮ Historial versiones</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2464,6 +2467,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-export-json-btn').onclick = _exportarJSON;
     document.getElementById('dv6-import-json-btn').onclick = function(){ document.getElementById('dv6-import-json-file').click(); };
     document.getElementById('dv6-import-json-file').onchange = _importarJSON;
+    document.getElementById('dv6-historial-btn').onclick = _verHistorial;
     document.getElementById('dv6-validate').onclick = _validatePattern;
     document.getElementById('dv6-mirror').onclick = _mirrorSelected;
     document.getElementById('dv6-demo').onclick = _runDemo;
@@ -5105,10 +5109,45 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   // ════════════════════════════════════════════════════════════
   function _save(){
     const data={name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr};
+
+    // Detectar si ya existe otro patrón con el mismo nombre (distinto ID)
+    if(PAT.SavedPatterns){
+      const todos=PAT.SavedPatterns.obtenerTodos();
+      const duplicado=Object.values(todos).find(p=>p.name===_pieceName && p.id!==_curSave);
+      if(duplicado){
+        // Mostrar diálogo de confirmación antes de sobrescribir
+        const resp=confirm(
+          '⚠️ Ya existe un patrón llamado "'+_pieceName+'".\n\n'+
+          '• Aceptar = Guardar como NUEVO (no sobrescribe el existente)\n'+
+          '• Cancelar = Sobrescribir el existente (se perderá)'
+        );
+        if(resp){
+          // Guardar como nuevo (sin ID = crea uno nuevo)
+          _curSave=null;
+        }
+        // Si canceló: continúa y sobrescribe el duplicado usando su ID
+        else { _curSave=duplicado.id; }
+      }
+    }
+
+    // Guardar historial de las últimas 5 versiones antes de sobrescribir
+    if(_curSave && PAT.SavedPatterns){
+      const anterior=PAT.SavedPatterns.obtener(_curSave);
+      if(anterior && anterior.points){
+        try{
+          const histKey='patronai_hist_'+_curSave;
+          const hist=JSON.parse(localStorage.getItem(histKey)||'[]');
+          hist.unshift({savedAt:anterior.savedAt||new Date().toISOString(),
+            points:anterior.points,lines:anterior.lines,ptCtr:anterior.ptCtr,name:anterior.name});
+          localStorage.setItem(histKey,JSON.stringify(hist.slice(0,5)));
+        }catch(e){}
+      }
+    }
+
     if(PAT.SavedPatterns){
       PAT.SavedPatterns.guardar(_curSave,data).then(id=>{
         _curSave=id;_refreshSaved();
-        _clearAutoSave(); // guardado real → descartamos el autosave
+        _clearAutoSave();
         if(PAT.App){PAT.App.toast('💾 "'+_pieceName+'" guardado (sincronizado a tu cuenta)','success');if(PAT.App.refreshCustomGarments)PAT.App.refreshCustomGarments();}
       });
     } else {
@@ -5120,6 +5159,30 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _clearAutoSave();
       if(PAT.App)PAT.App.toast('💾 "'+_pieceName+'" guardado (solo local)','success');
     }
+  }
+
+  // Recuperar una versión anterior del historial local
+  function _verHistorial(){
+    if(!_curSave){if(PAT.App)PAT.App.toast('Guarda el patrón primero','warning');return;}
+    const histKey='patronai_hist_'+_curSave;
+    const hist=JSON.parse(localStorage.getItem(histKey)||'[]');
+    if(!hist.length){if(PAT.App)PAT.App.toast('No hay versiones anteriores para "'+_pieceName+'"','warning');return;}
+    const opciones=hist.map((v,i)=>`${i+1}. ${v.name} — ${new Date(v.savedAt).toLocaleString()} (${Object.keys(v.points||{}).length} pts)`).join('\n');
+    const sel=prompt('Versiones anteriores de "'+_pieceName+'":\n\n'+opciones+'\n\nEscribe el número a restaurar (o Cancelar):');
+    const idx=parseInt(sel)-1;
+    if(isNaN(idx)||!hist[idx]){return;}
+    if(!confirm('¿Restaurar versión '+sel+'? El estado actual se perderá (guárdalo antes si lo necesitas).'))return;
+    const v=hist[idx];
+    _snapshot();
+    _points=JSON.parse(JSON.stringify(v.points));
+    _lines=JSON.parse(JSON.stringify(v.lines));
+    _ptCtr=v.ptCtr||Object.keys(_points).length;
+    _pieceName=v.name||_pieceName;
+    const nm=document.getElementById('dv6-nm');if(nm)nm.value=_pieceName;
+    _selected=null;_lnStart=null;_selectedLine=null;
+    _renderAll();_fitView();_refreshHistory();
+    _instr('⏮ Versión restaurada — '+Object.keys(_points).length+' puntos');
+    if(PAT.App)PAT.App.toast('⏮ Versión anterior restaurada','success');
   }
 
   function _loadStore(){
