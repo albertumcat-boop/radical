@@ -1942,8 +1942,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         <div style="font-size:9.5px;color:#5a5678;margin-top:1px">Tip: selecciona una línea en el canvas para darle su propio margen de costura.</div>
         <div style="display:flex;gap:6px;margin-top:4px">
           <button class="dv6-fb sec" id="dv6-print-btn" style="flex:1" title="Genera un PDF a escala 1:1, listo para imprimir y armar">🖨 Imprimir</button>
-          <button class="dv6-fb sec" id="dv6-download-btn" style="flex:1" title="Descarga esta pieza como archivo SVG vectorial">⬇ Descargar</button>
+          <button class="dv6-fb sec" id="dv6-download-btn" style="flex:1" title="Descarga esta pieza como archivo SVG vectorial">⬇ SVG</button>
           <button class="dv6-fb sec" id="dv6-share-btn" style="flex:1" title="Comparte esta pieza como archivo">📤 Compartir</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="dv6-fb sec" id="dv6-export-json-btn" style="flex:1" title="Descarga el patrón como archivo JSON editable (puedes volver a cargarlo)">⬇ JSON editable</button>
+          <button class="dv6-fb sec" id="dv6-import-json-btn" style="flex:1" title="Carga un archivo JSON de patrón previamente descargado">⬆ Importar JSON</button>
+          <input type="file" id="dv6-import-json-file" accept=".json,application/json" style="display:none">
         </div>
       </div>
     </div>
@@ -2456,6 +2461,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-print-btn').onclick    = _imprimirPieza;
     document.getElementById('dv6-download-btn').onclick = _descargarPieza;
     document.getElementById('dv6-share-btn').onclick    = _compartirPieza;
+    document.getElementById('dv6-export-json-btn').onclick = _exportarJSON;
+    document.getElementById('dv6-import-json-btn').onclick = function(){ document.getElementById('dv6-import-json-file').click(); };
+    document.getElementById('dv6-import-json-file').onchange = _importarJSON;
     document.getElementById('dv6-validate').onclick = _validatePattern;
     document.getElementById('dv6-mirror').onclick = _mirrorSelected;
     document.getElementById('dv6-demo').onclick = _runDemo;
@@ -5730,6 +5738,42 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     a.click();
     URL.revokeObjectURL(url);
     if(PAT.App)PAT.App.toast('⬇ Descargado: '+a.download,'success');
+  }
+
+  function _exportarJSON(){
+    if(!Object.keys(_points).length){if(PAT.App)PAT.App.toast('No hay puntos para exportar','error');return;}
+    const data={name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr};
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`${(_pieceName||'patron').replace(/\s+/g,'_')}.patronai.json`;
+    a.click(); URL.revokeObjectURL(url);
+    if(PAT.App)PAT.App.toast('⬇ JSON descargado — puedes volver a importarlo','success');
+  }
+
+  function _importarJSON(e){
+    const file=e.target.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!data.points||!data.lines) throw new Error('Formato inválido');
+        _snapshot();
+        _points=JSON.parse(JSON.stringify(data.points));
+        _lines=JSON.parse(JSON.stringify(data.lines));
+        _ptCtr=data.ptCtr||Object.keys(_points).length;
+        _pieceName=data.name||'Importado';
+        const nm=document.getElementById('dv6-nm'); if(nm)nm.value=_pieceName;
+        _selected=null; _lnStart=null; _selectedLine=null;
+        _renderAll(); _fitView(); _refreshHistory();
+        _instr('✅ Patrón importado — '+Object.keys(_points).length+' puntos · '+_lines.length+' líneas');
+        if(PAT.App)PAT.App.toast('✅ Patrón "'+_pieceName+'" cargado','success');
+      }catch(err){
+        if(PAT.App)PAT.App.toast('Error al importar: '+err.message,'error');
+      }
+      e.target.value=''; // reset para poder importar el mismo archivo otra vez
+    };
+    reader.readAsText(file);
   }
 
   function _compartirPieza(){
