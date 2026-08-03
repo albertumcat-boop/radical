@@ -4831,8 +4831,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       box-shadow:0 8px 30px rgba(0,0,0,.6);font-size:12px;color:#ede9fe;
       max-width:90%;white-space:nowrap;
     `;
-    banner.addEventListener('mousedown', e => e.stopPropagation());
-    banner.addEventListener('click',     e => e.stopPropagation());
+    ['pointerdown','mousedown','pointerup','click','touchstart'].forEach(ev =>
+      banner.addEventListener(ev, e => { e.stopPropagation(); e.stopImmediatePropagation(); })
+    );
     banner.innerHTML = `
       <span style="color:#a78bfa;font-size:16px">⚡</span>
       <span>Trazo guardado automáticamente: <strong>${saved.name || 'Sin nombre'}</strong>
