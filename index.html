@@ -1914,44 +1914,41 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       </div>
 
       <div class="dv6-ft">
-        <button class="dv6-fb pri" id="dv6-apb">＋ Agregar al patrón principal</button>
+        <!-- Acción principal: guardar + agregar en un solo clic -->
+        <button class="dv6-fb pri" id="dv6-apb">💾 Guardar y agregar al patrón</button>
 
-        <div style="position:relative">
-          <button class="dv6-fb sec" id="dv6-more-btn" style="width:100%;display:flex;justify-content:center;align-items:center;gap:6px">⋯ Más opciones (guardar, base, muestras, reporte)</button>
-          <div id="dv6-more-menu" style="display:none;position:absolute;left:0;right:0;bottom:calc(100% + 4px);background:#19162c;border:1px solid #332d54;border-radius:8px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:50;display:flex;flex-direction:column;gap:4px">
-            <button class="dv6-fb sec" id="dv6-svb">💾 Guardar pieza</button>
-            <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo ajustado como la base que se cargará la próxima vez que abras esta pieza desde el asistente">📌 Guardar como base de esta pieza</button>
-            <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada de esta pieza (volverá a generarse desde las fórmulas NH)">✖ Quitar base personalizada</button>
-            <button class="dv6-fb sec" id="dv6-addsample-btn" title="Guarda este trazo + sus medidas como una muestra para que el sistema aprenda a graduar esta pieza a otras medidas automáticamente">📊 Agregar muestra para graduar</button>
-            <button class="dv6-fb sec" id="dv6-viewsamples-btn" title="Ver las muestras guardadas para graduar esta pieza">📊 Ver muestras guardadas</button>
-            <button class="dv6-fb sec" id="dv6-rpb">📋 Ver reporte / auditoría</button>
-          </div>
-        </div>
-
+        <!-- Margen de costura -->
         <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10.5px;color:#9490b0">
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
             <input type="checkbox" id="dv6-seam-on" checked style="cursor:pointer">
-            ✂ Margen de costura
+            ✂ Margen
           </label>
           <input type="number" id="dv6-seam-input" value="10" min="0" max="50" step="0.5"
-                 title="Margen general: se usa en toda línea que no tenga un valor individual propio"
-                 style="width:55px;background:#1a1730;border:1px solid #332d54;color:#e9e7f5;border-radius:4px;padding:2px 4px">
+                 title="Margen general (mm)"
+                 style="width:48px;background:#1a1730;border:1px solid #332d54;color:#e9e7f5;border-radius:4px;padding:2px 4px">
           <span>mm</span>
-          <button id="dv6-seam-applyall-btn" title="Aplica este margen a TODAS las líneas (borra los valores individuales que hayas puesto)" style="background:#1a1730;border:1px solid #4c1d95;color:#c4b5fd;border-radius:4px;padding:3px 7px;font-size:10px;cursor:pointer;white-space:nowrap">↻ Aplicar a todas</button>
+          <button id="dv6-seam-applyall-btn" title="Aplica este margen a TODAS las líneas" style="background:#1a1730;border:1px solid #4c1d95;color:#c4b5fd;border-radius:4px;padding:3px 7px;font-size:10px;cursor:pointer;white-space:nowrap">↻ Todas</button>
         </div>
-        <div style="font-size:9.5px;color:#5a5678;margin-top:1px">Tip: selecciona una línea en el canvas para darle su propio margen de costura.</div>
-        <div style="display:flex;gap:6px;margin-top:4px">
-          <button class="dv6-fb sec" id="dv6-print-btn" style="flex:1" title="Genera un PDF a escala 1:1, listo para imprimir y armar">🖨 Imprimir</button>
-          <button class="dv6-fb sec" id="dv6-download-btn" style="flex:1" title="Descarga esta pieza como archivo SVG vectorial">⬇ SVG</button>
-          <button class="dv6-fb sec" id="dv6-share-btn" style="flex:1" title="Comparte esta pieza como archivo">📤 Compartir</button>
-        </div>
-        <div style="display:flex;gap:6px;margin-top:4px">
-          <button class="dv6-fb sec" id="dv6-export-json-btn" style="flex:1" title="Descarga el patrón como archivo JSON editable (puedes volver a cargarlo)">⬇ JSON editable</button>
-          <button class="dv6-fb sec" id="dv6-import-json-btn" style="flex:1" title="Carga un archivo JSON de patrón previamente descargado">⬆ Importar JSON</button>
-          <input type="file" id="dv6-import-json-file" accept=".json,application/json" style="display:none">
-        </div>
-        <div style="display:flex;gap:6px;margin-top:4px">
-          <button class="dv6-fb sec" id="dv6-historial-btn" style="flex:1;border-color:rgba(251,191,36,.4);color:#fbbf24" title="Ver y restaurar versiones anteriores de este patrón">⏮ Historial versiones</button>
+
+        <!-- Más opciones (todo lo avanzado, colapsado) -->
+        <div style="position:relative;margin-top:6px">
+          <button class="dv6-fb sec" id="dv6-more-btn" style="width:100%;display:flex;justify-content:center;align-items:center;gap:6px">⋯ Más opciones</button>
+          <div id="dv6-more-menu" style="display:none;position:absolute;left:0;right:0;bottom:calc(100% + 4px);background:#19162c;border:1px solid #332d54;border-radius:8px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:50;flex-direction:column;gap:4px">
+            <button class="dv6-fb sec" id="dv6-svb">💾 Guardar sin agregar</button>
+            <button class="dv6-fb sec" id="dv6-print-btn" title="PDF a escala 1:1 para imprimir">🖨 Imprimir PDF</button>
+            <button class="dv6-fb sec" id="dv6-download-btn" title="Descargar como SVG vectorial">⬇ Descargar SVG</button>
+            <button class="dv6-fb sec" id="dv6-export-json-btn" title="Descargar como JSON editable (reimportable)">⬇ Descargar JSON editable</button>
+            <button class="dv6-fb sec" id="dv6-import-json-btn" title="Cargar un JSON de patrón descargado previamente">⬆ Importar JSON</button>
+            <input type="file" id="dv6-import-json-file" accept=".json,application/json" style="display:none">
+            <button class="dv6-fb sec" id="dv6-share-btn" title="Compartir esta pieza">📤 Compartir</button>
+            <button class="dv6-fb sec" id="dv6-historial-btn" style="border-color:rgba(251,191,36,.4);color:#fbbf24" title="Ver versiones anteriores">⏮ Historial versiones</button>
+            <div style="height:1px;background:#2a2640;margin:2px 0"></div>
+            <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo como base para el asistente">📌 Guardar como base</button>
+            <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada">✖ Quitar base</button>
+            <button class="dv6-fb sec" id="dv6-addsample-btn" title="Agregar muestra para graduar">📊 Agregar muestra</button>
+            <button class="dv6-fb sec" id="dv6-viewsamples-btn" title="Ver muestras guardadas">📊 Ver muestras</button>
+            <button class="dv6-fb sec" id="dv6-rpb">📋 Reporte / auditoría</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2458,7 +2455,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _updateLineInfo();
     };
     document.getElementById('dv6-ap').onclick   = _addToPattern;
-    document.getElementById('dv6-apb').onclick  = _addToPattern;
+    document.getElementById('dv6-apb').onclick  = function(){ _save(); _addToPattern(); };
     document.getElementById('dv6-rpb').onclick  = _showReporte;
     document.getElementById('dv6-line-struct-btn').onclick = _toggleLineStructure;
     document.getElementById('dv6-print-btn').onclick    = _imprimirPieza;
