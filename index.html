@@ -1247,6 +1247,9 @@ PAT.DrafterUI = (function () {
   let _tool        = 'select';
   let _measureAnchor = null; // {x,y} mm — ancla de la cinta métrica
   let _midptA        = null; // primer punto para herramienta punto-mitad
+  let _multiSel    = new Set(); // IDs de puntos en selección múltiple
+  let _multiMode   = false;    // toggle ⬚ Multi activo
+  let _rectSel     = null;     // {x0,y0} mm — inicio del rectángulo de selección
   let _lnStart     = null;
   let _pan         = {x:0,y:0};
   let _panStart    = null;
@@ -1508,6 +1511,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <button class="tb" data-tool="addDart" title="D" style="border-color:rgba(251,191,36,.25);color:#fbbf24">📌 Pinza</button>
     <button class="tb" data-tool="measure" title="M — Cinta métrica: clic para anclar, mueve para medir" style="border-color:rgba(52,211,153,.35);color:#34d399">📏 Medir</button>
     <button class="tb" data-tool="midpointTool" title="Punto en la mitad entre dos puntos" style="border-color:rgba(167,139,250,.35);color:#a78bfa">⊕ Mitad</button>
+    <button class="tb" id="dv6-multi" title="Selección múltiple: arrastra rectángulo o clic en puntos · luego muévelos juntos · ESC limpia" style="border-color:rgba(251,191,36,.35);color:#fbbf24">⬚ Multi</button>
     <div class="dv6-sep"></div>
     <!-- Rectángulo base -->
     <button class="tb" id="dv6-rect" title="R">⬜ Rectángulo</button>
@@ -1619,6 +1623,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         <!-- Línea temporal FUERA del canvas — usa coordenadas SVG directas -->
         <line id="dv6-tmp" x1="0" y1="0" x2="0" y2="0"
           stroke="#34d399" stroke-width="1.5" stroke-dasharray="8,4" opacity="0" pointer-events="none"/>
+        <!-- Rectángulo de selección múltiple -->
+        <rect id="dv6-selrect" x="0" y="0" width="0" height="0"
+          fill="rgba(251,191,36,.08)" stroke="#fbbf24" stroke-width="1"
+          stroke-dasharray="4,3" opacity="0" pointer-events="none"/>
         <!-- Línea de cinta métrica (herramienta Medir) -->
         <g id="dv6-ruler" opacity="0" pointer-events="none">
           <line id="dv6-ruler-line" x1="0" y1="0" x2="0" y2="0"
@@ -2301,7 +2309,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-zi').onclick   = () => _doZoom(1.25);
     document.getElementById('dv6-zo').onclick   = () => _doZoom(0.8);
     document.getElementById('dv6-zf').onclick   = _fitView;
-    document.getElementById('dv6-rect').onclick = _insertRect;
+    document.getElementById('dv6-rect').onclick  = _insertRect;
+    document.getElementById('dv6-multi').onclick = () => {
+      _multiMode = !_multiMode;
+      _multiSel.clear();
+      document.getElementById('dv6-multi').classList.toggle('on', _multiMode);
+      _rectSel = null;
+      document.getElementById('dv6-selrect').setAttribute('opacity','0');
+      _renderAll();
+      _instr(_multiMode
+        ? '⬚ Multi: arrastra en vacío para seleccionar área · clic en punto para agregar/quitar · arrastra un seleccionado para moverlos todos · ESC limpia'
+        : '▶ Modo normal');
+    };
     document.getElementById('dv6-undo').onclick = _undo;
     document.getElementById('dv6-redo').onclick = _redo;
     document.getElementById('dv6-clr').onclick  = () => { if (confirm('¿Limpiar todo?')) { _snapshot(); _clearAll(); } };
@@ -2705,15 +2724,31 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     }
 
     if (_tool === 'select') {
+      // ── MODO MULTI-SELECCIÓN ──────────────────────────────────────
+      if (_multiMode) {
+        if (near) {
+          // Clic en punto: toggle en la selección
+          if (_multiSel.has(near)) {
+            // Ya está seleccionado: iniciar drag de todos los seleccionados
+            _dragging = near;
+            _dragOff = { x: mm.x - _points[near].x, y: mm.y - _points[near].y };
+          } else {
+            _multiSel.add(near);
+            _renderAll();
+          }
+        } else {
+          // Clic en vacío: iniciar rectángulo de selección
+          _rectSel = { x0: rawMm.x, y0: rawMm.y };
+        }
+        return;
+      }
+      // ── MODO NORMAL ───────────────────────────────────────────────
       if (near) {
         _selectPt(near);
         _dragging = near;
         _dragOff = { x: mm.x - _points[near].x, y: mm.y - _points[near].y };
         _selectLine(null);
       } else {
-        // ¿Clic directamente sobre el trazo de una línea (recta, doblez,
-        // pinza, estructura, o el cuerpo de una curva)? Selecciónala —
-        // así no es necesario buscarla en la lista del panel lateral.
         const lineHit = _nearestLineBody(mm, threshMm);
         if (lineHit.idx !== -1) {
           _deselectPt();
@@ -2848,14 +2883,42 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       return;
     }
 
-    // Arrastrar punto
+    // Arrastrar punto(s)
     if (_dragging && _points[_dragging]) {
-      const p = _points[_dragging];
-      p.x = mm.x - _dragOff.x;
-      p.y = mm.y - _dragOff.y;
-      p.formula = '';
+      const newX = mm.x - _dragOff.x;
+      const newY = mm.y - _dragOff.y;
+      const dx = newX - _points[_dragging].x;
+      const dy = newY - _points[_dragging].y;
+      if (_multiMode && _multiSel.size > 1 && _multiSel.has(_dragging)) {
+        // Mover todos los puntos seleccionados el mismo delta
+        _multiSel.forEach(id => {
+          if (!_points[id]) return;
+          _points[id].x += dx;
+          _points[id].y += dy;
+          _points[id].formula = '';
+        });
+      } else {
+        _points[_dragging].x = newX;
+        _points[_dragging].y = newY;
+        _points[_dragging].formula = '';
+      }
       _renderAll();
       _updateForm(); _updateLineInfo(); return;
+    }
+
+    // Rectángulo de selección múltiple
+    if (_rectSel) {
+      const selRect = document.getElementById('dv6-selrect');
+      if (selRect) {
+        const svgA = _mmToSvg(_rectSel.x0, _rectSel.y0);
+        const svgB = _mmToSvg(rawMm.x, rawMm.y);
+        const rx = Math.min(svgA.x, svgB.x), ry = Math.min(svgA.y, svgB.y);
+        const rw = Math.abs(svgB.x - svgA.x), rh = Math.abs(svgB.y - svgA.y);
+        selRect.setAttribute('x', rx); selRect.setAttribute('y', ry);
+        selRect.setAttribute('width', rw); selRect.setAttribute('height', rh);
+        selRect.setAttribute('opacity', '1');
+      }
+      return;
     }
 
     // Línea temporal — ★ CRÍTICO: usa _mmToSvg() para convertir a coords SVG directas
@@ -2917,9 +2980,29 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   }
 
   function _mup(e) {
-    if (_dragging || _draggingSCtrl) _snapshot(); // guardar estado después de arrastrar
+    if (_dragging || _draggingSCtrl) _snapshot();
     _isPan = false; _panStart = null;
     _dragging = null; _draggingCtrl = null; _draggingSCtrl = null;
+
+    // Finalizar rectángulo de selección
+    if (_rectSel) {
+      const rawMm = _screenToMm(e.clientX, e.clientY);
+      const x1 = Math.min(_rectSel.x0, rawMm.x), x2 = Math.max(_rectSel.x0, rawMm.x);
+      const y1 = Math.min(_rectSel.y0, rawMm.y), y2 = Math.max(_rectSel.y0, rawMm.y);
+      const added = [];
+      Object.keys(_points).forEach(id => {
+        const p = _points[id];
+        if (p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2) {
+          _multiSel.add(id);
+          added.push(_points[id].name);
+        }
+      });
+      _rectSel = null;
+      document.getElementById('dv6-selrect').setAttribute('opacity', '0');
+      _renderAll();
+      if (added.length)
+        _instr(`⬚ ${_multiSel.size} punto(s) seleccionado(s): ${[...new Set([..._multiSel].map(id=>_points[id]?.name).filter(Boolean))].join(', ')} — arrastra uno para moverlos todos`);
+    }
   }
 
   function _kdown(e) {
@@ -2939,7 +3022,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       case 'd': case 'D': _setTool('addDart'); break;
       case 'm': case 'M': _mirrorSelected(); break; // Simetría/espejo
       case 'r': case 'R': _insertRect(); break;
-      case 'Escape': _lnStart=null; _dartPts=[]; _tempLine.setAttribute('opacity','0'); _setTool('select'); break;
+      case 'Escape':
+        if (_multiSel.size > 0) {
+          _multiSel.clear(); _rectSel = null;
+          document.getElementById('dv6-selrect').setAttribute('opacity','0');
+          _renderAll(); _instr('⬚ Selección limpiada');
+        } else {
+          _lnStart=null; _dartPts=[]; _tempLine.setAttribute('opacity','0'); _setTool('select');
+        }
+        break;
       case 'Delete': case 'Backspace': if(_selected)_delSelected(); break;
     }
   }
@@ -3825,15 +3916,23 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
       const c=document.createElementNS(NS,'circle');
       c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',r);
-      const isMidA = id===_midptA;
-      c.setAttribute('fill',id===_selected?'#fbbf24':id===_lnStart?'#34d399':isMidA?'#c084fc':'#8b5cf6');
-      if(isMidA){c.setAttribute('stroke','#a78bfa');c.setAttribute('stroke-width','1.2');}
+      const isMidA   = id===_midptA;
+      const isMulti  = _multiSel.has(id);
+      const fill = id===_selected ? '#fbbf24'
+                 : isMulti        ? '#f59e0b'
+                 : id===_lnStart  ? '#34d399'
+                 : isMidA         ? '#c084fc'
+                 :                  '#8b5cf6';
+      c.setAttribute('fill', fill);
+      if(isMulti){c.setAttribute('stroke','#fbbf24');c.setAttribute('stroke-width','1.5');}
+      else if(isMidA){c.setAttribute('stroke','#a78bfa');c.setAttribute('stroke-width','1.2');}
       else{c.setAttribute('stroke','#06060c');c.setAttribute('stroke-width','0.3');}
+      if(isMulti) c.setAttribute('r', r*1.3);
       g.appendChild(c);
 
       const t=document.createElementNS(NS,'text');
       t.setAttribute('x',p.x+r*1.6);t.setAttribute('y',p.y-r*0.7);
-      t.setAttribute('font-size',fs);t.setAttribute('fill',id===_selected?'#fbbf24':isMidA?'#c084fc':'#a78bfa');
+      t.setAttribute('font-size',fs);t.setAttribute('fill',id===_selected?'#fbbf24':isMulti?'#fbbf24':isMidA?'#c084fc':'#a78bfa');
       t.setAttribute('font-family','Arial');t.setAttribute('font-weight','bold');
       t.textContent=p.name;g.appendChild(t);
 
