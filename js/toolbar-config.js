@@ -31,10 +31,24 @@ PAT.ToolbarConfig = (function () {
     { id:'dv6-zi',       sel:'#dv6-zi',                label:'＋ Zoom +',      group:'Vista' },
     { id:'dv6-zo',       sel:'#dv6-zo',                label:'－ Zoom −',      group:'Vista' },
     { id:'dv6-zf',       sel:'#dv6-zf',                label:'⊡ Ajustar',      group:'Vista' },
+    // Acciones especiales
+    { id:'tool-scurve',  sel:'[data-tool="addSCurve"]', label:'〜 Curva S',    group:'Herramientas' },
+    { id:'tool-dart',    sel:'[data-tool="addDart"]',   label:'📌 Pinza',      group:'Herramientas' },
+    { id:'tool-measure', sel:'[data-tool="measure"]',   label:'📏 Medir',      group:'Herramientas' },
+    { id:'tool-mid',     sel:'[data-tool="midpointTool"]',label:'⊕ Mitad',     group:'Herramientas' },
+    { id:'dv6-multi',    sel:'#dv6-multi',              label:'⬚ Multi',        group:'Herramientas' },
     // Acciones (fijas)
     { id:'dv6-clr',      sel:'#dv6-clr',               label:'🗑 Limpiar',     group:'Acciones', fixed:true },
     { id:'dv6-sv',       sel:'#dv6-sv',                label:'💾 Guardar',     group:'Acciones', fixed:true },
     { id:'dv6-ap',       sel:'#dv6-ap',                label:'＋ Al patrón',   group:'Acciones', fixed:true },
+    // Acciones opcionales de la toolbar
+    { id:'dv6-validate', sel:'#dv6-validate',           label:'🔍 Verificar',  group:'Acciones' },
+    { id:'dv6-mirror',   sel:'#dv6-mirror',             label:'🪞 Espejo',      group:'Acciones' },
+    { id:'dv6-tallas',   sel:'#dv6-tallas',             label:'📊 Tallas',     group:'Acciones' },
+    { id:'dv6-demo',     sel:'#dv6-demo',               label:'▶ Demo Espalda',group:'Acciones' },
+    { id:'dv6-sistemas', sel:'#dv6-sistemas',           label:'🧵 Sistemas',   group:'Acciones' },
+    { id:'dv6-bgimg-btn',sel:'#dv6-bgimg-btn',          label:'🖼️ Imagen',      group:'Acciones' },
+    { id:'dv6-help-btn', sel:'#dv6-help-btn',           label:'❓ Ayuda',      group:'Acciones' },
   ];
 
   const GROUPS = ['Herramientas','Historial','Ayudas','Vista','Acciones'];
