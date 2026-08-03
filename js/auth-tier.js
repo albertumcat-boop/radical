@@ -35,6 +35,7 @@ PAT.AuthTier = (function () {
   let _sessionPurchases = new Set();
   let _isInTrial        = false;
   let _trialDaysLeft    = 0;
+  let _loggedIn         = false;   // estado de sesión local, no depende de firebase.auth()
 
   function init() {
     // Tier solo se verifica contra Firestore. localStorage es solo hint visual.
@@ -108,7 +109,7 @@ PAT.AuthTier = (function () {
       display:flex;align-items:center;gap:6px;cursor:pointer;color:${tier.color};
       white-space:nowrap;flex-shrink:0;
     `;
-    const loggedIn = isLoggedIn();
+    const loggedIn = _loggedIn;
     const trialTag = _isInTrial
       ? `<span style="background:#10b98122;padding:1px 7px;border-radius:10px;font-size:9px;color:#10b981">🎁 ${_trialDaysLeft}d gratis</span>`
       : '';
@@ -381,7 +382,7 @@ PAT.AuthTier = (function () {
   }
 
   function isLoggedIn() {
-    return getUserId() !== null;
+    return _loggedIn || getUserId() !== null;
   }
 
   // ── Cargar tier desde Firestore (post-login) ──────────────────
@@ -439,11 +440,11 @@ PAT.AuthTier = (function () {
   // Re-renderizar badge cuando Firebase resuelve la sesión
   document.addEventListener('pat:authChanged', (e) => {
     if (e.detail) {
-      // Siempre re-renderizar: el usuario está logueado aunque el tier aún no esté verificado
-      if (!_tierVerified) loadTierFromFirestore();
-      _renderBadge();
+      _loggedIn = true;
+      _renderBadge(); // mostrar como logueado inmediatamente
+      if (!_tierVerified) loadTierFromFirestore(); // luego ajustar tier
     } else {
-      // Cerró sesión
+      _loggedIn = false;
       _currentTier = 'free'; _tierVerified = false;
       _isInTrial = false; _trialDaysLeft = 0;
       _renderBadge();
