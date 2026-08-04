@@ -318,7 +318,7 @@ PAT.Wizard = (function () {
 
   function _trazarEnBlanco() {
     close();
-    if (PAT.DrafterUI) PAT.DrafterUI.open();
+    if (PAT.DrafterUI) PAT.DrafterUI.nuevoEnBlanco();
   }
 
   /* ── Estilos ─────────────────────────────────────────────────── */

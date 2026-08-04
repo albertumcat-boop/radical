@@ -7210,9 +7210,21 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _tieneContenido() { return Object.keys(_points).length > 0; }
 
+  function _nuevoEnBlanco() {
+    // Limpia canvas y estado antes de abrir, para que el usuario
+    // vea canvas vacío + banner de recuperar (si hay autosave).
+    _clearAll();
+    _pieceName = 'Mi Pieza';
+    _curSave   = null;
+    _bloqueId  = null;
+    const nm = document.getElementById('dv6-nm');
+    if (nm) nm.value = _pieceName;
+    open();
+  }
+
   return { open, openWith, close, validate: _validatePattern, _toggleUnified, demo: _runDemo,
            getState: _getState, cargarBloque: _cargarBloque, setBloqueId: _setBloqueId,
-           tieneContenido: _tieneContenido };
+           tieneContenido: _tieneContenido, nuevoEnBlanco: _nuevoEnBlanco };
 })();
 
 
