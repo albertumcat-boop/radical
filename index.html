@@ -3610,10 +3610,22 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   function _delSelected(){
     if(!_selected)return;
     _snapshot();
-    _lines=_lines.filter(l=>l.from!==_selected&&l.to!==_selected);
-    delete _points[_selected];_selected=null;_lnStart=null;
+    const connected = _lines.filter(l => l.from===_selected || l.to===_selected);
+    if (connected.length === 2) {
+      // Punto intermedio con exactamente 2 segmentos → fusionarlos en uno
+      // para no romper la continuidad de la línea.
+      const l0 = connected[0], l1 = connected[1];
+      const a = l0.from === _selected ? l0.to   : l0.from;
+      const b = l1.from === _selected ? l1.to   : l1.from;
+      const merged = { from: a, to: b, type: l0.type, ctrl: 0, cpx: null, cpy: null };
+      _lines = _lines.filter(l => l !== l0 && l !== l1);
+      _lines.push(merged);
+    } else {
+      _lines = _lines.filter(l => l.from!==_selected && l.to!==_selected);
+    }
+    delete _points[_selected]; _selected=null; _lnStart=null;
     _tempLine.setAttribute('opacity','0');
-    _renderAll();_updateForm();
+    _renderAll(); _updateForm();
   }
 
   function _delMultiSel(){
