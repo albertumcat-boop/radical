@@ -4641,15 +4641,17 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const refId  = refAEl ? refAEl.value : null;
       const refPt  = (refId && _points[refId] && (!window._fb2IsActive || window._fb2IsActive())) ? _points[refId] : null;
       if (refPt) {
-        const refName = refPt.name; // ej. "B"
+        // Si el nombre del punto referencia no es identificador válido (empieza
+        // con dígito), usar el valor numérico directo en lugar de "nombre.x/y".
+        const validId = /^[A-Za-zÁÉÍÓÚÑáéíóúñ_]/.test(refPt.name);
         if (isY) {
-          // Dirección: si el punto está por debajo de la referencia → sumar (+)
-          //            si está por encima → restar (-)
+          const refExpr = validId ? `${refPt.name}.y` : String(refPt.y);
           const sign = p.y >= refPt.y ? '+' : '-';
-          formula = `${refName}.y ${sign} (${baseFormula})`;
+          formula = `${refExpr} ${sign} (${baseFormula})`;
         } else if (isX) {
+          const refExpr = validId ? `${refPt.name}.x` : String(refPt.x);
           const sign = p.x >= refPt.x ? '+' : '-';
-          formula = `${refName}.x ${sign} (${baseFormula})`;
+          formula = `${refExpr} ${sign} (${baseFormula})`;
         }
       }
 
