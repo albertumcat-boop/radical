@@ -2875,7 +2875,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const rawMm = _screenToMm(e.clientX, e.clientY);
     const mm    = _snap(rawMm);
     const threshMm = 12 / (_zoom * SC); // radio de clic más generoso (antes 8px, costaba acertarle)
-    let near = _nearest(mm, threshMm);
+    // Buscar punto con coordenadas crudas (antes de snap): puntos con fórmula
+    // pueden estar en posiciones que no caen en la grilla de 5mm, y el snap
+    // desplazaría el clic lejos del punto real.
+    let near = _nearest(rawMm, threshMm) || _nearest(mm, threshMm);
 
     // Un punto dentro del umbral siempre gana sobre cualquier línea,
     // incluso si la línea pasa exactamente por ese punto (caso de puntos
