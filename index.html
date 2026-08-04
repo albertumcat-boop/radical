@@ -3956,8 +3956,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _clearAll(){
     _points={};_lines={};_lines=[];_ptCtr=0;_selected=null;_lnStart=null;
-    _selectedLine=null;_tempLine.setAttribute('opacity','0');
-    _renderAll();
+    _selectedLine=null;if(_tempLine)_tempLine.setAttribute('opacity','0');
+    if(_modal)_renderAll();
   }
 
   // ════════════════════════════════════════════════════════════
