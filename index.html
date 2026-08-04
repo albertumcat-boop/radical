@@ -3047,6 +3047,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       }
       // ── MODO NORMAL ───────────────────────────────────────────────
       if (near) {
+        _multiSel.clear();
         _selectPt(near);
         _dragging = near;
         _dragOff = { x: mm.x - _points[near].x, y: mm.y - _points[near].y };
@@ -3061,8 +3062,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         }
         _deselectPt();
         _selectLine(null);
-        _isPan = true;
-        _panStart = { x: e.clientX - _pan.x, y: e.clientY - _pan.y };
+        // Arrastrar en vacío: marquee de selección (igual que en Multi)
+        _multiSel.clear();
+        _rectSel = { x0: rawMm.x, y0: rawMm.y };
       }
     }
   }
@@ -3344,7 +3346,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           _lnStart=null; _dartPts=[]; _tempLine.setAttribute('opacity','0'); _setTool('select');
         }
         break;
-      case 'Delete': case 'Backspace': if(_selected)_delSelected(); break;
+      case 'Delete': case 'Backspace':
+        if (_multiSel.size > 0) _delMultiSel();
+        else if (_selected) _delSelected();
+        break;
     }
   }
 
@@ -3369,7 +3374,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _toolMsg() {
     return {
-      select:      '▶ Seleccionar: clic en punto para editar · Arrastrar para mover · Alt+drag = mover vista · M = Espejo',
+      select:      '▶ Seleccionar: clic en punto para editar · Arrastrar vacío = recuadro de selección · Del = borrar selección · Alt+drag = mover vista',
       addPoint:    '＋ Clic en el canvas para agregar punto. Con Snap ON se alinea a la grilla.',
       addLine:     '╱ Clic en punto A → clic en punto B — traza línea recta. La distancia aparece en verde.',
       addCurve:    '⌒ Clic en punto A → clic en punto B — traza curva. Arrastra el ◆ azul para ajustar.',
@@ -3553,6 +3558,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     delete _points[_selected];_selected=null;_lnStart=null;
     _tempLine.setAttribute('opacity','0');
     _renderAll();_updateForm();
+  }
+
+  function _delMultiSel(){
+    if(!_multiSel.size)return;
+    _snapshot();
+    const ids = [..._multiSel];
+    _lines = _lines.filter(l => !ids.includes(l.from) && !ids.includes(l.to));
+    ids.forEach(id => delete _points[id]);
+    _multiSel.clear(); _selected = null; _lnStart = null;
+    _tempLine.setAttribute('opacity','0');
+    _renderAll(); _updateForm();
+    _instr('🗑 Puntos eliminados');
   }
 
   // ════════════════════════════════════════════════════════════
