@@ -2548,7 +2548,28 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-x').onclick  = close;
     document.getElementById('dv6-nm').oninput = e => _pieceName = e.target.value;
 
-    document.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => _setTool(b.dataset.tool));
+    let _selClickTimer = null;
+    document.querySelectorAll('[data-tool]').forEach(b => {
+      b.onclick = () => {
+        if (b.dataset.tool === 'select') {
+          if (_selClickTimer) {
+            // Segundo clic dentro de 350ms = doble clic → toggle marquee
+            clearTimeout(_selClickTimer);
+            _selClickTimer = null;
+            _marqueeMode = !_marqueeMode;
+            _multiSel.clear(); _rectSel = null;
+            document.getElementById('dv6-selrect')?.setAttribute('opacity','0');
+            b.style.outline = _marqueeMode ? '2px solid #f97316' : '';
+            _instr(_marqueeMode
+              ? '⬚ Recuadro: arrastra en el canvas para seleccionar · clic en S de nuevo para desactivar · Del = borrar'
+              : '▶ Seleccionar normal');
+            _renderAll(); return;
+          }
+          _selClickTimer = setTimeout(() => { _selClickTimer = null; }, 350);
+        }
+        _setTool(b.dataset.tool);
+      };
+    });
 
     document.getElementById('dv6-zi').onclick   = () => _doZoom(1.25);
     document.getElementById('dv6-zo').onclick   = () => _doZoom(0.8);
