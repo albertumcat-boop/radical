@@ -4740,6 +4740,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const r=_calcular();
       previewEl.textContent=r?('= X='+_fmtCoord(r.x)+_coordUnit+', Y='+_fmtCoord(r.y)+_coordUnit):'= —';
     }
+    // Devuelve la expresión de fórmula para coordenada de un punto.
+    // Si el nombre no es un identificador válido (ej. "2"), usa el valor numérico directamente.
+    function _ptRef(pt, axis) {
+      return /^[A-Za-zÁÉÍÓÚÑáéíóúñ_]/.test(pt.name)
+        ? pt.name + '.' + axis
+        : String(axis==='x' ? pt.x : pt.y);
+    }
+
     function _ubicar(){
       // Si hay una línea a medio trazar (_lnStart), crear un punto NUEVO
       // y conectarlo desde _lnStart. Así el constructor funciona directamente
@@ -4760,11 +4768,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           fy='LINEA_Y('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
         } else {
           const mm=offCm*10;
-          fx=A.name+'.x'; fy=A.name+'.y';
-          if(dir==='up')   fy=A.name+'.y-'+mm;
-          else if(dir==='down') fy=A.name+'.y+'+mm;
-          else if(dir==='in')   fx=A.name+'.x-'+mm;
-          else if(dir==='out')  fx=A.name+'.x+'+mm;
+          fx=_ptRef(A,'x'); fy=_ptRef(A,'y');
+          if(dir==='up')   fy=_ptRef(A,'y')+'-'+mm;
+          else if(dir==='down') fy=_ptRef(A,'y')+'+'+mm;
+          else if(dir==='in')   fx=_ptRef(A,'x')+'-'+mm;
+          else if(dir==='out')  fx=_ptRef(A,'x')+'+'+mm;
         }
         const vx=_evalF(fx)||0, vy=_evalF(fy)||0;
         _snapshot();
@@ -4797,11 +4805,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         fy='LINEA_Y('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
       } else {
         const mm=offCm*10;
-        fx=A.name+'.x'; fy=A.name+'.y';
-        if(dir==='up')   fy=A.name+'.y-'+mm;
-        else if(dir==='down') fy=A.name+'.y+'+mm;
-        else if(dir==='in')   fx=A.name+'.x-'+mm;
-        else if(dir==='out')  fx=A.name+'.x+'+mm;
+        fx=_ptRef(A,'x'); fy=_ptRef(A,'y');
+        if(dir==='up')   fy=_ptRef(A,'y')+'-'+mm;
+        else if(dir==='down') fy=_ptRef(A,'y')+'+'+mm;
+        else if(dir==='in')   fx=_ptRef(A,'x')+'-'+mm;
+        else if(dir==='out')  fx=_ptRef(A,'x')+'+'+mm;
       }
       p.fx=fx; p.fy=fy;
       // Aplicar la fórmula YA al punto (no solo guardar el texto) — mismo
