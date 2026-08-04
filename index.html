@@ -1357,6 +1357,7 @@ PAT.DrafterUI = (function () {
   let _midptA        = null; // primer punto para herramienta punto-mitad
   let _multiSel      = new Set(); // IDs de puntos en selección múltiple
   let _multiMode     = false;    // toggle ⬚ Multi activo
+  let _marqueeMode   = false;    // doble clic en S → modo recuadro de selección
   let _rectSel       = null;     // {x0,y0} mm — inicio del rectángulo de selección
   let _multiDragStart = null;    // {x,y} mm — posición al inicio del drag multi
   let _lnStart     = null;
@@ -2595,6 +2596,21 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       if (e.key === 'Enter') document.getElementById('dv6-mv-btn').click();
     });
 
+    // Doble clic en botón S = alternar modo recuadro de selección (marquee)
+    document.querySelector('[data-tool="select"]')?.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      _marqueeMode = !_marqueeMode;
+      _multiSel.clear();
+      _rectSel = null;
+      document.getElementById('dv6-selrect')?.setAttribute('opacity','0');
+      const btn = document.querySelector('[data-tool="select"]');
+      if (btn) btn.style.outline = _marqueeMode ? '2px solid #f97316' : '';
+      _instr(_marqueeMode
+        ? '⬚ Modo recuadro: arrastra en el canvas para seleccionar · Doble clic en S para desactivar · Del = borrar seleccionados'
+        : '▶ Seleccionar: clic en punto para editar · arrastra para mover vista');
+      _renderAll();
+    });
+
     document.getElementById('dv6-undo').onclick = _undo;
     document.getElementById('dv6-redo').onclick = _redo;
     document.getElementById('dv6-clr').onclick  = () => { if (confirm('¿Limpiar todo?')) { _snapshot(); _clearAll(); } };
@@ -3062,9 +3078,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         }
         _deselectPt();
         _selectLine(null);
-        // Arrastrar en vacío: marquee de selección (igual que en Multi)
-        _multiSel.clear();
-        _rectSel = { x0: rawMm.x, y0: rawMm.y };
+        if (_marqueeMode) {
+          // Modo marquee activo: arrastrar dibuja recuadro de selección
+          _multiSel.clear();
+          _rectSel = { x0: rawMm.x, y0: rawMm.y };
+        } else {
+          // Comportamiento original: arrastrar mueve la vista
+          _isPan = true;
+          _panStart = { x: e.clientX - _pan.x, y: e.clientY - _pan.y };
+        }
       }
     }
   }
@@ -3358,6 +3380,12 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   // ════════════════════════════════════════════════════════════
   function _setTool(t) {
     _tool=t; _lnStart=null;
+    // Salir de modo marquee si se cambia de herramienta
+    if (t !== 'select' && _marqueeMode) {
+      _marqueeMode = false;
+      const btn = document.querySelector('[data-tool="select"]');
+      if (btn) btn.style.outline = '';
+    }
     // Limpiar estado de herramientas especiales
     _measureAnchor = null;
     _midptA = null;
