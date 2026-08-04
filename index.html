@@ -4738,8 +4738,42 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       previewEl.textContent=r?('= X='+_fmtCoord(r.x)+_coordUnit+', Y='+_fmtCoord(r.y)+_coordUnit):'= —';
     }
     function _ubicar(){
+      // Si hay una línea a medio trazar (_lnStart), crear un punto NUEVO
+      // y conectarlo desde _lnStart. Así el constructor funciona directamente
+      // desde el primer clic en el punto de inicio sin necesidad de haber
+      // creado antes un punto destino.
+      if (_lnStart && _points[_lnStart]) {
+        const A=_points[pointAEl.value];
+        if(!A){alert('Elige el punto A de referencia.');return;}
+        if(!A.name){alert('El punto A necesita un nombre para poder citarlo en la fórmula.');return;}
+        const dir=dirSel.value;
+        const offCm=parseFloat(cmEl.value)||0;
+        const B=pointBEl.value?_points[pointBEl.value]:null;
+        let fx,fy;
+        if(B){
+          if(!B.name){alert('El punto B necesita un nombre para poder citarlo en la fórmula.');return;}
+          const distCm=parseFloat(distEl.value)||0;
+          fx='LINEA_X('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
+          fy='LINEA_Y('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
+        } else {
+          const mm=offCm*10;
+          fx=A.name+'.x'; fy=A.name+'.y';
+          if(dir==='up')   fy=A.name+'.y-'+mm;
+          else if(dir==='down') fy=A.name+'.y+'+mm;
+          else if(dir==='in')   fx=A.name+'.x-'+mm;
+          else if(dir==='out')  fx=A.name+'.x+'+mm;
+        }
+        const vx=_evalF(fx)||0, vy=_evalF(fy)||0;
+        _snapshot();
+        const newId=_addPt(vx,vy,null,fx,fy);
+        _addLn(_lnStart, newId, _tool);
+        _lnStart=newId;
+        _renderAll();
+        _instr('✅ Punto creado y línea trazada · siguiente clic para continuar');
+        return;
+      }
       if(!_selected||!_points[_selected]){
-        alert('Selecciona primero el punto que quieres ubicar.');
+        alert('Selecciona primero el punto que quieres ubicar, o inicia una línea desde otro punto.');
         return;
       }
       const A=_points[pointAEl.value];
