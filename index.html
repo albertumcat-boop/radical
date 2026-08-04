@@ -1358,6 +1358,7 @@ PAT.DrafterUI = (function () {
   let _multiSel      = new Set(); // IDs de puntos en selección múltiple
   let _multiMode     = false;    // toggle ⬚ Multi activo
   let _marqueeMode   = false;    // doble clic en S → modo recuadro de selección
+  let _lastMdownTime = 0;        // timestamp del último pointerdown (detección doble clic)
   let _rectSel       = null;     // {x0,y0} mm — inicio del rectángulo de selección
   let _multiDragStart = null;    // {x,y} mm — posición al inicio del drag multi
   let _lnStart     = null;
@@ -2548,24 +2549,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-x').onclick  = close;
     document.getElementById('dv6-nm').oninput = e => _pieceName = e.target.value;
 
-    let _selClickTimer = null;
     document.querySelectorAll('[data-tool]').forEach(b => {
       b.onclick = () => {
-        if (b.dataset.tool === 'select') {
-          if (_selClickTimer) {
-            // Segundo clic dentro de 350ms = doble clic → toggle marquee
-            clearTimeout(_selClickTimer);
-            _selClickTimer = null;
-            _marqueeMode = !_marqueeMode;
-            _multiSel.clear(); _rectSel = null;
-            document.getElementById('dv6-selrect')?.setAttribute('opacity','0');
-            b.style.outline = _marqueeMode ? '2px solid #f97316' : '';
-            _instr(_marqueeMode
-              ? '⬚ Recuadro: arrastra en el canvas para seleccionar · clic en S de nuevo para desactivar · Del = borrar'
-              : '▶ Seleccionar normal');
-            _renderAll(); return;
-          }
-          _selClickTimer = setTimeout(() => { _selClickTimer = null; }, 350);
+        // Clic en S cuando ya está activo → alternar modo recuadro de selección
+        if (b.dataset.tool === 'select' && _tool === 'select') {
+          _marqueeMode = !_marqueeMode;
+          _multiSel.clear(); _rectSel = null;
+          document.getElementById('dv6-selrect')?.setAttribute('opacity','0');
+          b.style.outline = _marqueeMode ? '2px solid #f97316' : '';
+          _instr(_marqueeMode
+            ? '⬚ Recuadro ON: arrastra en el canvas para seleccionar · clic en S para desactivar · Del = borrar'
+            : '▶ Seleccionar normal');
+          _renderAll(); return;
         }
         _setTool(b.dataset.tool);
       };
@@ -2860,6 +2855,21 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _panStart = { x: e.clientX - _pan.x, y: e.clientY - _pan.y };
       return;
     }
+
+    // ── DOBLE CLIC mientras se traza una línea → PAN temporal ────
+    // Si hay un trazo en curso y dos pointerdown llegan en menos de 300ms,
+    // es un doble clic. Deshace el punto que puso el primer clic y activa
+    // pan para que el usuario navegue la vista; el trazo sigue activo.
+    const now = Date.now();
+    if (_lnStart && (now - _lastMdownTime) < 300) {
+      _lastMdownTime = 0;
+      _undo(); // deshace el punto colocado por el primer clic del doble clic
+      _isPan = true;
+      _panStart = { x: e.clientX - _pan.x, y: e.clientY - _pan.y };
+      _instr('🖐 Arrastra para mover la vista · suelta y clic para continuar el trazo');
+      return;
+    }
+    _lastMdownTime = now;
 
     // ── MODO CAPTURA DE COSTURA ──────────────────────────────────
     if (_seamCapturing) {
