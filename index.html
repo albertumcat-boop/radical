@@ -4697,7 +4697,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       pointAEl.innerHTML='';
       pointBEl.innerHTML='<option value="">— ninguno (solo subir/bajar/meter/sacar) —</option>';
       Object.keys(_points).forEach(id=>{
-        if(id===_selected) return; // no puede referenciarse a sí mismo
+        if(id===_selected) return;
         const pt=_points[id];
         const label=pt.name+' ('+_fmtCoord(pt.x)+', '+_fmtCoord(pt.y)+' '+_coordUnit+')';
         const optA=document.createElement('option');optA.value=id;optA.textContent=label;
@@ -4705,7 +4705,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         const optB=document.createElement('option');optB.value=id;optB.textContent=label;
         pointBEl.appendChild(optB);
       });
-      if(prevA&&_points[prevA]&&prevA!==_selected) pointAEl.value=prevA;
+      // Si hay línea en curso, pre-seleccionar el punto de inicio como referencia A
+      const autoA = _lnStart && _points[_lnStart] ? _lnStart : null;
+      if(autoA) pointAEl.value=autoA;
+      else if(prevA&&_points[prevA]&&prevA!==_selected) pointAEl.value=prevA;
       if(prevB&&_points[prevB]&&prevB!==_selected) pointBEl.value=prevB;
       _actualizarPreview2();
     }
