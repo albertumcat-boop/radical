@@ -2930,27 +2930,29 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           _instr(`✋ Trazo cancelado. Clic de nuevo en ${_points[near].name} para iniciar una línea nueva.`);
         }
       } else if (!_lnStart) {
-        // No estamos a mitad de trazar una línea. Si el clic cayó justo
-        // sobre el trazo de una línea existente, selecciónala (para poder
-        // editarla / marcarla como estructura) en vez de crear un punto
-        // nuevo encima — eso era lo que impedía "tocar" las líneas estando
-        // en modo unificado (el modo por defecto al abrir el editor).
+        // Clic en vacío sin línea en curso: si cae sobre una línea, insertar
+        // un punto ahí y partir la línea (clic en vacío real = punto nuevo).
         const lineHit = _nearestLineBody(mm, threshMm);
         if (lineHit.idx !== -1) {
-          _selectLine(lineHit.idx);
-          _refreshPanel();
+          _snapshot();
+          const newId = _splitLine(lineHit.idx, mm.x, mm.y);
+          _lnStart = newId;
+          _instr(`✂ Punto insertado en la línea · ahora clic en otro punto para trazar desde aquí`);
           return;
         }
         // Clic realmente en vacío: agregar punto nuevo
         _snapshot();
         _addPt(mm.x, mm.y);
       } else {
-        // Hay una línea a medio trazar: el clic en vacío agrega un punto y
-        // continúa encadenando desde ahí.
+        // Hay una línea a medio trazar: si el clic cayó sobre otra línea,
+        // insertar un punto ahí y continuar encadenando.
+        const lineHit = _nearestLineBody(mm, threshMm);
         _snapshot();
-        const newId = _addPt(mm.x, mm.y);
+        const newId = lineHit.idx !== -1
+          ? _splitLine(lineHit.idx, mm.x, mm.y)
+          : _addPt(mm.x, mm.y);
         _addLn(_lnStart, newId, _tool);
-        _lnStart = newId; // encadenar: el nuevo punto es el siguiente inicio
+        _lnStart = newId;
       }
       return;
     }
@@ -3430,6 +3432,19 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     _buildLog.push({type:'point',desc:`${nm} (${Math.round(xMm)}, ${Math.round(yMm)})mm`,t:Date.now()});
     _refreshHistory();
     _selectPt(id); _renderAll(); return id;
+  }
+
+  /** Inserta un punto en (x,y) sobre la línea lineIdx y la parte en dos.
+   *  Devuelve el ID del nuevo punto. */
+  function _splitLine(lineIdx, x, y) {
+    const ln = _lines[lineIdx];
+    const newId = _addPt(x, y);
+    // Reemplazar la línea original con dos segmentos del mismo tipo
+    const seg1 = { from: ln.from, to: newId,  type: ln.type, ctrl: 0, cpx: null, cpy: null };
+    const seg2 = { from: newId,   to: ln.to,   type: ln.type, ctrl: 0, cpx: null, cpy: null };
+    _lines.splice(lineIdx, 1, seg1, seg2);
+    _selectedLine = null;
+    return newId;
   }
 
   function _nearest(mm,thresh) {
