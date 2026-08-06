@@ -257,6 +257,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
   animation:fadeIn .2s ease;
 }
 #view-pattern.on{display:flex}
+#view-3d.on{display:flex}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 #svg-wrapper{
   flex:1;overflow:hidden;cursor:grab;position:relative;background:var(--bg);
@@ -894,7 +895,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
   </div>
 
   <!-- Vista 3D (bloqueada) -->
-  <div id="view-3d" style="display:none;flex:1;align-items:center;justify-content:center;background:var(--bg2)">
+  <div id="view-3d" style="flex:1;align-items:center;justify-content:center;background:var(--bg2)">
     <div style="text-align:center;max-width:340px;padding:40px">
       <div style="font-size:48px;margin-bottom:16px;opacity:.5">🧵</div>
       <h2 style="font-family:var(--serif);font-size:22px;color:var(--tx);margin-bottom:10px;font-style:italic">Vista 3D en desarrollo</h2>
@@ -2612,21 +2613,6 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       if (e.key === 'Enter') document.getElementById('dv6-mv-btn').click();
     });
 
-    // Doble clic en botón S = alternar modo recuadro de selección (marquee)
-    document.querySelector('[data-tool="select"]')?.addEventListener('dblclick', (e) => {
-      e.preventDefault();
-      _marqueeMode = !_marqueeMode;
-      _multiSel.clear();
-      _rectSel = null;
-      document.getElementById('dv6-selrect')?.setAttribute('opacity','0');
-      const btn = document.querySelector('[data-tool="select"]');
-      if (btn) btn.style.outline = _marqueeMode ? '2px solid #f97316' : '';
-      _instr(_marqueeMode
-        ? '⬚ Modo recuadro: arrastra en el canvas para seleccionar · Doble clic en S para desactivar · Del = borrar seleccionados'
-        : '▶ Seleccionar: clic en punto para editar · arrastra para mover vista');
-      _renderAll();
-    });
-
     document.getElementById('dv6-undo').onclick = _undo;
     document.getElementById('dv6-redo').onclick = _redo;
     document.getElementById('dv6-clr').onclick  = () => { if (confirm('¿Limpiar todo?')) { _snapshot(); _clearAll(); } };
@@ -4023,8 +4009,16 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   }
 
   function _clearAll(){
-    _points={};_lines={};_lines=[];_ptCtr=0;_selected=null;_lnStart=null;
-    _selectedLine=null;if(_tempLine)_tempLine.setAttribute('opacity','0');
+    _points={};_lines=[];_ptCtr=0;_selected=null;_lnStart=null;
+    _selectedLine=null;
+    _multiSel.clear();
+    _multiMode = false;
+    _marqueeMode = false;
+    _rectSel = null;
+    document.getElementById('dv6-multi')?.classList.remove('on');
+    const selBtn = document.querySelector('[data-tool="select"]');
+    if (selBtn) selBtn.style.outline = '';
+    if(_tempLine)_tempLine.setAttribute('opacity','0');
     if(_modal)_renderAll();
   }
 
@@ -7326,14 +7320,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   function _tieneContenido() { return Object.keys(_points).length > 0; }
 
   function _nuevoEnBlanco() {
-    // Limpia canvas y estado antes de abrir, para que el usuario
-    // vea canvas vacío + banner de recuperar (si hay autosave).
     _clearAll();
     _pieceName = 'Mi Pieza';
     _curSave   = null;
     _bloqueId  = null;
     const nm = document.getElementById('dv6-nm');
     if (nm) nm.value = _pieceName;
+    // Limpiar autosave para que no aparezca banner "¿Recuperar?" al abrir en blanco
+    try { localStorage.removeItem(AS_KEY); } catch(e) {}
     open();
   }
 

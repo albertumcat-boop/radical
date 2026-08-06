@@ -118,6 +118,18 @@ window.PAT = window.PAT || {};
         }
       }
 
+      // Borrar patrones del usuario (colección raíz /patterns, no subcollección)
+      try {
+        const patsSnap = await db.collection('patterns').where('userId','==',uid).limit(200).get();
+        if (!patsSnap.empty) {
+          const batchPats = db.batch();
+          patsSnap.docs.forEach(d => batchPats.delete(d.ref));
+          await batchPats.commit();
+        }
+      } catch (e) {
+        console.warn('[Firebase] No se pudo borrar patrones:', e.message);
+      }
+
       try { await userRef.delete(); } catch (e) {
         console.warn('[Firebase] No se pudo borrar doc usuario:', e.message);
       }
