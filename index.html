@@ -2614,7 +2614,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-redo').onclick = _redo;
     document.getElementById('dv6-clr').onclick  = () => { if (confirm('¿Limpiar todo?')) { _snapshot(); _clearAll(); } };
     document.getElementById('dv6-sv').onclick   = _showSaveDialog;
-    document.getElementById('dv6-svb').onclick  = _showSaveDialog;
+    document.getElementById('dv6-svb')?.addEventListener('click', _showSaveDialog);
     const addSampleBtn = document.getElementById('dv6-addsample-btn');
     if (addSampleBtn) addSampleBtn.onclick = _addSample;
     const viewSamplesBtn = document.getElementById('dv6-viewsamples-btn');
