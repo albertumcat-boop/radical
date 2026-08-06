@@ -2616,8 +2616,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-undo').onclick = _undo;
     document.getElementById('dv6-redo').onclick = _redo;
     document.getElementById('dv6-clr').onclick  = () => { if (confirm('¿Limpiar todo?')) { _snapshot(); _clearAll(); } };
-    document.getElementById('dv6-sv').onclick   = _save;
-    document.getElementById('dv6-svb').onclick  = _save;
+    document.getElementById('dv6-sv').onclick   = _showSaveDialog;
+    document.getElementById('dv6-svb').onclick  = _showSaveDialog;
     const svbaseBtn = document.getElementById('dv6-svbase-btn');
     if (svbaseBtn) svbaseBtn.onclick = _saveAsBase;
     const clrbaseBtn = document.getElementById('dv6-clrbase-btn');
@@ -6020,6 +6020,90 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   // ════════════════════════════════════════════════════════════
   // GUARDAR / CARGAR
   // ════════════════════════════════════════════════════════════
+  function _showSaveDialog() {
+    let ov = document.getElementById('dv6-save-dialog');
+    if (ov) ov.remove();
+    ov = document.createElement('div');
+    ov.id = 'dv6-save-dialog';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(6px)';
+    ov.innerHTML = `
+      <div style="background:#1c1c2a;border:1px solid #3d3d58;border-radius:14px;padding:24px;width:min(420px,94vw);box-shadow:0 24px 60px rgba(0,0,0,.5)">
+        <div style="font-size:15px;font-weight:800;color:#ede9fe;margin-bottom:16px">💾 Guardar patrón</div>
+        <label style="font-size:11px;color:#9490b0;display:block;margin-bottom:5px">Nombre</label>
+        <input id="dv6-sd-name" type="text" value="${_esc(_pieceName)}"
+          style="width:100%;background:#141420;border:1.5px solid #2e2e45;color:#ede9fe;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1.5px solid #2e2e45;border-radius:9px;transition:border-color .15s;margin-bottom:4px" id="dv6-sd-blabel">
+          <input type="checkbox" id="dv6-sd-bloque" style="width:16px;height:16px;accent-color:#8b5cf6;cursor:pointer;flex-shrink:0">
+          <span style="font-size:12px;color:#c4b5fd;font-weight:600">También guardar como Bloque Base</span>
+        </label>
+        <div id="dv6-sd-bextra" style="display:none;padding:12px;background:#141420;border:1px solid #2e2e45;border-radius:0 0 9px 9px;margin-bottom:4px">
+          <label style="font-size:11px;color:#9490b0;display:block;margin-bottom:6px">Categoría</label>
+          <select id="dv6-sd-cat" style="width:100%;background:#1c1c2a;border:1.5px solid #3d3d58;color:#ede9fe;border-radius:7px;padding:8px 10px;font-size:12px;font-family:inherit;outline:none">
+            <option value="espalda">🔙 Espalda</option>
+            <option value="frente">👕 Frente</option>
+            <option value="manga">👔 Manga</option>
+            <option value="falda">👗 Falda</option>
+            <option value="pantalon">👖 Pantalón</option>
+            <option value="cuerpo">🧵 Cuerpo</option>
+            <option value="otro">📐 Otro</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+          <button id="dv6-sd-cancel" style="padding:9px 18px;background:transparent;border:1.5px solid #3d3d58;color:#9490b0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
+          <button id="dv6-sd-ok" style="padding:9px 20px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">💾 Guardar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    const nameInp  = document.getElementById('dv6-sd-name');
+    const chk      = document.getElementById('dv6-sd-bloque');
+    const bextra   = document.getElementById('dv6-sd-bextra');
+    const blabel   = document.getElementById('dv6-sd-blabel');
+
+    nameInp.focus(); nameInp.select();
+    nameInp.addEventListener('input', () => {
+      _pieceName = nameInp.value || 'Mi Pieza';
+      const nm = document.getElementById('dv6-nm');
+      if (nm) nm.value = _pieceName;
+    });
+    chk.addEventListener('change', () => {
+      bextra.style.display = chk.checked ? 'block' : 'none';
+      blabel.style.borderColor = chk.checked ? '#8b5cf6' : '#2e2e45';
+      blabel.style.borderRadius = chk.checked ? '9px 9px 0 0' : '9px';
+    });
+
+    const close = () => ov.remove();
+    document.getElementById('dv6-sd-cancel').onclick = close;
+    ov.addEventListener('pointerdown', e => { if (e.target === ov) close(); });
+    nameInp.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('dv6-sd-ok').click(); });
+
+    document.getElementById('dv6-sd-ok').onclick = async () => {
+      _pieceName = nameInp.value.trim() || 'Mi Pieza';
+      const nm = document.getElementById('dv6-nm');
+      if (nm) nm.value = _pieceName;
+      close();
+      _save();
+      if (chk.checked && PAT.Bloques) {
+        const cat = document.getElementById('dv6-sd-cat').value;
+        try {
+          await PAT.Bloques.guardar({
+            name:        _pieceName,
+            categoria:   cat,
+            descripcion: '',
+            sistema:     'Propio',
+            points:      JSON.parse(JSON.stringify(_points)),
+            lines:       JSON.parse(JSON.stringify(_lines)),
+            ptCtr:       _ptCtr,
+            medidasBase: _pieceMedidas ? JSON.parse(JSON.stringify(_pieceMedidas)) : {},
+          });
+          if (PAT.App) PAT.App.toast('📚 También guardado en Bloques Base · categoría: ' + cat, 'success');
+        } catch (e) {
+          if (PAT.App) PAT.App.toast('⚠ Error al guardar en Bloques Base: ' + e.message, 'error');
+        }
+      }
+    };
+  }
+
   function _save(){
     const data={name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr};
 
