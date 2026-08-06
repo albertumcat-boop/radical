@@ -5190,7 +5190,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         _points=JSON.parse(JSON.stringify(g.points));
         _lines=JSON.parse(JSON.stringify(g.lines));
         _ptCtr=g.ptCtr;
-        if(document.getElementById('dv6-sv-name')) document.getElementById('dv6-sv-name').value=g.name;
+        { const _el=document.getElementById('dv6-sv-name'); if(_el) _el.value=g.name; }
         _renderAll();_fitView();_refreshHistory();
         _closeGradeAllModal();
         if(PAT.App)PAT.App.toast(`Talla ${g.id} cargada en el editor`,'success');
@@ -5331,7 +5331,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _renderSeamCaptureUI(){
     _injectSeamPanel();
-    document.getElementById('seam-panel').style.display='flex';
+    { const _sp=document.getElementById('seam-panel'); if(_sp) _sp.style.display='flex'; }
     _renderSeamList();
     _updateSeamPathPreview();
   }
@@ -6946,7 +6946,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       ${hasW?`<div style="font-size:10px;font-weight:700;color:#f59e0b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Advertencias</div>${warnings.map(w=>`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:8px 10px;margin-bottom:5px;font-size:11px;color:#fbbf24">${w}</div>`).join('')}`:''}
       <div style="font-size:10px;font-weight:700;color:#34d399;margin-bottom:5px;margin-top:10px;text-transform:uppercase;letter-spacing:.8px">Análisis</div>
       ${info.map(i=>`<div style="font-size:10px;color:#9490b0;padding:2px 0;font-family:monospace">${i}</div>`).join('')}
-      <button onclick="document.getElementById('dv6-vm').remove()" style="width:100%;margin-top:14px;padding:10px;background:#8b5cf6;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font,'Segoe UI')">✓ Entendido</button>
+      <button onclick="document.getElementById('dv6-vm')?.remove()" style="width:100%;margin-top:14px;padding:10px;background:#8b5cf6;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font,'Segoe UI')">✓ Entendido</button>
     </div>`;
     document.body.appendChild(modal);
     modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
@@ -6998,7 +6998,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       <table style="width:100%;border-collapse:collapse;margin-bottom:18px;font-size:11px"><tbody>${ptRows}</tbody></table>
       <div style="font-size:10px;font-weight:700;color:#34d399;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px">Pasos del trazado — distancia punto a punto</div>
       <table style="width:100%;border-collapse:collapse;font-size:11px"><tbody>${lnRows}</tbody></table>
-      <button onclick="document.getElementById('dv6-rm').remove()" style="width:100%;margin-top:16px;padding:10px;background:#8b5cf6;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font,'Segoe UI')">✓ Cerrar</button>
+      <button onclick="document.getElementById('dv6-rm')?.remove()" style="width:100%;margin-top:16px;padding:10px;background:#8b5cf6;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font,'Segoe UI')">✓ Cerrar</button>
     </div>`;
     document.body.appendChild(modal);
     modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
