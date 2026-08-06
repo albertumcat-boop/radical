@@ -152,7 +152,7 @@ PAT.HelpPanel = (function () {
         },
         {
           title: '▶ Demo Espalda',
-          text: 'Carga automáticamente un patrón de espalda de demostración con puntos y fórmulas ya configurados. Útil para entender cómo funciona el sistema de fórmulas y puntos de referencia.',
+          text: 'Carga automáticamente un patrón de espalda de demostración con puntos y fórmulas ya configurados. Útil para entender cómo funciona el sistema de fórmulas y puntos de referencia.<br><br><button onclick="if(PAT.DrafterUI&&PAT.DrafterUI.demo){PAT.DrafterUI.open();setTimeout(()=>PAT.DrafterUI.demo(),200);}" style="padding:8px 16px;background:#34d399;color:#0a1a10;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">▶ Cargar Demo Espalda</button>',
           svg: ''
         },
         {

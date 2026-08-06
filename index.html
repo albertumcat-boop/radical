@@ -2078,23 +2078,19 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         <div style="position:relative;margin-top:6px">
           <button class="dv6-fb sec" id="dv6-more-btn" style="width:100%;display:flex;justify-content:center;align-items:center;gap:6px">⋯ Más opciones</button>
           <div id="dv6-more-menu" style="display:none;position:absolute;left:0;right:0;bottom:calc(100% + 4px);background:#19162c;border:1px solid #332d54;border-radius:8px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:50;flex-direction:column;gap:4px">
-            <button class="dv6-fb sec" id="dv6-svb">💾 Guardar sin agregar</button>
             <button class="dv6-fb sec" id="dv6-print-btn" title="PDF a escala 1:1 para imprimir">🖨 Imprimir esta pieza</button>
             <button class="dv6-fb sec" id="dv6-print-all-btn" title="Genera un PDF con cada pieza guardada en sección separada">🖨 PDF todas las piezas</button>
-            <button class="dv6-fb sec" id="dv6-download-btn" title="Descargar como SVG vectorial">⬇ Descargar SVG</button>
-            <button class="dv6-fb sec" id="dv6-export-json-btn" title="Descargar como JSON editable (reimportable)">⬇ Descargar JSON editable</button>
-            <button class="dv6-fb sec" id="dv6-import-json-btn" title="Cargar un JSON de patrón descargado previamente">⬆ Importar JSON</button>
+            <button class="dv6-fb sec" id="dv6-download-btn" title="Descargar SVG vectorial + JSON editable">⬇ Descargar (SVG + JSON)</button>
             <input type="file" id="dv6-import-json-file" accept=".json,application/json" style="display:none">
+            <button class="dv6-fb sec" id="dv6-import-json-btn" title="Cargar un JSON de patrón descargado previamente">⬆ Importar JSON</button>
             <button class="dv6-fb sec" id="dv6-share-btn" title="Compartir esta pieza">📤 Compartir</button>
             <button class="dv6-fb sec" id="dv6-historial-btn" style="border-color:rgba(251,191,36,.4);color:#fbbf24" title="Ver versiones anteriores">⏮ Historial versiones</button>
             <div style="height:1px;background:#2a2640;margin:2px 0"></div>
             <button class="dv6-fb sec" id="dv6-grade-all-btn" style="border-color:rgba(139,92,246,.5);color:#c4b5fd" title="Genera todas las tallas XS→XXL automáticamente">📐 Graduar tallas XS→XXL</button>
             <div style="height:1px;background:#2a2640;margin:2px 0"></div>
-            <button class="dv6-fb sec" id="dv6-svbase-btn" title="Guarda este trazo como base para el asistente">📌 Guardar como base</button>
-            <button class="dv6-fb sec" id="dv6-clrbase-btn" title="Quita la base personalizada">✖ Quitar base</button>
             <button class="dv6-fb sec" id="dv6-addsample-btn" style="display:none" title="Agregar muestra para graduar">📊 Agregar muestra</button>
             <button class="dv6-fb sec" id="dv6-viewsamples-btn" style="display:none" title="Ver muestras guardadas">📊 Ver muestras</button>
-            <button class="dv6-fb sec" id="dv6-demo" style="border-color:rgba(52,211,153,.3);color:#34d399" title="Trazar espalda básica automáticamente">▶ Demo Espalda</button>
+            <button class="dv6-fb sec" id="dv6-demo" style="display:none">▶ Demo Espalda</button>
             <button class="dv6-fb sec" id="dv6-rpb">📋 Reporte / auditoría</button>
           </div>
         </div>
@@ -2619,16 +2615,6 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-clr').onclick  = () => { if (confirm('¿Limpiar todo?')) { _snapshot(); _clearAll(); } };
     document.getElementById('dv6-sv').onclick   = _showSaveDialog;
     document.getElementById('dv6-svb').onclick  = _showSaveDialog;
-    const svbaseBtn = document.getElementById('dv6-svbase-btn');
-    if (svbaseBtn) svbaseBtn.onclick = _saveAsBase;
-    const clrbaseBtn = document.getElementById('dv6-clrbase-btn');
-    if (clrbaseBtn) clrbaseBtn.onclick = function(){
-      if(!_pieceBloqueId){ if(PAT.App)PAT.App.toast('⚠ Esta pieza no tiene un ID de bloque reconocido','error'); return; }
-      if(!confirm(`¿Quitar la base personalizada de "${_pieceName}"?\nLa próxima vez se generará desde las fórmulas estándar NH.`))return;
-      _clearBaseOverride(_pieceBloqueId);
-      if(PAT.App)PAT.App.toast('✖ Base personalizada eliminada para "'+_pieceName+'"','success');
-      else alert('Base personalizada eliminada.');
-    };
     const addSampleBtn = document.getElementById('dv6-addsample-btn');
     if (addSampleBtn) addSampleBtn.onclick = _addSample;
     const viewSamplesBtn = document.getElementById('dv6-viewsamples-btn');
@@ -2685,9 +2671,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-line-struct-btn').onclick = _toggleLineStructure;
     document.getElementById('dv6-print-btn').onclick    = _imprimirPieza;
     document.getElementById('dv6-print-all-btn').onclick = _imprimirTodasPiezas;
-    document.getElementById('dv6-download-btn').onclick = _descargarPieza;
+    document.getElementById('dv6-download-btn').onclick = () => { _descargarPieza(); setTimeout(_exportarJSON, 300); };
     document.getElementById('dv6-share-btn').onclick    = _compartirPieza;
-    document.getElementById('dv6-export-json-btn').onclick = _exportarJSON;
     document.getElementById('dv6-import-json-btn').onclick = function(){ document.getElementById('dv6-import-json-file').click(); };
     document.getElementById('dv6-import-json-file').onchange = _importarJSON;
     document.getElementById('dv6-historial-btn').onclick = _verHistorial;
@@ -6108,24 +6093,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   function _save(){
     const data={name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr};
 
-    // Detectar si ya existe otro patrón con el mismo nombre (distinto ID)
-    if(PAT.SavedPatterns){
+    // Si ya existe un patrón con el mismo nombre, sobreescribirlo automáticamente
+    if(PAT.SavedPatterns && !_curSave){
       const todos=PAT.SavedPatterns.obtenerTodos();
-      const duplicado=Object.values(todos).find(p=>p.name===_pieceName && p.id!==_curSave);
-      if(duplicado){
-        // Mostrar diálogo de confirmación antes de sobrescribir
-        const resp=confirm(
-          '⚠️ Ya existe un patrón llamado "'+_pieceName+'".\n\n'+
-          '• Aceptar = Guardar como NUEVO (no sobrescribe el existente)\n'+
-          '• Cancelar = Sobrescribir el existente (se perderá)'
-        );
-        if(resp){
-          // Guardar como nuevo (sin ID = crea uno nuevo)
-          _curSave=null;
-        }
-        // Si canceló: continúa y sobrescribe el duplicado usando su ID
-        else { _curSave=duplicado.id; }
-      }
+      const duplicado=Object.values(todos).find(p=>p.name===_pieceName);
+      if(duplicado) _curSave=duplicado.id;
     }
 
     // Guardar historial de las últimas 5 versiones antes de sobrescribir
