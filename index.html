@@ -775,6 +775,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
     <div class="sb-dd-panel" id="dd-avanzado">
       <button class="sb-btn ghost" id="btn-bloques" style="border-color:rgba(139,92,246,.4);color:#a78bfa">📚 Mis Bloques Base</button>
       <button class="sb-btn ghost" id="btn-mis-sistemas" style="border-color:rgba(139,92,246,.4);color:#a78bfa">📐 Mis Sistemas</button>
+      <button class="sb-btn ghost" id="btn-manuales" style="border-color:rgba(196,152,48,.4);color:#c49830" onclick="PAT.ManualsUI?.openLibrary()">📖 Mis Manuales</button>
     </div>
 
     <!-- Menú: Recursos -->
@@ -1382,6 +1383,8 @@ PAT.DrafterUI = (function () {
   let _showDims     = true;
   let _unifiedMode  = true;  // Modo unificado: click vacío=punto, click punto=línea
   let _buildLog     = [];    // Historial de construcción (Feature 4)
+  let _curColor     = '#e2e8f0'; // Color activo de línea
+  let _manualPrevLineCount = 0;  // Líneas antes del último paso capturado
 
   // ════════════════════════════════════════════════════════════
   function open() {
@@ -1430,6 +1433,9 @@ PAT.DrafterUI = (function () {
 .dv6-tb{display:flex;align-items:center;gap:4px;padding:6px 12px;border-bottom:1px solid #2e2e45;
   background:#06060d;flex-shrink:0;flex-wrap:wrap}
 .dv6-sep{width:1px;height:22px;background:#2e2e45;margin:0 4px}
+.dv6-clr-opt{width:24px;height:24px;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:border-color .1s}
+.dv6-clr-opt:hover,.dv6-clr-opt.on{border-color:#fff}
+#dv6-color-palette{min-width:150px}
 .tb{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;border:1.5px solid #2e2e45;
   background:#141420;color:#9490b0;cursor:pointer;font-size:11px;font-weight:600;
   font-family:var(--font,'Segoe UI');transition:all .15s;white-space:nowrap;user-select:none}
@@ -1647,6 +1653,30 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <button class="tb" id="dv6-zo">－</button>
     <button class="tb" id="dv6-zf">⊡ Ajustar</button>
     <button class="tb" id="dv6-tallas" title="Tabla de tallas estándar">📊 Tallas</button>
+    <div class="dv6-sep"></div>
+    <!-- Color de línea -->
+    <div style="display:flex;align-items:center;gap:5px;position:relative">
+      <span style="font-size:10px;color:#7c7aa8;white-space:nowrap">Color:</span>
+      <div id="dv6-color-swatch" title="Color de línea activo"
+           style="width:20px;height:20px;border-radius:4px;border:2px solid #5a5678;background:#e2e8f0;cursor:pointer;flex-shrink:0"></div>
+      <div id="dv6-color-palette" style="display:none;position:absolute;top:28px;left:0;z-index:200;background:#1a1828;border:1px solid #3d3d58;border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.7)">
+        <div style="display:grid;grid-template-columns:repeat(5,24px);gap:5px;margin-bottom:6px">
+          <div class="dv6-clr-opt" data-c="#e2e8f0" style="background:#e2e8f0" title="Blanco"></div>
+          <div class="dv6-clr-opt" data-c="#ef4444" style="background:#ef4444" title="Rojo — Delantero"></div>
+          <div class="dv6-clr-opt" data-c="#3b82f6" style="background:#3b82f6" title="Azul — Trasero"></div>
+          <div class="dv6-clr-opt" data-c="#10b981" style="background:#10b981" title="Verde — Manga"></div>
+          <div class="dv6-clr-opt" data-c="#f59e0b" style="background:#f59e0b" title="Amarillo — Pinzas"></div>
+          <div class="dv6-clr-opt" data-c="#8b5cf6" style="background:#8b5cf6" title="Violeta — Construcción"></div>
+          <div class="dv6-clr-opt" data-c="#ec4899" style="background:#ec4899" title="Rosa — Detalles"></div>
+          <div class="dv6-clr-opt" data-c="#06b6d4" style="background:#06b6d4" title="Cian — Refuerzo"></div>
+          <div class="dv6-clr-opt" data-c="#f97316" style="background:#f97316" title="Naranja — Separación"></div>
+          <div class="dv6-clr-opt" data-c="#6b7280" style="background:#6b7280" title="Gris — Auxiliar"></div>
+        </div>
+        <input type="color" id="dv6-color-custom" value="#e2e8f0" style="width:100%;height:24px;border:none;border-radius:4px;cursor:pointer;background:none">
+      </div>
+    </div>
+    <!-- Manual -->
+    <button class="tb" id="dv6-manual-btn" style="border-color:rgba(196,152,48,.4);color:#c49830" title="Panel de Manual de trazado">📖 Manual</button>
     <div class="dv6-sep"></div>
     <button class="tb red" id="dv6-clr">🗑 Limpiar</button>
     <button class="tb grn" id="dv6-sv">💾 Guardar</button>
@@ -2615,6 +2645,19 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-clr').onclick  = () => { if (confirm('¿Limpiar todo?')) { _snapshot(); _clearAll(); } };
     document.getElementById('dv6-sv').onclick   = _showSaveDialog;
     document.getElementById('dv6-svb')?.addEventListener('click', _showSaveDialog);
+
+    // Color picker de línea
+    _initColorPicker();
+
+    // Botón Manual
+    const manualBtn = document.getElementById('dv6-manual-btn');
+    if (manualBtn) manualBtn.onclick = () => {
+      if (PAT.ManualsUI) {
+        const body = document.querySelector('.dv6-body');
+        if (body) PAT.ManualsUI.initCapturePanel(body);
+        PAT.ManualsUI.showCapture();
+      }
+    };
     const addSampleBtn = document.getElementById('dv6-addsample-btn');
     if (addSampleBtn) addSampleBtn.onclick = _addSample;
     const viewSamplesBtn = document.getElementById('dv6-viewsamples-btn');
@@ -3646,9 +3689,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     if(type==='scurve'){
       // Curva en S: dos puntos de control independientes, con signo opuesto
       // por defecto (uno cóncavo, el otro convexo) — eso es lo que la hace "S".
-      _lines.push({from:fromId,to:toId,type,ctrl1:20,ctrl2:-20,cpx:null,cpy:null,name:null,formula:null});
+      _lines.push({from:fromId,to:toId,type,ctrl1:20,ctrl2:-20,cpx:null,cpy:null,name:null,formula:null,color:_curColor});
     }else{
-      _lines.push({from:fromId,to:toId,type,ctrl:20,cpx:null,cpy:null,name:null,formula:null});
+      _lines.push({from:fromId,to:toId,type,ctrl:20,cpx:null,cpy:null,name:null,formula:null,color:_curColor});
     }
     // Historial de construcción
     const a=_points[fromId],b=_points[toId];
@@ -4170,18 +4213,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         const{cpx,cpy}=_curveCP(a,b,ln);
         el=document.createElementNS(NS,'path');
         el.setAttribute('d',`M ${a.x} ${a.y} Q ${cpx} ${cpy} ${b.x} ${b.y}`);
-        el.setAttribute('stroke',i===_selectedLine?'#93c5fd':'#60a5fa');
+        el.setAttribute('stroke',i===_selectedLine?'#93c5fd':(ln.color||'#60a5fa'));
         el.setAttribute('fill','none');
       }else if(ln.type==='scurve'){
         const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
         el=document.createElementNS(NS,'path');
         el.setAttribute('d',`M ${a.x} ${a.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${b.x} ${b.y}`);
-        el.setAttribute('stroke',i===_selectedLine?'#6ee7b7':'#34d399');
+        el.setAttribute('stroke',i===_selectedLine?'#6ee7b7':(ln.color||'#34d399'));
         el.setAttribute('fill','none');
       }else{
         el=document.createElementNS(NS,'line');
         el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);
-        el.setAttribute('stroke',ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':'#e2e8f0');
+        el.setAttribute('stroke',ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':(ln.color||'#e2e8f0'));
         if(ln.type==='fold')el.setAttribute('stroke-dasharray','3,1.5');
         if(ln.type==='dart')el.setAttribute('stroke-dasharray','2,1');
       }
@@ -7324,6 +7367,120 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   }
 
   // ════════════════════════════════════════════════════════════
+  // MANUAL DE TRAZADO — captura + color picker
+  // ════════════════════════════════════════════════════════════
+
+  function _snapSVG(prevCount) {
+    // Genera SVG limpio: líneas previas en gris, líneas nuevas en su color
+    const pts = Object.values(_points);
+    if (!pts.length) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="white"/></svg>';
+
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+    const pad = 12;
+    const minX = Math.min(...xs) - pad, minY = Math.min(...ys) - pad;
+    const maxX = Math.max(...xs) + pad, maxY = Math.max(...ys) + pad;
+    const vw = maxX - minX, vh = maxY - minY;
+
+    let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${vw} ${vh}" style="max-width:100%;max-height:100%;display:block">`;
+    out += `<rect x="${minX}" y="${minY}" width="${vw}" height="${vh}" fill="white"/>`;
+
+    _lines.forEach((ln, i) => {
+      const a = _points[ln.from], b = _points[ln.to]; if (!a || !b) return;
+      const isNew = i >= prevCount;
+      const stroke = isNew ? (ln.color || '#1a1a2e') : '#c8c8d4';
+      const sw     = isNew ? 1.8 : 0.8;
+      const opacity= isNew ? '1' : '0.6';
+      let el = '';
+      if (ln.type === 'curve') {
+        const cp = _curveCP(a, b, ln);
+        el = `<path d="M${a.x},${a.y} Q${cp.cpx},${cp.cpy} ${b.x},${b.y}" fill="none" stroke="${stroke}" stroke-width="${sw}" opacity="${opacity}"/>`;
+      } else if (ln.type === 'scurve') {
+        const cp = _scurveCPs(a, b, ln);
+        el = `<path d="M${a.x},${a.y} C${cp.cp1x},${cp.cp1y} ${cp.cp2x},${cp.cp2y} ${b.x},${b.y}" fill="none" stroke="${stroke}" stroke-width="${sw}" opacity="${opacity}"/>`;
+      } else if (ln.type !== 'construction') {
+        el = `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${stroke}" stroke-width="${sw}" opacity="${opacity}"/>`;
+      }
+      out += el;
+    });
+
+    // Puntos — solo los que pertenecen a líneas nuevas se destacan
+    const newPtIds = new Set();
+    _lines.slice(prevCount).forEach(ln => { newPtIds.add(ln.from); newPtIds.add(ln.to); });
+    Object.entries(_points).forEach(([nm, pt]) => {
+      const isNew = newPtIds.has(nm);
+      out += `<circle cx="${pt.x}" cy="${pt.y}" r="${isNew?2.2:1.2}" fill="${isNew?'#4c1d95':'#9ca3af'}"/>`;
+      if (isNew) out += `<text x="${pt.x+2.5}" y="${pt.y-2}" font-size="4.5" fill="#4c1d95" font-family="Arial" font-weight="bold">${nm}</text>`;
+    });
+
+    out += '</svg>';
+    return out;
+  }
+
+  function _autoDescManual(prevCount) {
+    const newLines = _lines.slice(prevCount);
+    if (!newLines.length) return '';
+    const parts = newLines.map(ln => {
+      const a = _points[ln.from], b = _points[ln.to]; if (!a || !b) return null;
+      const dist = Math.round(Math.hypot(b.x - a.x, b.y - a.y));
+      let s = `${ln.from} → ${ln.to}`;
+      if (ln.name)    s = `${ln.name}: ` + s;
+      if (ln.formula) s += ` = ${ln.formula}`;
+      s += ` (${dist}mm / ${(dist/10).toFixed(1)}cm)`;
+      return s;
+    }).filter(Boolean);
+    return parts.join('\n');
+  }
+
+  async function _capturarPasoManual() {
+    if (!Object.keys(_points).length) {
+      _instr('⚠ No hay nada trazado para capturar.');
+      return;
+    }
+    const prev   = _manualPrevLineCount;
+    const newIds = _lines.map((_, i) => i).slice(prev);
+    const svg    = _snapSVG(prev);
+    const desc   = _autoDescManual(prev);
+
+    if (PAT.ManualsUI) {
+      await PAT.ManualsUI.registrarCaptura(svg, desc, newIds);
+      _manualPrevLineCount = _lines.length;
+    }
+  }
+
+  function _initColorPicker() {
+    const swatch  = document.getElementById('dv6-color-swatch');
+    const palette = document.getElementById('dv6-color-palette');
+    const custom  = document.getElementById('dv6-color-custom');
+    if (!swatch || !palette) return;
+
+    swatch.onclick = (e) => {
+      e.stopPropagation();
+      palette.style.display = palette.style.display === 'none' ? 'grid' : 'none';
+    };
+    document.addEventListener('click', () => { if (palette) palette.style.display = 'none'; });
+
+    document.querySelectorAll('.dv6-clr-opt').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _curColor = el.dataset.c;
+        swatch.style.background = _curColor;
+        if (custom) custom.value = _curColor;
+        document.querySelectorAll('.dv6-clr-opt').forEach(x => x.classList.remove('on'));
+        el.classList.add('on');
+        palette.style.display = 'none';
+      });
+    });
+
+    if (custom) {
+      custom.addEventListener('input', () => {
+        _curColor = custom.value;
+        swatch.style.background = _curColor;
+        document.querySelectorAll('.dv6-clr-opt').forEach(x => x.classList.remove('on'));
+      });
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════
   // MODO UNIFICADO — toggle (Feature 3)
   // ════════════════════════════════════════════════════════════
   function _toggleUnified(){
@@ -7390,7 +7547,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   return { open, openWith, close, validate: _validatePattern, _toggleUnified, demo: _runDemo,
            getState: _getState, cargarBloque: _cargarBloque, setBloqueId: _setBloqueId,
-           tieneContenido: _tieneContenido, nuevoEnBlanco: _nuevoEnBlanco };
+           tieneContenido: _tieneContenido, nuevoEnBlanco: _nuevoEnBlanco,
+           capturar: _capturarPasoManual };
 })();
 
 
@@ -7720,6 +7878,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="js/toolbar-config.js"></script>
 <script src="js/help-panel.js"></script>
 <script src="js/paywall.js"></script>
+<script src="js/manuals.js"></script>
+<script src="js/manuals-ui.js"></script>
 
 <script>
 // ── Inicializar grading selector ──────────────────────

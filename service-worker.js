@@ -4,7 +4,7 @@
  * Versión: debe actualizarse en cada deploy para invalidar caché.
  */
 
-const CACHE_STATIC = 'patronai-static-v107';
+const CACHE_STATIC = 'patronai-static-v108';
 
 // Assets que se cachean en la instalación
 const STATIC_ASSETS = [
@@ -63,6 +63,8 @@ const STATIC_ASSETS = [
   '/js/entrevista-sistema.js',
   '/js/help-panel.js',
   '/js/paywall.js',
+  '/js/manuals.js',
+  '/js/manuals-ui.js',
   '/tienda.html',
   '/js/tienda.js',
   '/admin.html',
@@ -84,7 +86,7 @@ function shouldNeverCache(url) {
 
 // ── Instalación: cachear assets estáticos ────────────────────────
 self.addEventListener('install', event => {
-  console.log('[SW] Instalando PatrónAI v107...');
+  console.log('[SW] Instalando PatrónAI v108...');
   event.waitUntil(
     caches.open(CACHE_STATIC).then(cache => {
       return cache.addAll(STATIC_ASSETS);

@@ -513,6 +513,7 @@ function _renderGrid() {
       { cat:'video',  label:'🎬 Video Cursos' },
       { cat:'pack',   label:'📦 Packs y Bundles' },
       { cat:'recurso',label:'📚 Recursos y Guías' },
+      { cat:'manual', label:'📖 Manuales de Trazado' },
     ];
     groups.forEach(g => {
       const items = filtered.filter(p => p.cat === g.cat);
