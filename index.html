@@ -4645,10 +4645,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     function _refreshDesdeDropdown(){
       const prev=desdeEl.value;
       desdeEl.innerHTML='<option value="">— Origen (A) —</option>';
-      Object.keys(_points).forEach(id=>{
+      Object.entries(_points).forEach(([id,p])=>{
         if(!id) return;
         const opt=document.createElement('option');
-        opt.value=id; opt.textContent='Desde '+id;
+        opt.value=p.name; opt.textContent='Desde '+p.name;
         desdeEl.appendChild(opt);
       });
       if(prev) desdeEl.value=prev;
