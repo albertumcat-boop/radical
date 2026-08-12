@@ -2972,29 +2972,22 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       return;
     }
 
+    // ── HERRAMIENTA SELECCIONAR: clic en cuerpo de línea → seleccionarla ──
+    // (Puntos de control ya se capturaron arriba; aquí cubrimos el cuerpo.)
+    if (_tool === 'select' && near === null && nearCtrl === -1 && !nearSCtrl) {
+      const lineHit = _nearestLineBody(mm, threshMm * 1.5);
+      if (lineHit.idx !== -1) {
+        _deselectPt();
+        _selectLine(lineHit.idx);
+        _refreshPanel();
+        _instr('✓ Línea seleccionada — cambia su color con la paleta o márcala como estructura con 🏗');
+        return;
+      }
+    }
+
     // ── MODO UNIFICADO (Feature 3) ──────────────────────────────────
     // Click vacío = agregar punto; Click en punto existente = iniciar/completar línea
     if (_unifiedMode && _tool !== 'addDart' && _tool !== 'select' && _tool !== 'measure' && _tool !== 'midpointTool') {
-      // Si hay un punto cerca PERO también hay un cuerpo de línea más cercano,
-      // y no hay ninguna línea a medio trazar, preferir SELECCIONAR la línea.
-      // Esto permite hacer clic en el cuerpo de una curva (ej. sisa) aunque
-      // sus extremos estén a poca distancia del cursor.
-      if (near && !_lnStart) {
-        const lineHit = _nearestLineBody(mm, threshMm);
-        if (lineHit.idx !== -1) {
-          // Obtener distancia real al punto más cercano para comparar
-          const nearPt = _points[near];
-          const ptDist = nearPt ? Math.hypot(nearPt.x - mm.x, nearPt.y - mm.y) : Infinity;
-          if (lineHit.dist < ptDist * 0.7) {
-            // La línea está claramente más cerca que el punto → seleccionar línea
-            _deselectPt();
-            _selectLine(lineHit.idx);
-            _refreshPanel();
-            _instr('✓ Línea seleccionada · doble clic para insertar un punto y partirla');
-            return;
-          }
-        }
-      }
       // El "tool" en modo unificado actúa como tipo de línea por defecto
       if (near) {
         // Clic en punto existente: iniciar o completar segmento
@@ -3021,20 +3014,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           _instr(`✋ Trazo cancelado. Clic de nuevo en ${_points[near].name} para iniciar una línea nueva.`);
         }
       } else if (!_lnStart) {
-        // Clic en vacío sin línea en curso: si cae sobre una línea,
-        // SELECCIONARLA (para ver sus propiedades, cambiarle el color, etc.).
-        // Para insertar un punto en la línea y partirla, usar doble clic.
+        // Clic en vacío sin línea en curso: si cae sobre una línea existente,
+        // insertar un punto ahí y partirla; si cae en vacío, agregar punto nuevo.
         const lineHit = _nearestLineBody(mm, threshMm);
-        if (lineHit.idx !== -1) {
-          _deselectPt();
-          _selectLine(lineHit.idx);
-          _refreshPanel();
-          _instr('✓ Línea seleccionada · doble clic para insertar un punto y partirla');
-          return;
-        }
-        // Clic realmente en vacío: agregar punto nuevo
         _snapshot();
-        _addPt(mm.x, mm.y);
+        if (lineHit.idx !== -1) {
+          _splitLine(lineHit.idx, mm.x, mm.y);
+        } else {
+          _addPt(mm.x, mm.y);
+        }
       } else {
         // Hay una línea a medio trazar: si el clic cayó sobre otra línea,
         // insertar un punto ahí y continuar encadenando.
