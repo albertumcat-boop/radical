@@ -1940,39 +1940,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
                sube 1cm" → recorre 5cm desde A hacia B, y luego se desplaza
                1cm perpendicular. -->
           <div style="margin:6px 14px 10px;padding:8px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
-            <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600;display:flex;align-items:center;justify-content:space-between">
-              <span>📍 DESDE OTRO PUNTO / SOBRE UNA LÍNEA</span>
-              <button id="dv6-fb2-toggle" title="Activar/desactivar esta sección" style="background:#1a3a1a;border:1px solid #2d6a2d;color:#4ade80;border-radius:4px;font-size:10px;padding:1px 8px;cursor:pointer;line-height:1.4;font-weight:700">ON</button>
-            </div>
-            <div id="dv6-fb2-body">
-            <div class="dv6-prow" style="padding:2px 0;gap:6px">
-              <span class="dv6-plb" style="width:18px">A</span>
-              <select class="dv6-pi" id="dv6-fb2-pointA" style="flex:1"></select>
-            </div>
-            <div class="dv6-prow" style="padding:2px 0;gap:6px">
-              <span class="dv6-plb" style="width:18px">B</span>
-              <select class="dv6-pi" id="dv6-fb2-pointB" style="flex:1">
-                <option value="">— ninguno —</option>
-              </select>
-            </div>
-            <div class="dv6-prow" style="padding:2px 0;gap:6px">
-              <span class="dv6-plb" style="flex:1;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="Distancia recorrida sobre la línea A→B, en cm">cm sobre línea A→B</span>
-              <input type="number" class="dv6-pi" id="dv6-fb2-dist" value="0" step="0.1" style="width:60px;flex:none" placeholder="cm">
-            </div>
-            <div class="dv6-prow" style="padding:2px 0;gap:6px">
-              <select class="dv6-pi" id="dv6-fb2-dir" style="flex:1">
-                <option value="up">Subir</option>
-                <option value="down">Bajar</option>
-                <option value="in">Meter (←)</option>
-                <option value="out" selected>Sacar (→)</option>
-              </select>
-              <input type="number" class="dv6-pi" id="dv6-fb2-cm" value="0" step="0.1" style="width:60px;flex:none" placeholder="cm">
-            </div>
-            <div id="dv6-fb2-preview" style="font-size:11px;color:#34d399;padding:4px 2px;font-weight:600">= —</div>
-            <div class="dv6-prow" style="padding:4px 0 0">
-              <button type="button" class="tb" id="dv6-fb2-go" style="width:100%;justify-content:center;font-size:10px;padding:5px 0">→ Ubicar punto aquí</button>
-            </div>
-            </div>
+            <div style="font-size:10px;color:#8b87a8;margin-bottom:6px;font-weight:600">⚓ ANCLAR PUNTO</div>
+            <div style="font-size:11px;color:#64748b;margin-bottom:8px">Doble clic sobre un punto en el canvas para anclarlo a otro. El punto seguirá al ancla si esta se mueve.</div>
           </div>
           <div class="dv6-prow" style="padding-bottom:8px">
             <button class="tb red" id="dv6-dpt" style="width:100%;justify-content:center;font-size:10px;padding:4px 0">🗑 Eliminar punto</button>
@@ -2829,6 +2798,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     wrap.addEventListener('pointercancel',_mup);
     wrap.addEventListener('pointerleave', _mup);
     wrap.addEventListener('wheel', _onWheel, { passive: false });
+    wrap.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const mm = _screenToMm(e.clientX, e.clientY);
+      const threshMm = 12 / (_zoom * SC);
+      const near = _nearest(mm, threshMm);
+      if (near && _tool === 'select') _showAnchorPopup(near);
+    });
 
     // En pantallas táctiles el panel derecho se vuelve un cajón inferior
     // que se abre/cierra con este botón (en escritorio el botón está
@@ -4721,27 +4697,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       const isY = targetId==='dv6-pfy';
       const isX = targetId==='dv6-pfx';
 
-      // Si hay un punto de referencia A seleccionado en "Desde otro punto",
-      // componer la fórmula como "Ref.y ± (formula)" en lugar de un valor
-      // absoluto — así el punto mantiene la dirección elegida al trazar.
       let formula = baseFormula;
-      const refAEl = document.getElementById('dv6-fb2-pointA');
-      const refId  = refAEl ? refAEl.value : null;
-      const refPt  = (refId && _points[refId] && (!window._fb2IsActive || window._fb2IsActive())) ? _points[refId] : null;
-      if (refPt) {
-        // Si el nombre del punto referencia no es identificador válido (empieza
-        // con dígito), usar el valor numérico directo en lugar de "nombre.x/y".
-        const validId = /^[A-Za-zÁÉÍÓÚÑáéíóúñ_]/.test(refPt.name);
-        if (isY) {
-          const refExpr = validId ? `${refPt.name}.y` : String(refPt.y);
-          const sign = p.y >= refPt.y ? '+' : '-';
-          formula = `${refExpr} ${sign} (${baseFormula})`;
-        } else if (isX) {
-          const refExpr = validId ? `${refPt.name}.x` : String(refPt.x);
-          const sign = p.x >= refPt.x ? '+' : '-';
-          formula = `${refExpr} ${sign} (${baseFormula})`;
-        }
-      }
 
       const el=document.getElementById(targetId);
       el.value=formula;
@@ -4760,182 +4716,96 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-fb-tox').onclick=()=>_insertar('dv6-pfx');
     document.getElementById('dv6-fb-toy').onclick=()=>_insertar('dv6-pfy');
 
-    const refPunto=_initPointRefBuilder();
-    _refreshFormulaBuilder=()=>{_cargarValorActual();_actualizarPreview();refPunto.refresh();};
+    _refreshFormulaBuilder=()=>{_cargarValorActual();_actualizarPreview();};
     _cargarValorActual();_actualizarPreview();
   }
 
-  /** Constructor "desde otro punto": para puntos/líneas estructurales que no
-   *  corresponden a una medida del cuerpo, sino que se ubican relativo a un
-   *  punto ya trazado (ej. "desde B, sube 3cm" para sacar la sisa).
-   *  Subir/Bajar mueven en Y; Meter/Sacar mueven en X. El eje que no se
-   *  mueve copia la coordenada del punto de referencia, así el nuevo punto
-   *  queda alineado con él. Es un valor numérico fijo (no una fórmula viva),
-   *  igual que mover el punto a mano — si el punto de referencia se mueve
-   *  después, este no se recalcula solo. */
-  function _initPointRefBuilder(){
-    const pointAEl=document.getElementById('dv6-fb2-pointA');
-    const pointBEl=document.getElementById('dv6-fb2-pointB');
-    const distEl=document.getElementById('dv6-fb2-dist');
-    const dirSel=document.getElementById('dv6-fb2-dir');
-    const cmEl=document.getElementById('dv6-fb2-cm');
-    const previewEl=document.getElementById('dv6-fb2-preview');
-    if(!pointAEl) return {refresh:()=>{}};
+  /** Anclar punto con doble clic: calcula automáticamente el offset entre
+   *  el punto actual y el punto de referencia, y guarda fx/fy como fórmula
+   *  viva. Si el punto de referencia se mueve, el anclado lo sigue. */
+  function _showAnchorPopup(ptId) {
+    const p = _points[ptId];
+    if (!p) return;
+    document.getElementById('dv6-anchor-popup')?.remove();
 
-    function _refresh(){
-      const prevA=pointAEl.value, prevB=pointBEl.value;
-      pointAEl.innerHTML='';
-      pointBEl.innerHTML='<option value="">— ninguno (solo subir/bajar/meter/sacar) —</option>';
-      Object.keys(_points).forEach(id=>{
-        if(id===_selected) return;
-        const pt=_points[id];
-        const label=pt.name+' ('+_fmtCoord(pt.x)+', '+_fmtCoord(pt.y)+' '+_coordUnit+')';
-        const optA=document.createElement('option');optA.value=id;optA.textContent=label;
-        pointAEl.appendChild(optA);
-        const optB=document.createElement('option');optB.value=id;optB.textContent=label;
-        pointBEl.appendChild(optB);
-      });
-      // Si hay línea en curso, pre-seleccionar el punto de inicio como referencia A
-      const autoA = _lnStart && _points[_lnStart] ? _lnStart : null;
-      if(autoA) pointAEl.value=autoA;
-      else if(prevA&&_points[prevA]&&prevA!==_selected) pointAEl.value=prevA;
-      if(prevB&&_points[prevB]&&prevB!==_selected) pointBEl.value=prevB;
-      _actualizarPreview2();
-    }
+    const popup = document.createElement('div');
+    popup.id = 'dv6-anchor-popup';
+    popup.style.cssText = 'position:fixed;z-index:9999;background:#1a1730;border:1px solid #7c3aed;border-radius:10px;padding:14px 16px;min-width:230px;box-shadow:0 4px 24px rgba(0,0,0,.7)';
 
-    /** Calcula {x,y} en mm según el modo activo (con o sin Punto B). */
-    function _calcular(){
-      const A=_points[pointAEl.value];
-      if(!A) return null;
-      const dir=dirSel.value;
-      const offMM=(parseFloat(cmEl.value)||0)*10;
-      const B=pointBEl.value?_points[pointBEl.value]:null;
-      let x,y;
-      if(B){
-        const dx=B.x-A.x, dy=B.y-A.y;
-        const L=Math.sqrt(dx*dx+dy*dy);
-        if(L<1e-6) return null; // A y B coinciden, sin dirección de línea
-        const distMM=(parseFloat(distEl.value)||0)*10;
-        x=A.x+(dx/L)*distMM; y=A.y+(dy/L)*distMM;
-      } else {
-        x=A.x; y=A.y;
-      }
-      if(dir==='up') y-=offMM;
-      else if(dir==='down') y+=offMM;
-      else if(dir==='in') x-=offMM;
-      else if(dir==='out') x+=offMM;
-      return {x,y};
-    }
-    function _actualizarPreview2(){
-      const r=_calcular();
-      previewEl.textContent=r?('= X='+_fmtCoord(r.x)+_coordUnit+', Y='+_fmtCoord(r.y)+_coordUnit):'= —';
-    }
-    // Devuelve la expresión de fórmula para coordenada de un punto.
-    // Si el nombre no es un identificador válido (ej. "2"), usa el valor numérico directamente.
+    // Centrar en pantalla
+    popup.style.top = '50%';
+    popup.style.left = '50%';
+    popup.style.transform = 'translate(-50%,-50%)';
+
+    const otherPts = Object.entries(_points).filter(([id]) => id !== ptId);
+    if (!otherPts.length) { alert('No hay otros puntos para anclar.'); return; }
+
+    const opts = otherPts.map(([id, pt]) =>
+      `<option value="${id}">${pt.name} (${_fmtCoord(pt.x)}, ${_fmtCoord(pt.y)} ${_coordUnit})</option>`
+    ).join('');
+
+    popup.innerHTML = `
+      <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:10px">⚓ Anclar punto <span style="color:#fbbf24">${p.name}</span> a...</div>
+      <select id="dv6-anchor-sel" style="width:100%;background:#0f0f1a;color:#e2e8f0;border:1px solid #2a2640;border-radius:6px;padding:6px 8px;font-size:13px;margin-bottom:10px">${opts}</select>
+      <div id="dv6-anchor-preview" style="font-size:11px;color:#34d399;margin-bottom:10px;min-height:16px"></div>
+      <div style="display:flex;gap:8px">
+        <button id="dv6-anchor-ok" style="flex:1;background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:7px 0;font-size:13px;font-weight:700;cursor:pointer">⚓ Anclar</button>
+        <button id="dv6-anchor-cancel" style="flex:1;background:#2a2640;color:#94a3b8;border:none;border-radius:6px;padding:7px 0;font-size:13px;cursor:pointer">Cancelar</button>
+      </div>`;
+
+    document.body.appendChild(popup);
+
     function _ptRef(pt, axis) {
-      return /^[A-Za-zÁÉÍÓÚÑáéíóúñ_]/.test(pt.name)
-        ? pt.name + '.' + axis
-        : String(axis==='x' ? pt.x : pt.y);
+      return /^[A-Za-zÁÉÍÓÚÑáéíóúñ_]/.test(pt.name) ? pt.name + '.' + axis : String(axis==='x' ? pt.x : pt.y);
     }
+    function _updatePreview() {
+      const refId = document.getElementById('dv6-anchor-sel').value;
+      const ref = _points[refId];
+      if (!ref) return;
+      const dx = Math.round((p.x - ref.x) * 10) / 10;
+      const dy = Math.round((p.y - ref.y) * 10) / 10;
+      const dxCm = Math.round(dx / 10 * 10) / 10;
+      const dyCm = Math.round(dy / 10 * 10) / 10;
+      const sign = v => v >= 0 ? `+${v}` : `${v}`;
+      document.getElementById('dv6-anchor-preview').textContent =
+        `X: ${_ptRef(ref,'x')} ${sign(dx)}mm · Y: ${_ptRef(ref,'y')} ${sign(dy)}mm (${sign(dxCm)}cm, ${sign(dyCm)}cm)`;
+    }
+    _updatePreview();
+    document.getElementById('dv6-anchor-sel').onchange = _updatePreview;
 
-    function _ubicar(){
-      // Si hay una línea a medio trazar (_lnStart), crear un punto NUEVO
-      // y conectarlo desde _lnStart. Así el constructor funciona directamente
-      // desde el primer clic en el punto de inicio sin necesidad de haber
-      // creado antes un punto destino.
-      if (_lnStart && _points[_lnStart]) {
-        const A=_points[pointAEl.value];
-        if(!A){alert('Elige el punto A de referencia.');return;}
-        if(!A.name){alert('El punto A necesita un nombre para poder citarlo en la fórmula.');return;}
-        const dir=dirSel.value;
-        const offCm=parseFloat(cmEl.value)||0;
-        const B=pointBEl.value?_points[pointBEl.value]:null;
-        let fx,fy;
-        if(B){
-          if(!B.name){alert('El punto B necesita un nombre para poder citarlo en la fórmula.');return;}
-          const distCm=parseFloat(distEl.value)||0;
-          fx='LINEA_X('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
-          fy='LINEA_Y('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
-        } else {
-          const mm=offCm*10;
-          fx=_ptRef(A,'x'); fy=_ptRef(A,'y');
-          if(dir==='up')   fy=_ptRef(A,'y')+'-'+mm;
-          else if(dir==='down') fy=_ptRef(A,'y')+'+'+mm;
-          else if(dir==='in')   fx=_ptRef(A,'x')+'-'+mm;
-          else if(dir==='out')  fx=_ptRef(A,'x')+'+'+mm;
-        }
-        const vx=_evalF(fx)||0, vy=_evalF(fy)||0;
-        _snapshot();
-        const newId=_addPt(vx,vy,null,fx,fy);
-        _addLn(_lnStart, newId, _tool);
-        _lnStart=newId;
-        _renderAll();
-        _instr('✅ Punto creado y línea trazada · siguiente clic para continuar');
-        return;
-      }
-      if(!_selected||!_points[_selected]){
-        alert('Selecciona primero el punto que quieres ubicar, o inicia una línea desde otro punto.');
-        return;
-      }
-      const A=_points[pointAEl.value];
-      if(!A){alert('Elige el punto A de referencia.');return;}
-      if(!A.name){alert('El punto A necesita un nombre (ej. "B") para poder citarlo en la fórmula.');return;}
-      const dir=dirSel.value;
-      const offCm=parseFloat(cmEl.value)||0;
-      const B=pointBEl.value?_points[pointBEl.value]:null;
-      const p=_points[_selected];
-      let fx,fy;
-      if(B){
-        if(!B.name){alert('El punto B necesita un nombre para poder citarlo en la fórmula.');return;}
-        const distCm=parseFloat(distEl.value)||0;
-        // Fórmula VIVA: recorre distCm cm sobre la línea A→B y luego se
-        // desplaza offCm cm perpendicular (subir/bajar/meter/sacar). Si A
-        // o B se recalculan al cambiar de medidas/talla, este punto los sigue.
-        fx='LINEA_X('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
-        fy='LINEA_Y('+A.name+','+B.name+','+distCm+','+dir+','+offCm+')';
-      } else {
-        const mm=offCm*10;
-        fx=_ptRef(A,'x'); fy=_ptRef(A,'y');
-        if(dir==='up')   fy=_ptRef(A,'y')+'-'+mm;
-        else if(dir==='down') fy=_ptRef(A,'y')+'+'+mm;
-        else if(dir==='in')   fx=_ptRef(A,'x')+'-'+mm;
-        else if(dir==='out')  fx=_ptRef(A,'x')+'+'+mm;
-      }
-      p.fx=fx; p.fy=fy;
-      // Aplicar la fórmula YA al punto (no solo guardar el texto) — mismo
-      // fix que en el constructor de medidas: si no se hace esto, el punto
-      // se queda donde estuviera trazado a mano hasta tocar el campo de texto.
-      const vx=_evalF(fx), vy=_evalF(fy);
-      if(vx!=null) p.x=vx;
-      if(vy!=null) p.y=vy;
-      document.getElementById('dv6-pfx').value=fx;
-      document.getElementById('dv6-pfy').value=fy;
-      document.getElementById('dv6-px').value=_fmtCoord(p.x);
-      document.getElementById('dv6-py').value=_fmtCoord(p.y);
-      // Esta relación con A/B ya queda guardada en la fórmula viva (fx/fy).
-      // Si además había una línea recta dibujada a mano entre el punto
-      // ubicado y A o B (ej. trazada antes con la herramienta "L"), esa
-      // línea visual ya no representa nada nuevo — y al subir/bajar/meter/
-      // sacar el punto, se ve como una línea diagonal "tirando" hacia A o B,
-      // que es justo lo que confundía: parecía que el punto se trasladaba a
-      // A cuando en realidad solo se estiraba la línea vieja. Se elimina
-      // automáticamente para que el punto quede libre; las líneas que
-      // realmente quieras desde este punto se trazan después, a mano.
-      const refIds=[pointAEl.value,pointBEl.value].filter(Boolean);
-      const antes=_lines.length;
-      _lines=_lines.filter(l=>!((l.from===_selected&&refIds.includes(l.to))||(l.to===_selected&&refIds.includes(l.from))));
-      if(_lines.length<antes){
-        if(_selectedLine!=null&&!_lines[_selectedLine])_selectedLine=null;
-        _instr('🧹 Se quitó la línea recta que conectaba este punto con '+refIds.map(id=>_points[id]?.name||id).join('/')+' (ya no hace falta: la posición vive en la fórmula). Traza tú las líneas nuevas que necesites desde aquí.');
-      }
+    document.getElementById('dv6-anchor-ok').onclick = () => {
+      const refId = document.getElementById('dv6-anchor-sel').value;
+      const ref = _points[refId];
+      if (!ref || !ref.name) { alert('El punto ancla necesita un nombre.'); return; }
+      const dx = Math.round((p.x - ref.x) * 10) / 10;
+      const dy = Math.round((p.y - ref.y) * 10) / 10;
+      const rx = _ptRef(ref, 'x');
+      const ry = _ptRef(ref, 'y');
+      const fx = dx === 0 ? rx : `${rx} + (${dx})`;
+      const fy = dy === 0 ? ry : `${ry} + (${dy})`;
+      _snapshot();
+      p.fx = fx; p.fy = fy;
+      const vx = _evalF(fx), vy = _evalF(fy);
+      if (vx != null) p.x = vx;
+      if (vy != null) p.y = vy;
+      const pfxEl = document.getElementById('dv6-pfx');
+      const pfyEl = document.getElementById('dv6-pfy');
+      if (pfxEl) pfxEl.value = fx;
+      if (pfyEl) pfyEl.value = fy;
       _updateFVal(); _renderAll();
-    }
-    pointAEl.onchange=_actualizarPreview2;
-    pointBEl.onchange=_actualizarPreview2;
-    distEl.oninput=_actualizarPreview2;
-    dirSel.onchange=_actualizarPreview2;
-    cmEl.oninput=_actualizarPreview2;
-    document.getElementById('dv6-fb2-go').onclick=_ubicar;
+      popup.remove();
+      _instr(`⚓ ${p.name} anclado a ${ref.name} — se moverá junto con él`);
+    };
+    document.getElementById('dv6-anchor-cancel').onclick = () => popup.remove();
+    // Cerrar al hacer clic fuera
+    setTimeout(() => document.addEventListener('click', function _close(e) {
+      if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', _close); }
+    }), 100);
+  }
+
+  function _initPointRefBuilder(){
+    // Reemplazado por ancla con clic derecho (_showAnchorPopup).
+    function _refresh(){}
 
     // Toggle ON/OFF sección "Desde otro punto"
     let _fb2Active = true;
