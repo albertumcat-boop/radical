@@ -2988,6 +2988,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     // ── MODO UNIFICADO (Feature 3) ──────────────────────────────────
     // Click vacío = agregar punto; Click en punto existente = iniciar/completar línea
     if (_unifiedMode && _tool !== 'addDart' && _tool !== 'select' && _tool !== 'measure' && _tool !== 'midpointTool') {
+      // Si hay un picker activo (Desde punto / ancla / línea), cederle el clic
+      if (near && (window._desdePick?.active() || window._anchorPick || window._lineaPick)) {
+        _selectPt(near);
+        return;
+      }
       // El "tool" en modo unificado actúa como tipo de línea por defecto
       if (near) {
         // Clic en punto existente: iniciar o completar segmento
