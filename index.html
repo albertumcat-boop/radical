@@ -7931,8 +7931,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     _bloqueId  = null;
     const nm = document.getElementById('dv6-nm');
     if (nm) nm.value = _pieceName;
-    // Limpiar autosave para que no aparezca banner "¿Recuperar?" al abrir en blanco
-    try { localStorage.removeItem(AS_KEY); } catch(e) {}
+    // No borrar el autosave aquí — puede haber trabajo no guardado del usuario
     open();
   }
 
