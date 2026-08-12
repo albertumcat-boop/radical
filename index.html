@@ -1924,11 +1924,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
               </select>
               <input type="number" class="dv6-pi" id="dv6-fb-const" value="0" step="0.1" style="width:60px;flex:none" placeholder="cm">
             </div>
-            <div class="dv6-prow" style="padding:2px 0;gap:6px">
+            <div class="dv6-prow" style="padding:2px 0;gap:4px">
               <span class="dv6-plb" style="flex:1;font-size:10px">Desde punto</span>
               <select class="dv6-pi" id="dv6-fb-desde" style="flex:1">
                 <option value="">— Origen (A) —</option>
               </select>
+              <button type="button" id="dv6-fb-desde-pick" title="Clic en un punto del canvas para elegirlo"
+                style="padding:3px 7px;border-radius:5px;border:1px solid #2e2e45;background:#141420;color:#8b87a8;font-size:11px;cursor:pointer;flex-shrink:0">↗</button>
             </div>
             <div id="dv6-fb-preview" style="font-size:11px;color:#34d399;padding:4px 2px;font-weight:600">= —</div>
             <div class="dv6-prow" style="padding:4px 0 0;gap:6px">
@@ -3598,6 +3600,12 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     _instr('💾 Nota de «'+ptName+'» guardada');
   };
   function _selectPt(id){
+    // Si el modo "elegir desde canvas" está activo, no seleccionar — solo fijar referencia
+    if(id!=null && window._desdePick?.active()){
+      const name=_points[id]?.name;
+      if(name) window._desdePick.set(name);
+      return;
+    }
     _selected=id;
     if(id!=null) _autoOpenPanelMobile();
     document.dispatchEvent(new CustomEvent('pat:pointSelected'));
@@ -4654,6 +4662,28 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       if(prev) desdeEl.value=prev;
     }
     desdeEl.onchange=_actualizarPreview;
+
+    // Modo "elegir desde canvas": el siguiente clic en un punto lo pone en el dropdown
+    let _desdePicking=false;
+    const pickBtn=document.getElementById('dv6-fb-desde-pick');
+    if(pickBtn) pickBtn.onclick=()=>{
+      _desdePicking=!_desdePicking;
+      pickBtn.style.background=_desdePicking?'#4c1d95':'#141420';
+      pickBtn.style.color=_desdePicking?'#c4b5fd':'#8b87a8';
+      pickBtn.title=_desdePicking?'Clic en un punto del canvas…':'Clic en un punto del canvas para elegirlo';
+      document.getElementById('dv6-wrap').style.cursor=_desdePicking?'crosshair':'';
+    };
+    // Exponer para que _selectPt pueda interceptar el clic
+    window._desdePick={
+      active:()=>_desdePicking,
+      set:(name)=>{
+        _desdePicking=false;
+        if(pickBtn){pickBtn.style.background='#141420';pickBtn.style.color='#8b87a8';}
+        document.getElementById('dv6-wrap').style.cursor='';
+        desdeEl.value=name;
+        _actualizarPreview();
+      }
+    };
 
     function _medidaActual(){
       return _todasMedidas().find(m=>m.key===sel.value);
