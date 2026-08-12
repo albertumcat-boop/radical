@@ -17,9 +17,15 @@ window.PAT = window.PAT || {};
 PAT.SavedPatterns = (function () {
 
   const LS_KEY = 'pat_v6'; // misma clave que el localStorage legado, para migrar sin perder datos
+  const LS_DEL = 'pat_v6_deleted'; // IDs eliminados recientemente, para que onSnapshot no los restaure
   let _cache = {};
+  let _deleted = new Set(JSON.parse(localStorage.getItem(LS_DEL) || '[]'));
   let _loaded = false;
   let _unsubscribe = null; // listener onSnapshot activo
+
+  function _saveDeletions() {
+    try { localStorage.setItem(LS_DEL, JSON.stringify([..._deleted])); } catch(e) {}
+  }
 
   function _lsLoad() {
     try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); }
@@ -70,19 +76,24 @@ PAT.SavedPatterns = (function () {
         (snap) => {
           if (snap.exists) {
             const remote = snap.data().patrones || {};
-            // Merge inteligente: si un patrón local tiene savedAt más reciente que el remoto,
-            // conservar el local (evita race condition: onSnapshot llega con versión vieja
-            // justo después de que guardamos una nueva).
-            const merged = Object.assign({}, remote);
-            Object.entries(_cache).forEach(([id, localPat]) => {
-              const remotePat = remote[id];
-              if (localPat && localPat.savedAt && remotePat && remotePat.savedAt &&
+            // Merge inteligente:
+            // 1. IDs en _deleted nunca se restauran desde el servidor
+            // 2. Si un patrón local tiene savedAt más reciente que el remoto, conservar local
+            // 3. Si existe solo en local (aún no llegó al servidor), conservarlo
+            const merged = {};
+            Object.entries(remote).forEach(([id, remotePat]) => {
+              if (_deleted.has(id)) return; // fue eliminado localmente — ignorar
+              const localPat = _cache[id];
+              if (localPat && localPat.savedAt && remotePat.savedAt &&
                   localPat.savedAt > remotePat.savedAt) {
-                merged[id] = localPat;
-              } else if (localPat && !remotePat) {
-                // Patrón guardado localmente que aún no llegó al servidor
-                merged[id] = localPat;
+                merged[id] = localPat; // local más nuevo
+              } else {
+                merged[id] = remotePat;
               }
+            });
+            // Añadir patrones solo-local que aún no llegaron al servidor
+            Object.entries(_cache).forEach(([id, localPat]) => {
+              if (!_deleted.has(id) && !merged[id]) merged[id] = localPat;
             });
             _cache = merged;
             _lsSave(_cache);
@@ -124,8 +135,12 @@ PAT.SavedPatterns = (function () {
   }
 
   async function eliminar(id) {
+    _deleted.add(id);
+    _saveDeletions();
     delete _cache[id];
     await _persist();
+    // Limpiar de la lista de eliminados tras 60 s (suficiente para que Firestore propague)
+    setTimeout(() => { _deleted.delete(id); _saveDeletions(); }, 60000);
   }
 
   document.addEventListener('pat:authChanged', (e) => {

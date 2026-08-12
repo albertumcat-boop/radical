@@ -6714,9 +6714,24 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         _snapshot();_renderAll();_fitView();
       });
       div.querySelector('.dv6-sdel').addEventListener('click',e=>{
-        e.stopPropagation();if(!confirm('¿Eliminar "'+item.name+'"?'))return;
-        if(PAT.SavedPatterns){PAT.SavedPatterns.eliminar(id).then(()=>{_refreshSaved();if(PAT.App&&PAT.App.refreshCustomGarments)PAT.App.refreshCustomGarments();});}
-        else{delete store[id];localStorage.setItem(MK,JSON.stringify(store));_refreshSaved();}
+        e.stopPropagation();
+        // Modal de confirmación personalizado
+        const ov=document.createElement('div');
+        ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center';
+        ov.innerHTML=`<div style="background:#1a1730;border:1px solid #ef4444;border-radius:14px;padding:24px 26px;max-width:340px;width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.7)">
+          <div style="font-size:14px;font-weight:700;color:#f87171;margin-bottom:8px">🗑 Eliminar patrón</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:20px">¿Seguro que querés eliminar <b style="color:#e2e8f0">"${_esc(item.name)}"</b>?<br><br>Esta acción no se puede deshacer.</div>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button id="_del-cancel" style="background:#2a2640;color:#94a3b8;border:1px solid #334155;border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer">Cancelar</button>
+            <button id="_del-ok" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">Sí, eliminar</button>
+          </div></div>`;
+        document.body.appendChild(ov);
+        ov.querySelector('#_del-cancel').onclick=()=>ov.remove();
+        ov.querySelector('#_del-ok').onclick=()=>{
+          ov.remove();
+          if(PAT.SavedPatterns){PAT.SavedPatterns.eliminar(id).then(()=>{_refreshSaved();if(PAT.App&&PAT.App.refreshCustomGarments)PAT.App.refreshCustomGarments();});}
+          else{delete store[id];localStorage.setItem(MK,JSON.stringify(store));_refreshSaved();}
+        };
       });
       list.appendChild(div);
     });
