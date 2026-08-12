@@ -1924,6 +1924,12 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
               </select>
               <input type="number" class="dv6-pi" id="dv6-fb-const" value="0" step="0.1" style="width:60px;flex:none" placeholder="cm">
             </div>
+            <div class="dv6-prow" style="padding:2px 0;gap:6px">
+              <span class="dv6-plb" style="flex:1;font-size:10px">Desde punto</span>
+              <select class="dv6-pi" id="dv6-fb-desde" style="flex:1">
+                <option value="">— Origen (A) —</option>
+              </select>
+            </div>
             <div id="dv6-fb-preview" style="font-size:11px;color:#34d399;padding:4px 2px;font-weight:600">= —</div>
             <div class="dv6-prow" style="padding:4px 0 0;gap:6px">
               <button type="button" class="tb" id="dv6-fb-tox" style="flex:1;justify-content:center;font-size:10px;padding:5px 0">→ Insertar en X</button>
@@ -3594,6 +3600,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   function _selectPt(id){
     _selected=id;
     if(id!=null) _autoOpenPanelMobile();
+    document.dispatchEvent(new CustomEvent('pat:pointSelected'));
     _renderAll();
     _updateForm();
     _showNota(_points[id]);
@@ -4633,6 +4640,20 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const signEl=document.getElementById('dv6-fb-sign');
     const constEl=document.getElementById('dv6-fb-const');
     const previewEl=document.getElementById('dv6-fb-preview');
+    const desdeEl=document.getElementById('dv6-fb-desde');
+
+    function _refreshDesdeDropdown(){
+      const prev=desdeEl.value;
+      desdeEl.innerHTML='<option value="">— Origen (A) —</option>';
+      Object.keys(_points).forEach(id=>{
+        if(!id) return;
+        const opt=document.createElement('option');
+        opt.value=id; opt.textContent='Desde '+id;
+        desdeEl.appendChild(opt);
+      });
+      if(prev) desdeEl.value=prev;
+    }
+    desdeEl.onchange=_actualizarPreview;
 
     function _medidaActual(){
       return _todasMedidas().find(m=>m.key===sel.value);
@@ -4660,7 +4681,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       else { _pieceMedidas=_pieceMedidas||{}; _pieceMedidas[med.field]=v; }
       _actualizarPreview();
     }
-    function _compose(){
+    function _compose(axis){
       const medida=sel.value;
       const div=divEl.value;
       const sign=signEl.value;
@@ -4671,6 +4692,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         // La constante se escribe en cm; las fórmulas trabajan en mm, así
         // que se multiplica ×10 para que el resultado final quede correcto.
         f+=sign+(cm*10);
+      }
+      const desde=desdeEl.value;
+      if(desde){
+        const coord = axis==='y' ? 'y' : 'x';
+        f=desde+'.'+coord+' + ('+f+')';
       }
       return f;
     }
@@ -4684,7 +4710,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       let resultado=v/div;
       if(sign==='+') resultado+=cm;
       else if(sign==='-') resultado-=cm;
-      previewEl.textContent='= '+resultado.toFixed(1)+' cm';
+      const desde=desdeEl.value;
+      const desdeP=desde?_points[desde]:null;
+      if(desdeP){
+        // Mostrar el valor final sumando la posición del punto de referencia (en cm)
+        previewEl.textContent='= '+desde+'.coord + '+resultado.toFixed(1)+' cm';
+      } else {
+        previewEl.textContent='= '+resultado.toFixed(1)+' cm';
+      }
     }
     function _insertar(targetId){
       if(!_selected||!_points[_selected]){
@@ -4692,16 +4725,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         return;
       }
       _guardarValor();
-      const baseFormula=_compose(); // ej. "pecho/4"
-      const p=_points[_selected];
       const isY = targetId==='dv6-pfy';
-      const isX = targetId==='dv6-pfx';
-
-      let formula = baseFormula;
+      const axis = isY ? 'y' : 'x';
+      const formula=_compose(axis); // ej. "2.x + (pecho/4)"
+      const p=_points[_selected];
 
       const el=document.getElementById(targetId);
       el.value=formula;
-      if(isX) p.fx=formula; else p.fy=formula;
+      if(isY) p.fy=formula; else p.fx=formula;
       const vx=p.fx?_evalF(p.fx):null;
       const vy=p.fy?_evalF(p.fy):null;
       if(vx!==null&&p.fx){p.x=vx;document.getElementById('dv6-px').value=_fmtCoord(vx);}
@@ -4713,6 +4744,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     divEl.onchange=_actualizarPreview;
     signEl.onchange=_actualizarPreview;
     constEl.oninput=_actualizarPreview;
+    // Refrescar dropdown "Desde punto" cada vez que se selecciona un punto
+    document.addEventListener('pat:pointSelected', _refreshDesdeDropdown);
+    document.addEventListener('pat:pointsChanged', _refreshDesdeDropdown);
     document.getElementById('dv6-fb-tox').onclick=()=>_insertar('dv6-pfx');
     document.getElementById('dv6-fb-toy').onclick=()=>_insertar('dv6-pfy');
 
