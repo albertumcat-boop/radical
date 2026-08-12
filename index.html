@@ -5506,10 +5506,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   function _getMeasures(){
     const def={bust:88,waist:68,hip:94,shoulder:38,neck:36,backLength:40,frontLength:42,totalLength:65,sleeveLength:60,sleeveShort:20,armCirc:28,wrist:16,skirtLength:60,hipDepth:20};
     const m={};
+    // Leer primero la Tabla de Medidas (fuente principal cuando el usuario usa ese panel)
+    if (PAT.MeasureTable?.getValues) Object.assign(m, PAT.MeasureTable.getValues());
+    // Luego los inputs del panel simple (pueden sobreescribir si el usuario los editó directamente)
     document.querySelectorAll('[data-measure]').forEach(el=>{const v=parseFloat(el.value);if(!isNaN(v)&&v>0)m[el.dataset.measure]=v;});
-    // Las medidas propias de la pieza actual (ej. armCirc/sleeveShort que vienen
-    // del formulario del asistente, no del panel global de medidas) también
-    // deben estar disponibles para las fórmulas.
     if (_pieceMedidas) Object.entries(_pieceMedidas).forEach(([k,v])=>{ if(v!=null && isFinite(v)) m[k]=v; });
     return Object.assign(def,m);
   }

@@ -702,6 +702,6 @@ ${hiddenCount > 0 ? `<p style="margin-top:10px;font-size:10px;color:#9ca3af;font
     _renderAll();
   }
 
-  return { open, rerender };
+  return { open, rerender, getValues: _collectValues };
 
 })();
