@@ -243,50 +243,45 @@ PAT.HelpPanel = (function () {
         },
         {
           title: '→ Insertar en X',
-          text: 'Aplica la fórmula calculada como coordenada X del punto seleccionado. Usa el punto A del bloque "Desde otro punto" como referencia: inserta "A.x + fórmula" o "A.x − fórmula" según la posición relativa. Si A no está definido, inserta el valor absoluto.',
+          text: 'Aplica la fórmula calculada como coordenada X del punto seleccionado. Inserta el valor absoluto de la medida calculada. Úsalo para puntos cuya posición X depende directamente de una medida del cuerpo.',
           svg: ''
         },
         {
           title: '→ Insertar en Y',
-          text: 'Igual que Insertar en X pero para la coordenada Y. Genera "A.y + fórmula" o "A.y − fórmula". Úsalo para posicionar puntos verticalmente respecto a un punto de referencia.',
+          text: 'Igual que Insertar en X pero para la coordenada Y. Úsalo para puntos cuya posición vertical depende directamente de una medida del cuerpo (talle, caída de hombro, etc.).',
           svg: ''
         }
       ]
     },
     // ─────────────────────────────────────────────────────────────────
     {
-      id: 'desde-otro-punto',
-      icon: '📐',
-      title: 'Desde otro punto / Línea',
+      id: 'anclar-punto',
+      icon: '⚓',
+      title: 'Anclar punto (clic derecho)',
       steps: [
         {
-          title: '¿Qué es?',
-          text: 'Esta sección posiciona el punto seleccionado calculando su lugar a partir de uno o dos puntos de referencia. El botón ▲/▼ en el encabezado colapsa o expande la sección. Tiene dos modos según si defines B o no.',
+          title: '¿Qué es anclar?',
+          text: 'Anclar conecta un punto a otro como referencia. Si el punto ancla se mueve (porque cambió una medida), el punto anclado lo sigue automáticamente manteniendo la misma distancia que tenía cuando lo anclaste.',
           svg: ''
         },
         {
-          title: 'Modo solo punto A (B = ninguno)',
-          text: 'Define el punto de origen. Luego usa "Sacar / Meter / Subir / Bajar" con una distancia en cm para mover el punto en esa dirección respecto a A. Ejemplo: A=D, Sacar 5cm → el punto queda 5cm a la derecha de D.',
+          title: 'Cómo anclar',
+          text: 'En modo Seleccionar, hacé clic derecho sobre cualquier punto del canvas. Aparece un popup con la lista de todos los demás puntos. Elegís el punto ancla y presionás "⚓ Anclar". El sistema calcula y guarda el offset automáticamente.',
           svg: ''
         },
         {
-          title: 'Modo sobre línea A→B',
-          text: 'Define dos puntos. El sistema traza la línea imaginaria entre A y B. El campo "cm sobre línea A→B" avanza esa distancia desde A hacia B sobre la línea. Luego la dirección y cm perpendicular alejan el punto de esa línea en ángulo recto.',
+          title: 'Qué pasa internamente',
+          text: 'El sistema mide la distancia actual entre el punto y el ancla (ej. 20mm abajo, 10mm a la izquierda) y guarda eso como fórmula viva: fx = "A.x + (−10)", fy = "A.y + (20)". No tenés que escribir nada.',
           svg: ''
         },
         {
-          title: 'Dirección perpendicular',
-          text: '"Subir" — aleja hacia arriba en la pantalla. "Bajar" — hacia abajo. "Sacar (→)" — hacia la derecha del vector A→B. "Meter (←)" — hacia la izquierda del vector A→B. El segundo número es cuántos cm perpendiculares.',
+          title: 'Cuándo usarlo',
+          text: 'Usá anclar para puntos que son un offset fijo de otro punto: "4a está 2cm abajo y 1cm a la izquierda del punto 4". Si el punto 4 se recalcula al cambiar ESPALDA, el punto 4a lo sigue solo.',
           svg: ''
         },
         {
-          title: '→ Ubicar punto aquí',
-          text: 'Aplica el cálculo actual al punto seleccionado en el canvas. Mueve el punto a la posición calculada. No asigna fórmula — es un valor absoluto. Si mueves A o B después, el punto NO se recalcula solo.',
-          svg: ''
-        },
-        {
-          title: 'Relación con Insertar en X/Y',
-          text: 'El punto A también sirve como referencia para "Insertar en X" e "Insertar en Y" del Constructor de Fórmula. Cuando cambias A aquí, la fórmula generada cambia para usar ese punto de referencia.',
+          title: 'Diferencia con el Constructor',
+          text: 'El Constructor de Fórmula es para puntos que dependen de una medida del cuerpo (BUSTO/4, ESPALDA/6). El ancla es para puntos que dependen de otro punto, con un offset fijo en cm.',
           svg: ''
         }
       ]
