@@ -1646,6 +1646,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <div class="dv6-sep"></div>
     <!-- Tallas -->
     <button class="tb yel" id="dv6-grade">📏 Escalar talla</button>
+    <button class="tb" id="dv6-struct-tb" title="Marcar/desmarcar línea seleccionada como línea de estructura (no entra al patrón ni al margen de costura)" style="border-color:rgba(167,139,250,.5);color:#a78bfa">🏗 Estructura</button>
     <button class="tb" id="dv6-seams-btn" style="border-color:rgba(167,139,250,.5);color:#a78bfa" title="Etiquetar costuras para gradación vectorial">🧵 Costuras</button>
     <div class="dv6-sep"></div>
     <!-- Vista -->
@@ -2745,6 +2746,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-apb').onclick  = function(){ _save(); _addToPattern(); };
     document.getElementById('dv6-rpb').onclick  = _showReporte;
     document.getElementById('dv6-line-struct-btn').onclick = _toggleLineStructure;
+    document.getElementById('dv6-struct-tb').onclick = _toggleLineStructure;
     document.getElementById('dv6-print-btn').onclick    = _imprimirPieza;
     document.getElementById('dv6-print-all-btn').onclick = _imprimirTodasPiezas;
     document.getElementById('dv6-download-btn').onclick = () => { _descargarPieza(); setTimeout(_exportarJSON, 300); };
@@ -6817,14 +6819,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     const pts=[];
     if(ln.type==='curve'){
       const{cpx,cpy}=_curveCP(a,b,ln);
-      for(let t=0;t<=12;t++){const u=t/12;pts.push({
+      for(let t=0;t<=24;t++){const u=t/24;pts.push({
         x:(1-u)*(1-u)*a.x+2*(1-u)*u*cpx+u*u*b.x,
         y:(1-u)*(1-u)*a.y+2*(1-u)*u*cpy+u*u*b.y,
         seam,
       });}
     }else if(ln.type==='scurve'){
       const{cp1x,cp1y,cp2x,cp2y}=_scurveCPs(a,b,ln);
-      for(let t=0;t<=12;t++){const u=t/12,v=1-u;pts.push({
+      for(let t=0;t<=24;t++){const u=t/24,v=1-u;pts.push({
         x:v*v*v*a.x+3*v*v*u*cp1x+3*v*u*u*cp2x+u*u*u*b.x,
         y:v*v*v*a.y+3*v*v*u*cp1y+3*v*u*u*cp2y+u*u*u*b.y,
         seam,
