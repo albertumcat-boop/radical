@@ -2975,6 +2975,26 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     // ── MODO UNIFICADO (Feature 3) ──────────────────────────────────
     // Click vacío = agregar punto; Click en punto existente = iniciar/completar línea
     if (_unifiedMode && _tool !== 'addDart' && _tool !== 'select' && _tool !== 'measure' && _tool !== 'midpointTool') {
+      // Si hay un punto cerca PERO también hay un cuerpo de línea más cercano,
+      // y no hay ninguna línea a medio trazar, preferir SELECCIONAR la línea.
+      // Esto permite hacer clic en el cuerpo de una curva (ej. sisa) aunque
+      // sus extremos estén a poca distancia del cursor.
+      if (near && !_lnStart) {
+        const lineHit = _nearestLineBody(mm, threshMm);
+        if (lineHit.idx !== -1) {
+          // Obtener distancia real al punto más cercano para comparar
+          const nearPt = _points[near];
+          const ptDist = nearPt ? Math.hypot(nearPt.x - mm.x, nearPt.y - mm.y) : Infinity;
+          if (lineHit.dist < ptDist * 0.7) {
+            // La línea está claramente más cerca que el punto → seleccionar línea
+            _deselectPt();
+            _selectLine(lineHit.idx);
+            _refreshPanel();
+            _instr('✓ Línea seleccionada · doble clic para insertar un punto y partirla');
+            return;
+          }
+        }
+      }
       // El "tool" en modo unificado actúa como tipo de línea por defecto
       if (near) {
         // Clic en punto existente: iniciar o completar segmento
