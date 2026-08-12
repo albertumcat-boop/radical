@@ -280,8 +280,13 @@ PAT.HelpPanel = (function () {
           svg: ''
         },
         {
-          title: 'Diferencia con el Constructor',
-          text: 'El Constructor de Fórmula es para puntos que dependen de una medida del cuerpo (BUSTO/4, ESPALDA/6). El ancla es para puntos que dependen de otro punto, con un offset fijo en cm.',
+          title: '¿Fórmula o ancla? La regla práctica',
+          text: 'Fórmula → cuando el punto depende de una medida del cuerpo. Si en tu libreta escribirías "ESPALDA/6" o "BUSTO/4 + 2cm", usá el Constructor. Ancla → cuando el punto depende de otro punto con un offset fijo. Si escribirías "desde el punto 4, bajar 2cm y salir 1cm", anclá.',
+          svg: ''
+        },
+        {
+          title: 'La cadena completa',
+          text: 'ESPALDA cambia → punto 4 se recalcula (tiene fórmula ESPALDA/6) → punto 4a se mueve (está anclado a punto 4) → la línea del hombro se actualiza sola. Así funciona el patrón paramétrico: las medidas mueven los puntos base, y los puntos anclados los siguen en cadena.',
           svg: ''
         }
       ]
