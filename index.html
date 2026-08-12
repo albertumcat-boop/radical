@@ -4896,35 +4896,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     // Chip style base
     const _chipStyle='display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;cursor:pointer;border:1px solid #2e2e45;background:#1a1730;color:#c4b5fd;font-family:monospace;white-space:nowrap';
 
-    // Medidas disponibles con etiqueta legible
-    const _RAW_VARS=[
-      {lbl:'Talle del.',  ins:'TALLE_DEL'},
-      {lbl:'Talle esp.',  ins:'TALLE_ESP'},
-      {lbl:'Busto',       ins:'BUSTO'},
-      {lbl:'B/4',         ins:'B4'},
-      {lbl:'B/6',         ins:'B6'},
-      {lbl:'Cintura',     ins:'CINTURA'},
-      {lbl:'C/4',         ins:'W4'},
-      {lbl:'Cadera',      ins:'CADERA'},
-      {lbl:'Cd/4',        ins:'H4'},
-      {lbl:'Espalda',     ins:'ESPALDA'},
-      {lbl:'Esp/2',       ins:'E2'},
-      {lbl:'A.Espalda',   ins:'espaldaAncho'},
-      {lbl:'Sisa',        ins:'sisa'},
-      {lbl:'Largo total', ins:'LARGO'},
-      {lbl:'Manga',       ins:'MANGA'},
-    ];
-
     function _rawBuildVarChips(){
       const cont=document.getElementById('dv6-raw-vars');
       if(!cont) return;
       cont.innerHTML='';
-      _RAW_VARS.forEach(v=>{
+      _todasMedidas().forEach(m=>{
+        const v=_getMeasures()[m.field];
+        if(!v||v<=0) return; // solo mostrar medidas que el usuario ha llenado
         const b=document.createElement('span');
         b.setAttribute('style',_chipStyle);
-        b.title=v.ins;
-        b.textContent=v.lbl;
-        b.onclick=()=>_rawInsert(v.ins);
+        b.title=m.key+' — '+m.label;
+        b.textContent=m.label.split(/[\/(]/)[0].trim(); // nombre corto sin paréntesis
+        b.onclick=()=>_rawInsert(m.key);
         cont.appendChild(b);
       });
     }
