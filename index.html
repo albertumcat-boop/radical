@@ -1850,6 +1850,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             <div id="dv6-fa-x" style="font-size:10px;font-family:monospace;color:#9490b0;padding:2px 0"></div>
             <div id="dv6-fa-y" style="font-size:10px;font-family:monospace;color:#9490b0;padding:2px 0"></div>
             <div id="dv6-fa-none" style="font-size:10px;color:#3d3d58;font-style:italic">Sin fórmula — posición fija</div>
+            <!-- Entrada de fórmula directa -->
+            <div style="margin-top:7px;border-top:1px solid #1e1e30;padding-top:7px">
+              <div style="font-size:9px;color:#5a5678;margin-bottom:4px">Escribir fórmula directa (ej: TALLE_DEL - TALLE_ESP)</div>
+              <input id="dv6-raw-formula" type="text" placeholder="ej: 2.y + (TALLE_DEL - TALLE_ESP)"
+                style="width:100%;box-sizing:border-box;background:#141420;border:1px solid #2e2e45;border-radius:5px;color:#ede9fe;padding:5px 7px;font-size:10px;font-family:monospace;outline:none">
+              <div style="display:flex;gap:4px;margin-top:4px">
+                <button type="button" id="dv6-raw-tox" class="tb" style="flex:1;justify-content:center;font-size:10px;padding:4px 0">→ X</button>
+                <button type="button" id="dv6-raw-toy" class="tb" style="flex:1;justify-content:center;font-size:10px;padding:4px 0">→ Y</button>
+                <button type="button" id="dv6-raw-clear" class="tb" style="flex:none;justify-content:center;font-size:10px;padding:4px 8px;color:#f87171" title="Borrar fórmula y dejar posición fija">✕</button>
+              </div>
+              <div id="dv6-raw-preview" style="font-size:10px;color:#34d399;padding:3px 1px;min-height:16px"></div>
+            </div>
           </div>
 
           <!-- Constructor de fórmula — incluye Unidades y Nombre -->
@@ -4853,6 +4865,52 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.addEventListener('pat:pointsChanged', _refreshDesdeDropdown);
     document.getElementById('dv6-fb-tox').onclick=()=>_insertar('dv6-pfx');
     document.getElementById('dv6-fb-toy').onclick=()=>_insertar('dv6-pfy');
+
+    // ── Fórmula directa ─────────────────────────────────────────────
+    const rawInput  = document.getElementById('dv6-raw-formula');
+    const rawPrev   = document.getElementById('dv6-raw-preview');
+    function _rawPreview(){
+      const expr = rawInput.value.trim();
+      if(!expr){ rawPrev.textContent=''; return; }
+      const v = _evalF(expr);
+      rawPrev.textContent = v !== null ? '= ' + (v/10).toFixed(1) + ' cm  (' + v.toFixed(1) + ' mm)' : '⚠ fórmula inválida';
+      rawPrev.style.color = v !== null ? '#34d399' : '#f87171';
+    }
+    function _rawApply(axis){
+      const expr = rawInput.value.trim();
+      if(!expr) return;
+      const id = _selected; if(id==null) return;
+      const p = _points[id]; if(!p) return;
+      const v = _evalF(expr);
+      if(v === null){ rawPrev.textContent='⚠ fórmula inválida'; rawPrev.style.color='#f87171'; return; }
+      _snapshot();
+      if(axis==='x'){ p.fx=expr; p.x=v; document.getElementById('dv6-pfx').value=expr; document.getElementById('dv6-px').value=_fmtCoord(v); }
+      else           { p.fy=expr; p.y=v; document.getElementById('dv6-pfy').value=expr; document.getElementById('dv6-py').value=_fmtCoord(v); }
+      _updateFVal(); _renderAll();
+    }
+    function _rawClear(){
+      const id = _selected; if(id==null) return;
+      const p = _points[id]; if(!p) return;
+      _snapshot();
+      delete p.fx; delete p.fy;
+      document.getElementById('dv6-pfx').value='';
+      document.getElementById('dv6-pfy').value='';
+      rawInput.value=''; rawPrev.textContent='';
+      _updateFVal(); _renderAll();
+    }
+    if(rawInput){
+      rawInput.addEventListener('input', _rawPreview);
+      document.getElementById('dv6-raw-tox').onclick = ()=>_rawApply('x');
+      document.getElementById('dv6-raw-toy').onclick = ()=>_rawApply('y');
+      document.getElementById('dv6-raw-clear').onclick = _rawClear;
+    }
+    // Al seleccionar un punto, cargar su fórmula actual en el campo
+    document.addEventListener('pat:pointSelected', ()=>{
+      if(!rawInput) return;
+      const p = _selected != null ? _points[_selected] : null;
+      rawInput.value = p?.fy || p?.fx || '';
+      _rawPreview();
+    });
 
     _refreshFormulaBuilder=()=>{_cargarValorActual();_actualizarPreview();};
     _cargarValorActual();_actualizarPreview();
