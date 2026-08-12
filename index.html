@@ -1852,7 +1852,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             <div id="dv6-fa-none" style="font-size:10px;color:#3d3d58;font-style:italic">Sin fórmula — posición fija</div>
             <!-- Entrada de fórmula directa -->
             <div style="margin-top:7px;border-top:1px solid #1e1e30;padding-top:7px">
-              <div style="font-size:9px;color:#5a5678;margin-bottom:5px;font-weight:600">✏️ FÓRMULA DIRECTA</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                <div style="font-size:9px;color:#5a5678;font-weight:600">✏️ FÓRMULA DIRECTA</div>
+                <button type="button" id="dv6-raw-toggle" style="font-size:9px;background:none;border:none;color:#5a5678;cursor:pointer;padding:0 2px" title="Mostrar/ocultar">▲</button>
+              </div>
+              <div id="dv6-raw-body">
               <!-- Variables de medidas como chips clicables -->
               <div style="font-size:9px;color:#4a4668;margin-bottom:3px">Medidas — clic para insertar:</div>
               <div id="dv6-raw-vars" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px"></div>
@@ -1874,7 +1878,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
                 <button type="button" id="dv6-raw-toy" class="tb" style="flex:1;justify-content:center;font-size:10px;padding:4px 0">→ Aplicar a Y</button>
                 <button type="button" id="dv6-raw-clear" class="tb" style="flex:none;justify-content:center;font-size:10px;padding:4px 8px;color:#f87171" title="Borrar fórmula">✕</button>
               </div>
-            </div>
+            </div></div>
           </div>
 
           <!-- Constructor de fórmula — incluye Unidades y Nombre -->
@@ -4856,17 +4860,24 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       _guardarValor();
       const isY = targetId==='dv6-pfy';
       const axis = isY ? 'y' : 'x';
-      const formula=_compose(axis); // ej. "2.x + (pecho/4)"
+      const formula=_compose(axis);
       const p=_points[_selected];
 
+      // Validar que la fórmula produce un resultado antes de aplicarla
+      const testVal = _evalF(formula);
+      if(testVal === null){
+        if(PAT.App) PAT.App.toast('⚠ Fórmula inválida — revisa los valores','error');
+        else alert('Fórmula inválida — revisa los valores');
+        return;
+      }
+
+      _snapshot();
       const el=document.getElementById(targetId);
       el.value=formula;
-      if(isY) p.fy=formula; else p.fx=formula;
-      const vx=p.fx?_evalF(p.fx):null;
-      const vy=p.fy?_evalF(p.fy):null;
-      if(vx!==null&&p.fx){p.x=vx;document.getElementById('dv6-px').value=_fmtCoord(vx);}
-      if(vy!==null&&p.fy){p.y=vy;document.getElementById('dv6-py').value=_fmtCoord(vy);}
-      _updateFVal();_renderAll();
+      if(isY){ p.fy=formula; p.y=testVal; document.getElementById('dv6-py').value=_fmtCoord(testVal); }
+      else   { p.fx=formula; p.x=testVal; document.getElementById('dv6-px').value=_fmtCoord(testVal); }
+      _updateFVal(); _renderAll();
+      if(PAT.App) PAT.App.toast('✓ Fórmula aplicada — '+axis.toUpperCase()+': '+(testVal/10).toFixed(1)+' cm','success');
     }
     sel.onchange=()=>{_cargarValorActual();_actualizarPreview();};
     valorEl.oninput=()=>{_guardarValor();_actualizarPreview();};
@@ -4968,9 +4979,16 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       document.getElementById('dv6-raw-tox').onclick = ()=>_rawApply('x');
       document.getElementById('dv6-raw-toy').onclick = ()=>_rawApply('y');
       document.getElementById('dv6-raw-clear').onclick = _rawClear;
-      // Operadores
       document.querySelectorAll('.dv6-raw-op').forEach(b=>b.onclick=()=>_rawInsert(b.dataset.ins));
       _rawBuildVarChips();
+      // Toggle minimizar
+      const rawBody = document.getElementById('dv6-raw-body');
+      const rawToggle = document.getElementById('dv6-raw-toggle');
+      if(rawToggle && rawBody) rawToggle.onclick = ()=>{
+        const hidden = rawBody.style.display === 'none';
+        rawBody.style.display = hidden ? '' : 'none';
+        rawToggle.textContent = hidden ? '▲' : '▼';
+      };
     }
     // Al seleccionar un punto, recargar chips de puntos y fórmula actual
     document.addEventListener('pat:pointSelected', ()=>{
