@@ -1939,6 +1939,54 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             </div>
           </div>
 
+          <!-- Constructor "sobre una línea" -->
+          <div style="margin:6px 14px 6px;padding:8px 10px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
+            <div style="font-size:10px;color:#8b87a8;margin-bottom:8px;font-weight:600">📐 SOBRE UNA LÍNEA</div>
+            <div class="dv6-prow" style="padding:2px 0;gap:4px">
+              <span class="dv6-plb" style="width:24px;flex:none;font-size:10px">A</span>
+              <select class="dv6-pi" id="dv6-ln-a" style="flex:1"></select>
+              <button type="button" id="dv6-ln-a-pick" title="Clic en canvas"
+                style="padding:3px 7px;border-radius:5px;border:1px solid #2e2e45;background:#141420;color:#8b87a8;font-size:11px;cursor:pointer;flex-shrink:0">↗</button>
+            </div>
+            <div class="dv6-prow" style="padding:2px 0;gap:4px">
+              <span class="dv6-plb" style="width:24px;flex:none;font-size:10px">B</span>
+              <select class="dv6-pi" id="dv6-ln-b" style="flex:1"></select>
+              <button type="button" id="dv6-ln-b-pick" title="Clic en canvas"
+                style="padding:3px 7px;border-radius:5px;border:1px solid #2e2e45;background:#141420;color:#8b87a8;font-size:11px;cursor:pointer;flex-shrink:0">↗</button>
+            </div>
+            <div class="dv6-prow" style="padding:4px 0 2px;gap:6px">
+              <select class="dv6-pi" id="dv6-ln-tipo" style="flex:1">
+                <option value="mitad">Mitad</option>
+                <option value="fraccion">Fracción</option>
+                <option value="distancia">Distancia (cm)</option>
+              </select>
+            </div>
+            <div id="dv6-ln-frac-row" class="dv6-prow" style="padding:2px 0;gap:6px;display:none">
+              <select class="dv6-pi" id="dv6-ln-frac" style="flex:1">
+                <option value="1/3">1/3 desde A</option>
+                <option value="2/3">2/3 desde A</option>
+                <option value="1/4">1/4 desde A</option>
+                <option value="3/4">3/4 desde A</option>
+                <option value="1/5">1/5 desde A</option>
+                <option value="2/5">2/5 desde A</option>
+                <option value="3/5">3/5 desde A</option>
+                <option value="4/5">4/5 desde A</option>
+              </select>
+            </div>
+            <div id="dv6-ln-dist-row" class="dv6-prow" style="padding:2px 0;gap:6px;display:none">
+              <input type="number" class="dv6-pi" id="dv6-ln-dist" value="5" step="0.5" min="0" style="flex:1" placeholder="cm">
+              <select class="dv6-pi" id="dv6-ln-desde" style="flex:1">
+                <option value="a">desde A</option>
+                <option value="b">desde B</option>
+              </select>
+            </div>
+            <div id="dv6-ln-preview" style="font-size:10px;color:#34d399;padding:3px 0;font-weight:600;word-break:break-all">= —</div>
+            <div class="dv6-prow" style="padding:4px 0 0;gap:6px">
+              <button type="button" class="tb" id="dv6-ln-tox" style="flex:1;justify-content:center;font-size:10px;padding:5px 0">→ Insertar en X</button>
+              <button type="button" class="tb" id="dv6-ln-toy" style="flex:1;justify-content:center;font-size:10px;padding:5px 0">→ Insertar en Y</button>
+            </div>
+          </div>
+
           <!-- Constructor "desde otro punto / sobre una línea": para líneas
                estructurales que no corresponden a una medida del cuerpo,
                sino que se ubican relativo a puntos ya trazados. Punto A es
@@ -2762,6 +2810,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.getElementById('dv6-pfx').oninput = _applyFormula;
     document.getElementById('dv6-pfy').oninput = _applyFormula;
     _initFormulaBuilder();
+    _initLineaBuilder();
 
     document.getElementById('dv6-csl').oninput = function() {
       const val = parseInt(this.value);
@@ -3600,10 +3649,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     _instr('💾 Nota de «'+ptName+'» guardada');
   };
   function _selectPt(id){
-    // Modo pick del anclaje: el clic fija el punto de referencia
+    // Modo pick del anclaje
     if(id!=null && window._anchorPick && id !== window._anchorPick.ptId){
-      window._anchorPick.onPick(id);
-      return;
+      window._anchorPick.onPick(id); return;
+    }
+    // Modo pick de "sobre una línea"
+    if(id!=null && window._lineaPick){
+      window._lineaPick.onPick(_points[id]?.name); return;
     }
     // Si el modo "elegir desde canvas" está activo, no seleccionar — solo fijar referencia
     if(id!=null && window._desdePick?.active()){
@@ -4787,6 +4839,107 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
     _refreshFormulaBuilder=()=>{_cargarValorActual();_actualizarPreview();};
     _cargarValorActual();_actualizarPreview();
+  }
+
+  function _initLineaBuilder(){
+    const lnA   = document.getElementById('dv6-ln-a');
+    const lnB   = document.getElementById('dv6-ln-b');
+    const lnTipo= document.getElementById('dv6-ln-tipo');
+    const lnFrac= document.getElementById('dv6-ln-frac');
+    const lnDist= document.getElementById('dv6-ln-dist');
+    const lnDesde=document.getElementById('dv6-ln-desde');
+    const lnPrev= document.getElementById('dv6-ln-preview');
+    if(!lnA) return;
+
+    function _refreshPtDropdowns(){
+      [lnA, lnB].forEach(sel => {
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">— ninguno —</option>';
+        Object.values(_points).forEach(p => {
+          const o = document.createElement('option');
+          o.value = p.name; o.textContent = p.name;
+          sel.appendChild(o);
+        });
+        if(prev) sel.value = prev;
+      });
+    }
+    document.addEventListener('pat:pointSelected', _refreshPtDropdowns);
+
+    function _compose(axis){
+      const a = lnA.value, b = lnB.value;
+      if(!a || !b) return null;
+      const tipo = lnTipo.value;
+      if(tipo === 'mitad'){
+        return axis === 'x'
+          ? `(${a}.x + ${b}.x) / 2`
+          : `(${a}.y + ${b}.y) / 2`;
+      }
+      if(tipo === 'fraccion'){
+        const [num, den] = lnFrac.value.split('/');
+        return axis === 'x'
+          ? `${a}.x + (${b}.x - ${a}.x) * ${num} / ${den}`
+          : `${a}.y + (${b}.y - ${a}.y) * ${num} / ${den}`;
+      }
+      if(tipo === 'distancia'){
+        const cm = parseFloat(lnDist.value) || 0;
+        const desde = lnDesde.value;
+        const orig = desde === 'b' ? b : a;
+        const dest = desde === 'b' ? a : b;
+        return `LINEA_${axis.toUpperCase()}(${orig},${dest},${cm},out,0)`;
+      }
+      return null;
+    }
+
+    function _preview(){
+      const fx = _compose('x'), fy = _compose('y');
+      if(!fx){ lnPrev.textContent = '— elige puntos A y B —'; return; }
+      const vx = _evalF(fx), vy = _evalF(fy);
+      const px = vx != null ? (vx/10).toFixed(1)+'cm' : '?';
+      const py = vy != null ? (vy/10).toFixed(1)+'cm' : '?';
+      lnPrev.textContent = `X: ${px}  Y: ${py}`;
+    }
+
+    function _insertar(axis){
+      if(!_selected || !_points[_selected]){ alert('Selecciona primero un punto.'); return; }
+      const f = _compose(axis);
+      if(!f) return;
+      const p = _points[_selected];
+      const elId = axis === 'x' ? 'dv6-pfx' : 'dv6-pfy';
+      const el = document.getElementById(elId);
+      if(el) el.value = f;
+      if(axis === 'x') p.fx = f; else p.fy = f;
+      const v = _evalF(f);
+      if(v != null){ if(axis==='x') p.x = v; else p.y = v; }
+      _updateFVal(); _renderAll();
+    }
+
+    lnTipo.onchange = () => {
+      document.getElementById('dv6-ln-frac-row').style.display = lnTipo.value === 'fraccion' ? '' : 'none';
+      document.getElementById('dv6-ln-dist-row').style.display = lnTipo.value === 'distancia' ? '' : 'none';
+      _preview();
+    };
+    lnA.onchange = lnB.onchange = lnFrac.onchange = lnDist.oninput = lnDesde.onchange = _preview;
+
+    // Pick buttons para A y B
+    function _makePick(btn, selEl){
+      btn.onclick = () => {
+        const active = btn._picking = !btn._picking;
+        btn.style.background = active ? '#4c1d95' : '#141420';
+        btn.style.color = active ? '#c4b5fd' : '#8b87a8';
+        if(active) window._lineaPick = { sel: selEl, btn, onPick: (name) => {
+          selEl.value = name; _preview();
+          btn._picking = false; btn.style.background='#141420'; btn.style.color='#8b87a8';
+          window._lineaPick = null;
+        }};
+        else window._lineaPick = null;
+      };
+    }
+    _makePick(document.getElementById('dv6-ln-a-pick'), lnA);
+    _makePick(document.getElementById('dv6-ln-b-pick'), lnB);
+
+    document.getElementById('dv6-ln-tox').onclick = () => _insertar('x');
+    document.getElementById('dv6-ln-toy').onclick = () => _insertar('y');
+    _refreshPtDropdowns();
   }
 
   /** Anclar punto con doble clic: calcula automáticamente el offset entre
