@@ -3600,6 +3600,11 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     _instr('💾 Nota de «'+ptName+'» guardada');
   };
   function _selectPt(id){
+    // Modo pick del anclaje: el clic fija el punto de referencia
+    if(id!=null && window._anchorPick && id !== window._anchorPick.ptId){
+      window._anchorPick.onPick(id);
+      return;
+    }
     // Si el modo "elegir desde canvas" está activo, no seleccionar — solo fijar referencia
     if(id!=null && window._desdePick?.active()){
       const name=_points[id]?.name;
@@ -4810,7 +4815,13 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
     popup.innerHTML = `
       <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:10px">⚓ Anclar punto <span style="color:#fbbf24">${p.name}</span> a...</div>
-      <select id="dv6-anchor-sel" style="width:100%;background:#0f0f1a;color:#e2e8f0;border:1px solid #2a2640;border-radius:6px;padding:6px 8px;font-size:13px;margin-bottom:10px">${opts}</select>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input id="dv6-anchor-search" placeholder="Buscar por nombre…" autocomplete="off"
+          style="flex:1;background:#0f0f1a;color:#e2e8f0;border:1px solid #2a2640;border-radius:6px;padding:5px 8px;font-size:12px">
+        <button id="dv6-anchor-pick" title="Clic en un punto del canvas"
+          style="padding:4px 9px;border-radius:6px;border:1px solid #2a2640;background:#141420;color:#8b87a8;font-size:13px;cursor:pointer;flex-shrink:0">↗</button>
+      </div>
+      <select id="dv6-anchor-sel" size="5" style="width:100%;background:#0f0f1a;color:#e2e8f0;border:1px solid #2a2640;border-radius:6px;padding:4px 6px;font-size:13px;margin-bottom:8px">${opts}</select>
       <div id="dv6-anchor-preview" style="font-size:11px;color:#34d399;margin-bottom:10px;min-height:16px"></div>
       <div style="display:flex;gap:8px">
         <button id="dv6-anchor-ok" style="flex:1;background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:7px 0;font-size:13px;font-weight:700;cursor:pointer">⚓ Anclar</button>
@@ -4820,7 +4831,8 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     document.body.appendChild(popup);
 
     function _ptRef(pt, axis) {
-      return /^[A-Za-zÁÉÍÓÚÑáéíóúñ_]/.test(pt.name) ? pt.name + '.' + axis : String(axis==='x' ? pt.x : pt.y);
+      // Siempre usar nombre.eje — _evalF ya maneja nombres numéricos
+      return pt.name + '.' + axis;
     }
     function _updatePreview() {
       const refId = document.getElementById('dv6-anchor-sel').value;
@@ -4836,6 +4848,31 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     }
     _updatePreview();
     document.getElementById('dv6-anchor-sel').onchange = _updatePreview;
+
+    // Búsqueda por nombre
+    const anchorSel = document.getElementById('dv6-anchor-sel');
+    document.getElementById('dv6-anchor-search').oninput = function() {
+      const q = this.value.toLowerCase();
+      Array.from(anchorSel.options).forEach(o => { o.hidden = q ? !o.text.toLowerCase().includes(q) : false; });
+      const vis = Array.from(anchorSel.options).filter(o => !o.hidden);
+      if (vis.length === 1) { anchorSel.value = vis[0].value; _updatePreview(); }
+    };
+    document.getElementById('dv6-anchor-search').focus();
+
+    // Pick desde canvas: clic en punto del canvas lo elige como ancla
+    document.getElementById('dv6-anchor-pick').onclick = function(e) {
+      e.stopPropagation();
+      const active = !window._anchorPick;
+      this.style.background = active ? '#4c1d95' : '#141420';
+      this.style.color = active ? '#c4b5fd' : '#8b87a8';
+      popup.style.opacity = active ? '0.4' : '';
+      window._anchorPick = active ? { ptId, onPick: (refId) => {
+        popup.style.opacity = '';
+        document.getElementById('dv6-anchor-pick').style.background = '#141420';
+        document.getElementById('dv6-anchor-pick').style.color = '#8b87a8';
+        anchorSel.value = refId; _updatePreview(); window._anchorPick = null;
+      }} : null;
+    };
 
     document.getElementById('dv6-anchor-ok').onclick = () => {
       const refId = document.getElementById('dv6-anchor-sel').value;
