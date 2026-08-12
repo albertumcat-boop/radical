@@ -5826,7 +5826,20 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       return _evalLinea(axisU.toLowerCase(),a.trim(),b.trim(),parseFloat(dist),dir.trim(),parseFloat(off),(_depth||0)+1);
     }
     // Primero las referencias a otros puntos: NombrePunto.x / NombrePunto.y
+    // Paso 1: nombres que empiezan con dígito (ej. "2", "3A") — la regex \b no
+    // los captura porque \b no precede a un dígito cuando hay otro dígito antes.
+    // Se reemplazan explícitamente antes de la regex general.
     let refError=false;
+    Object.values(_points).forEach(p=>{
+      if(!p||!/^\d/.test(p.name)) return;
+      const n=p.name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      c=c.replace(new RegExp('(?<![\\w.])'+n+'\\.(x|y)(?![\\w])','g'),(m,axis)=>{
+        const v=_coordDePunto(p.name,axis,_depth);
+        if(v==null){refError=true;return '0';}
+        return v.toFixed(4);
+      });
+    });
+    // Paso 2: nombres que empiezan con letra (manejo original)
     c=c.replace(/\b([A-Za-zÁÉÍÓÚÑáéíóúñ_][\wÁÉÍÓÚÑáéíóúñ]*)\.(x|y)\b/g,(m,name,axis)=>{
       const v=_coordDePunto(name,axis,_depth);
       if(v==null){refError=true;return '0';}
