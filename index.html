@@ -3001,14 +3001,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           _instr(`✋ Trazo cancelado. Clic de nuevo en ${_points[near].name} para iniciar una línea nueva.`);
         }
       } else if (!_lnStart) {
-        // Clic en vacío sin línea en curso: si cae sobre una línea, insertar
-        // un punto ahí y partir la línea (clic en vacío real = punto nuevo).
+        // Clic en vacío sin línea en curso: si cae sobre una línea,
+        // SELECCIONARLA (para ver sus propiedades, cambiarle el color, etc.).
+        // Para insertar un punto en la línea y partirla, usar doble clic.
         const lineHit = _nearestLineBody(mm, threshMm);
         if (lineHit.idx !== -1) {
-          _snapshot();
-          const newId = _splitLine(lineHit.idx, mm.x, mm.y);
-          _lnStart = newId;
-          _instr(`✂ Punto insertado en la línea · ahora clic en otro punto para trazar desde aquí`);
+          _deselectPt();
+          _selectLine(lineHit.idx);
+          _refreshPanel();
+          _instr('✓ Línea seleccionada · doble clic para insertar un punto y partirla');
           return;
         }
         // Clic realmente en vacío: agregar punto nuevo
@@ -6702,7 +6703,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     list.innerHTML='';
     if(!keys.length){list.innerHTML='<div style="font-size:10px;color:#3d3d58;padding:4px">Sin guardados</div>';return;}
     keys.forEach(id=>{
-      const item=store[id];
+      // Deep-clone al renderizar: el click handler queda inmune a que
+      // onSnapshot reemplace _cache con datos viejos después del render.
+      const item=JSON.parse(JSON.stringify(store[id]));
       const div=document.createElement('div');div.className='dv6-si';
       div.innerHTML=`<span class="dv6-snm">${_esc(item.name)}</span><button class="dv6-sdel">✕</button>`;
       div.addEventListener('click',e=>{
