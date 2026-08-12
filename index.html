@@ -1843,6 +1843,14 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           <input id="dv6-pfx" style="display:none">
           <input id="dv6-pfy" style="display:none">
 
+          <!-- Fórmula actual del punto — siempre visible -->
+          <div id="dv6-formula-actual" style="margin:4px 14px 6px;padding:7px 9px;background:#0f0f1a;border:1px solid #2a2640;border-radius:7px">
+            <div style="font-size:9px;color:#5a5678;font-weight:600;letter-spacing:.5px;margin-bottom:5px">FÓRMULA DE ESTE PUNTO</div>
+            <div id="dv6-fa-x" style="font-size:10px;font-family:monospace;color:#9490b0;padding:2px 0"></div>
+            <div id="dv6-fa-y" style="font-size:10px;font-family:monospace;color:#9490b0;padding:2px 0"></div>
+            <div id="dv6-fa-none" style="font-size:10px;color:#3d3d58;font-style:italic">Sin fórmula — posición fija</div>
+          </div>
+
           <!-- Constructor de fórmula — incluye Unidades y Nombre -->
           <div style="margin:6px 14px 10px;padding:8px;border:1px solid #2a2640;border-radius:8px;background:#1a1730">
             <div style="font-size:10px;color:#8b87a8;margin-bottom:8px;font-weight:600">🧩 CONSTRUCTOR DE FÓRMULA</div>
@@ -4493,15 +4501,32 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   function _updateFVal(){
     const p=_selected&&_points[_selected];
     const fv=document.getElementById('dv6-fv');
-    if(!p||(!(p.fx)&&!(p.fy))){fv.textContent='—';return;}
+    const faX=document.getElementById('dv6-fa-x');
+    const faY=document.getElementById('dv6-fa-y');
+    const faNone=document.getElementById('dv6-fa-none');
+
+    if(!p||(!(p.fx)&&!(p.fy))){
+      if(fv) fv.textContent='—';
+      if(faX) faX.textContent='';
+      if(faY) faY.textContent='';
+      if(faNone) faNone.style.display='';
+      return;
+    }
     const vx=p.fx?_evalF(p.fx):null;
     const vy=p.fy?_evalF(p.fy):null;
     const parts=[];
-    if(vx!==null&&p.fx)parts.push(`X=${_fmtCoord(vx)}${_coordUnit}`);
-    else if(p.fx)parts.push('X=inválida');
-    if(vy!==null&&p.fy)parts.push(`Y=${_fmtCoord(vy)}${_coordUnit}`);
-    else if(p.fy)parts.push('Y=inválida');
-    fv.textContent=parts.length?'= '+parts.join(' · '):'—';
+    if(p.fx){
+      const val=vx!==null?` = ${_fmtCoord(vx)}${_coordUnit}`:'  ⚠ inválida';
+      if(faX) faX.textContent=`X: ${p.fx}${val}`;
+      parts.push(`X=${_fmtCoord(vx??0)}${_coordUnit}`);
+    } else { if(faX) faX.textContent=''; }
+    if(p.fy){
+      const val=vy!==null?` = ${_fmtCoord(vy)}${_coordUnit}`:'  ⚠ inválida';
+      if(faY) faY.textContent=`Y: ${p.fy}${val}`;
+      parts.push(`Y=${_fmtCoord(vy??0)}${_coordUnit}`);
+    } else { if(faY) faY.textContent=''; }
+    if(faNone) faNone.style.display='none';
+    if(fv) fv.textContent=parts.length?'= '+parts.join(' · '):'—';
   }
 
   function _applyProps(){
