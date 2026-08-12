@@ -7684,6 +7684,26 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     };
     document.addEventListener('click', () => { if (palette) palette.style.display = 'none'; });
 
+    // Aplica el color activo a la línea seleccionada (si hay una).
+    // Si la línea era "estructura" y se le da un color distinto al default,
+    // se la devuelve al patrón automáticamente — el color es la señal de que
+    // el usuario la quiere como parte del patrón real.
+    function _applyColorToSelected(c){
+      if(_selectedLine != null && _lines[_selectedLine]){
+        const ln = _lines[_selectedLine];
+        ln.color = c;
+        // Color ≠ default → línea es patrón, no estructura
+        if(c !== '#e2e8f0' && ln.type === 'construction'){
+          ln.type = ln._realType || 'line';
+          delete ln._realType;
+          if(PAT.App) PAT.App.toast('✓ Color aplicado — línea convertida a patrón','success');
+        }
+        _snapshot();
+        _renderAll();
+        _updateLineInfo();
+      }
+    }
+
     document.querySelectorAll('.dv6-clr-opt').forEach(el => {
       el.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -7693,6 +7713,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         document.querySelectorAll('.dv6-clr-opt').forEach(x => x.classList.remove('on'));
         el.classList.add('on');
         palette.style.display = 'none';
+        _applyColorToSelected(_curColor);
       });
     });
 
@@ -7701,6 +7722,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         _curColor = custom.value;
         swatch.style.background = _curColor;
         document.querySelectorAll('.dv6-clr-opt').forEach(x => x.classList.remove('on'));
+        _applyColorToSelected(_curColor);
       });
     }
   }
