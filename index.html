@@ -6299,33 +6299,52 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
   function _save(){
     const data={name:_pieceName,points:JSON.parse(JSON.stringify(_points)),lines:JSON.parse(JSON.stringify(_lines)),ptCtr:_ptCtr};
 
-    // Si el nombre cambió respecto al original cargado, preguntar antes de sobreescribir
-    if(_curSave && PAT.SavedPatterns){
-      const original=PAT.SavedPatterns.obtener(_curSave);
-      if(original && original.name && original.name !== _pieceName){
+    // Si hay un patrón cargado, siempre preguntar qué hacer
+    if(_curSave){
+      const original=PAT.SavedPatterns ? PAT.SavedPatterns.obtener(_curSave) : null;
+      const origName=original ? original.name : _pieceName;
+      const nameChanged = origName !== _pieceName;
+      const overlay=document.createElement('div');
+      overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center';
+      const msg=nameChanged
+        ? `El patrón original se llama <b style="color:#fbbf24">"${origName}"</b> y el actual <b style="color:#a78bfa">"${_pieceName}"</b>.`
+        : `Sobreescribir <b style="color:#fbbf24">"${origName}"</b> con los cambios actuales.`;
+      overlay.innerHTML=`<div style="background:#1a1730;border:1px solid #7c3aed;border-radius:14px;padding:24px 26px;max-width:360px;width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.7)">
+        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:8px">💾 Guardar patrón</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:18px">${msg}<br><br>¿Qué querés hacer?</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button id="_sv-new" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">✨ Guardar como nuevo patrón</button>
+          <button id="_sv-over" style="background:#2a2640;color:#f87171;border:1px solid #3a1f1f;border-radius:8px;padding:9px;font-size:12px;cursor:pointer">🔁 Sobreescribir "${origName}"</button>
+          <button id="_sv-cancel" style="background:none;color:#64748b;border:none;padding:6px;font-size:11px;cursor:pointer">Cancelar</button>
+        </div></div>`;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#_sv-new').onclick=()=>{ overlay.remove(); _curSave=null; _save(); };
+      overlay.querySelector('#_sv-over').onclick=()=>{ overlay.remove(); _doSave(data); };
+      overlay.querySelector('#_sv-cancel').onclick=()=>overlay.remove();
+      return;
+    }
+
+    // Patrón nuevo (sin _curSave): si ya existe uno con el mismo nombre, preguntar
+    if(PAT.SavedPatterns){
+      const todos=PAT.SavedPatterns.obtenerTodos();
+      const duplicado=Object.values(todos).find(p=>p.name===_pieceName);
+      if(duplicado){
         const overlay=document.createElement('div');
         overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center';
         overlay.innerHTML=`<div style="background:#1a1730;border:1px solid #7c3aed;border-radius:14px;padding:24px 26px;max-width:360px;width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.7)">
-          <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:8px">⚠️ Nombre diferente al original</div>
-          <div style="font-size:12px;color:#94a3b8;margin-bottom:18px">El patrón original se llama <b style="color:#fbbf24">"${original.name}"</b> y el actual <b style="color:#a78bfa">"${_pieceName}"</b>.<br><br>¿Qué querés hacer?</div>
+          <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:8px">⚠️ Nombre ya existe</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:18px">Ya existe un patrón llamado <b style="color:#fbbf24">"${_pieceName}"</b>.<br><br>¿Qué querés hacer?</div>
           <div style="display:flex;flex-direction:column;gap:8px">
-            <button id="_sv-new" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">✨ Guardar como nuevo patrón</button>
-            <button id="_sv-over" style="background:#2a2640;color:#f87171;border:1px solid #3a1f1f;border-radius:8px;padding:9px;font-size:12px;cursor:pointer">🔁 Sobreescribir "${original.name}"</button>
-            <button id="_sv-cancel" style="background:none;color:#64748b;border:none;padding:6px;font-size:11px;cursor:pointer">Cancelar</button>
+            <button id="_sv-new2" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">✨ Guardar como nuevo (duplicado)</button>
+            <button id="_sv-over2" style="background:#2a2640;color:#f87171;border:1px solid #3a1f1f;border-radius:8px;padding:9px;font-size:12px;cursor:pointer">🔁 Sobreescribir el existente</button>
+            <button id="_sv-cancel2" style="background:none;color:#64748b;border:none;padding:6px;font-size:11px;cursor:pointer">Cancelar</button>
           </div></div>`;
         document.body.appendChild(overlay);
-        overlay.querySelector('#_sv-new').onclick=()=>{ overlay.remove(); _curSave=null; _save(); };
-        overlay.querySelector('#_sv-over').onclick=()=>{ overlay.remove(); _doSave(data); };
-        overlay.querySelector('#_sv-cancel').onclick=()=>overlay.remove();
+        overlay.querySelector('#_sv-new2').onclick=()=>{ overlay.remove(); _doSave(data); };
+        overlay.querySelector('#_sv-over2').onclick=()=>{ overlay.remove(); _curSave=duplicado.id; _doSave(data); };
+        overlay.querySelector('#_sv-cancel2').onclick=()=>overlay.remove();
         return;
       }
-    }
-
-    // Si ya existe un patrón con el mismo nombre, sobreescribirlo automáticamente
-    if(PAT.SavedPatterns && !_curSave){
-      const todos=PAT.SavedPatterns.obtenerTodos();
-      const duplicado=Object.values(todos).find(p=>p.name===_pieceName);
-      if(duplicado) _curSave=duplicado.id;
     }
 
     _doSave(data);

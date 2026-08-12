@@ -69,7 +69,22 @@ PAT.SavedPatterns = (function () {
       _unsubscribe = doc.onSnapshot(
         (snap) => {
           if (snap.exists) {
-            _cache = snap.data().patrones || {};
+            const remote = snap.data().patrones || {};
+            // Merge inteligente: si un patrón local tiene savedAt más reciente que el remoto,
+            // conservar el local (evita race condition: onSnapshot llega con versión vieja
+            // justo después de que guardamos una nueva).
+            const merged = Object.assign({}, remote);
+            Object.entries(_cache).forEach(([id, localPat]) => {
+              const remotePat = remote[id];
+              if (localPat && localPat.savedAt && remotePat && remotePat.savedAt &&
+                  localPat.savedAt > remotePat.savedAt) {
+                merged[id] = localPat;
+              } else if (localPat && !remotePat) {
+                // Patrón guardado localmente que aún no llegó al servidor
+                merged[id] = localPat;
+              }
+            });
+            _cache = merged;
             _lsSave(_cache);
             _loaded = true;
             console.log('[SavedPatterns] Sync:', Object.keys(_cache).length, 'patrones');
