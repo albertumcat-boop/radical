@@ -702,6 +702,19 @@ ${hiddenCount > 0 ? `<p style="margin-top:10px;font-size:10px;color:#9ca3af;font
     _renderAll();
   }
 
-  return { open, rerender, getValues: _collectValues };
+  function getValues(){
+    // Leer siempre fresco desde localStorage para que el Constructor de Fórmula
+    // obtenga los valores aunque el usuario no haya abierto la Tabla en esta sesión.
+    let st = _state;
+    try { st = JSON.parse(localStorage.getItem(LS_STATE) || '{}'); } catch(e){}
+    const vals = {};
+    _allFields().forEach(f => {
+      const t = parseFloat(st[f.key]?.total);
+      if (t > 0) vals[f.key] = t;
+    });
+    return vals;
+  }
+
+  return { open, rerender, getValues };
 
 })();
