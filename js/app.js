@@ -125,6 +125,10 @@ PAT.App = (function () {
     const ddIcon = $('garment-dd-icon'), ddLabel = $('garment-dd-label');
     if (ddIcon) ddIcon.textContent = icon;
     if (ddLabel) ddLabel.textContent = label;
+    const cfgIcon = document.getElementById('cfg-garment-icon');
+    const cfgName = document.getElementById('cfg-garment-name');
+    if (cfgIcon) cfgIcon.textContent = icon;
+    if (cfgName) cfgName.textContent = label;
   }
 
   // ─── INPUTS ────────────────────────────────────────────────────
@@ -133,6 +137,17 @@ PAT.App = (function () {
       inp.addEventListener('input', function () {
         const v = parseFloat(this.value);
         if (!isNaN(v) && v > 0) { state.measures[this.dataset.measure] = v; generate(); }
+        // Sync cfg toggle subtitle with bust value
+        if (this.dataset.measure === 'bust') {
+          const sub = document.getElementById('cfg-client-sub');
+          const clientSpan = document.getElementById('clients-active-name');
+          const clientName = clientSpan?.textContent;
+          if (sub) {
+            const hasClient = clientName && clientName !== 'Sin cliente seleccionado';
+            sub.textContent = hasClient ? clientName + ' · ' + (v > 0 ? v + 'cm busto' : 'sin medidas')
+              : (v > 0 ? 'Busto ' + v + 'cm · toca para más' : 'Sin medidas · toca para configurar');
+          }
+        }
       });
     });
 

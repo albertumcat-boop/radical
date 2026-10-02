@@ -444,6 +444,11 @@ PAT.Clients = (function () {
       span.textContent = nombre;
       span.className = 'client-active-name';
     }
+    // Sync compact config toggle subtitle
+    const sub = document.getElementById('cfg-client-sub');
+    if (sub) sub.textContent = nombre && nombre !== 'Sin cliente seleccionado'
+      ? nombre + ' · toca para editar medidas'
+      : 'Sin medidas · toca para configurar';
   }
 
   // ── Open / Close panel ─────────────────────────────────────────
