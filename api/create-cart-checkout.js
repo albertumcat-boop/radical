@@ -14,6 +14,15 @@ function getVariantId(variantKey) {
   return process.env[variantKey] || null;
 }
 
+// Precios en centavos USD definidos en servidor — el cliente no puede manipularlos
+const PRODUCT_PRICES_CENTS = {
+  LS_VARIANT_BASICS:    1500,  // $15.00
+  LS_VARIANT_PRO:       2900,  // $29.00
+  LS_VARIANT_EXPERT:    4900,  // $49.00
+  LS_VARIANT_GRADING:   1200,  // $12.00
+  LS_VARIANT_PDF:        900,  // $9.00
+};
+
 // Descuento por código afiliado
 const AFF_CODES = {
   ATELIER10:  10,
@@ -60,8 +69,14 @@ export default async function handler(req, res) {
     return res.status(200).json({ url: demoUrl, demo: true });
   }
 
+  // Precio desde el servidor — ignorar firstItem.price del cliente
+  const serverPriceCents = PRODUCT_PRICES_CENTS[firstItem.variantKey];
+  if (!serverPriceCents) {
+    return res.status(400).json({ error: 'Producto no reconocido' });
+  }
+
   const discountAmount = discountPct > 0
-    ? Math.round(firstItem.price * discountPct) // centavos aproximados
+    ? Math.round(serverPriceCents * discountPct / 100)
     : undefined;
 
   const checkoutPayload = {
@@ -70,7 +85,7 @@ export default async function handler(req, res) {
       attributes: {
         store_id: parseInt(storeId, 10),
         variant_id: parseInt(variantId, 10),
-        custom_price: Math.round(firstItem.price * 100), // centavos USD
+        custom_price: serverPriceCents,
         product_options: {
           receipt_thank_you_note: '¡Gracias por tu compra en PatrónAI Pro! Revisa tu email para acceder a tus archivos.',
           redirect_url: `${appUrl}/tienda?payment=success`,
@@ -106,7 +121,7 @@ export default async function handler(req, res) {
 
     if (!lsRes.ok) {
       console.error('[Checkout] LS error:', JSON.stringify(lsData));
-      return res.status(502).json({ error: 'Error al crear sesión de pago', detail: lsData });
+      return res.status(502).json({ error: 'Error al crear sesión de pago' });
     }
 
     const checkoutUrl = lsData?.data?.attributes?.url;

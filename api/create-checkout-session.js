@@ -22,26 +22,35 @@ module.exports = async (req, res) => {
 
   const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
+  // Descuentos válidos definidos en servidor — NUNCA desde el cliente
+  const VALID_AFF_CODES = {
+    ATELIER10: 10, COSTURA20: 20, MODA2024: 15, EXPERTO25: 25,
+  };
+
   try {
-    const { priceId, userId, tier, affiliate, discount } = req.body;
+    const { priceId, userId, tier, affiliate } = req.body;
+    // El campo 'discount' del body se ignora — el descuento lo determina el servidor
 
-    // Validar affiliate code en backend (NO en frontend)
-    let discountAmount = 0;
+    // Validar priceId contra una whitelist para evitar que el cliente pase IDs arbitrarios
+    const VALID_PRICE_IDS = [
+      process.env.STRIPE_PRICE_PRO,
+      process.env.STRIPE_PRICE_EXPERT,
+    ].filter(Boolean);
+    if (VALID_PRICE_IDS.length > 0 && !VALID_PRICE_IDS.includes(priceId)) {
+      return res.status(400).json({ error: 'Plan inválido' });
+    }
+
     let couponId = null;
-    if (affiliate && discount > 0) {
-      // HOOK: Buscar el código en Firestore/DB y validarlo
-      // const affiliateDoc = await db.collection('affiliates').doc(affiliate).get();
-      // if (affiliateDoc.exists && affiliateDoc.data().active) {
-      //   discountAmount = affiliateDoc.data().discount;
-      // }
-
-      // Demo: crear cupón on-the-fly en Stripe
-      const coupon = await stripe.coupons.create({
-        percent_off: discount,
-        duration: 'once',
-        name: `Código Atelier ${affiliate}`,
-      });
-      couponId = coupon.id;
+    if (affiliate) {
+      const serverDiscount = VALID_AFF_CODES[affiliate.toUpperCase().trim()];
+      if (serverDiscount) {
+        const coupon = await stripe.coupons.create({
+          percent_off: serverDiscount,
+          duration: 'once',
+          name: `Código Atelier ${affiliate.toUpperCase()}`,
+        });
+        couponId = coupon.id;
+      }
     }
 
     const sessionConfig = {
@@ -63,6 +72,6 @@ module.exports = async (req, res) => {
 
   } catch (err) {
     console.error('[Stripe] Error:', err.message);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Error al procesar el pago. Intenta de nuevo.' });
   }
 };

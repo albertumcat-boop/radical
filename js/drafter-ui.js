@@ -1400,7 +1400,7 @@ PAT.DrafterUI = (function () {
     store[id]=data;
     localStorage.setItem(MK,JSON.stringify(store));
     // Sync con SavedPatterns para que Firestore también quede actualizado
-    if(PAT.SavedPatterns)PAT.SavedPatterns.guardar(id,data).catch(()=>{});
+    if(PAT.SavedPatterns)PAT.SavedPatterns.guardar(id,data).catch(e=>{console.warn('[SavedPatterns] guardar:',e);if(PAT.App)PAT.App.toast('⚠ No se pudo sincronizar','warning');});
     _curSave=id;_refreshSaved();
     if(PAT.App)PAT.App.toast('💾 "'+_pieceName+'" guardado','success');
   }
@@ -1430,7 +1430,7 @@ PAT.DrafterUI = (function () {
       div.querySelector('.dv6-sdel').addEventListener('click',e=>{
         e.stopPropagation();if(!confirm('¿Eliminar "'+item.name+'"?'))return;
         delete store[id];localStorage.setItem(MK,JSON.stringify(store));
-        if(PAT.SavedPatterns)PAT.SavedPatterns.eliminar(id).catch(()=>{});
+        if(PAT.SavedPatterns)PAT.SavedPatterns.eliminar(id).catch(e=>{console.warn('[SavedPatterns] eliminar:',e);if(PAT.App)PAT.App.toast('⚠ No se pudo sincronizar','warning');});
         _refreshSaved();
       });
       list.appendChild(div);

@@ -2,9 +2,37 @@
 // Recibe el estado actual del drafter (puntos + líneas) y un prompt de transformación.
 // Devuelve el estado modificado listo para cargar en el canvas con cargarBloque().
 
+// Firebase Admin — verifica el ID token del cliente
+let _adminAuth = null;
+try {
+  const { initializeApp, getApps, cert } = require('firebase-admin/app');
+  const { getAuth } = require('firebase-admin/auth');
+  if (!getApps().length) {
+    const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    initializeApp({ credential: cert(sa) });
+  }
+  _adminAuth = getAuth();
+} catch (e) {
+  console.warn('[ai-transform] Firebase Admin no disponible:', e.message);
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // ── Autenticación obligatoria ─────────────────────────────────────────────
+  const authHeader = req.headers.authorization || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+  if (_adminAuth) {
+    try {
+      await _adminAuth.verifyIdToken(idToken);
+    } catch (e) {
+      return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

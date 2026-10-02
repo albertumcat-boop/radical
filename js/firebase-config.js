@@ -85,7 +85,7 @@ window.PAT = window.PAT || {};
     async signOut() {
       if (!firebaseReady) return;
       await auth.signOut();
-      ['pat_tier','pat_v6','pat_atelier_clients','pat_notas_nh',
+      ['pat_tier','pat_v6','pat_v6_autosave','pat_atelier_clients','pat_notas_nh',
        'pat_perfiles_medidas','pat_v6_bases','pat_pizarras','patronai_bgimages']
         .forEach(k => localStorage.removeItem(k));
       sessionStorage.removeItem('pat_session_token');
@@ -109,10 +109,15 @@ window.PAT = window.PAT || {};
       const subcols = ['configuracion', 'bgImages', 'atelierClients', 'misSistemas', 'commissions'];
       for (const sub of subcols) {
         try {
-          const snap = await userRef.collection(sub).limit(200).get();
-          const batch = db.batch();
-          snap.docs.forEach(d => batch.delete(d.ref));
-          if (!snap.empty) await batch.commit();
+          let snap;
+          do {
+            snap = await userRef.collection(sub).limit(200).get();
+            if (!snap.empty) {
+              const batch = db.batch();
+              snap.docs.forEach(d => batch.delete(d.ref));
+              await batch.commit();
+            }
+          } while (!snap.empty);
         } catch (e) {
           console.warn('[Firebase] No se pudo borrar subcolección', sub, e.message);
         }
@@ -120,12 +125,15 @@ window.PAT = window.PAT || {};
 
       // Borrar patrones del usuario (colección raíz /patterns, no subcollección)
       try {
-        const patsSnap = await db.collection('patterns').where('userId','==',uid).limit(200).get();
-        if (!patsSnap.empty) {
-          const batchPats = db.batch();
-          patsSnap.docs.forEach(d => batchPats.delete(d.ref));
-          await batchPats.commit();
-        }
+        let patsSnap;
+        do {
+          patsSnap = await db.collection('patterns').where('userId','==',uid).limit(200).get();
+          if (!patsSnap.empty) {
+            const batchPats = db.batch();
+            patsSnap.docs.forEach(d => batchPats.delete(d.ref));
+            await batchPats.commit();
+          }
+        } while (!patsSnap.empty);
       } catch (e) {
         console.warn('[Firebase] No se pudo borrar patrones:', e.message);
       }
@@ -134,7 +142,7 @@ window.PAT = window.PAT || {};
         console.warn('[Firebase] No se pudo borrar doc usuario:', e.message);
       }
       await user.delete();
-      ['pat_tier','pat_v6','pat_atelier_clients','pat_notas_nh',
+      ['pat_tier','pat_v6','pat_v6_autosave','pat_atelier_clients','pat_notas_nh',
        'pat_perfiles_medidas','pat_v6_bases','pat_pizarras','patronai_bgimages']
         .forEach(k => localStorage.removeItem(k));
       sessionStorage.removeItem('pat_session_token');
