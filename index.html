@@ -8622,9 +8622,21 @@ if ('serviceWorker' in navigator) {
     if (skip) skip.onclick = _hide;
   }
 
+  function _tienePatrones() {
+    try {
+      var p = localStorage.getItem('pat_v6');
+      if (p) { var o = JSON.parse(p); if (o && Object.keys(o).length > 0) return true; }
+    } catch(e) {}
+    try {
+      var a = localStorage.getItem('pat_v6_autosave');
+      if (a) { var o2 = JSON.parse(a); if (o2 && o2.points && Object.keys(o2.points||{}).length > 0) return true; }
+    } catch(e) {}
+    return false;
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     _init();
-    if (!localStorage.getItem(OB_KEY)) {
+    if (!localStorage.getItem(OB_KEY) && !_tienePatrones()) {
       setTimeout(_show, 800);
     }
   });
