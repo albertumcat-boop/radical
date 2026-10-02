@@ -202,8 +202,8 @@ body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px
 #sb-config-toggle .cfg-sub{font-size:10px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #sb-config-toggle .cfg-arrow{font-size:11px;color:var(--tx3);transition:transform .2s var(--ease);flex-shrink:0}
 #sb-config-toggle.open .cfg-arrow{transform:rotate(180deg)}
-#sb-config-panel{overflow:hidden;transition:max-height .3s var(--ease);max-height:0}
-#sb-config-panel.open{max-height:2000px}
+#sb-config-panel{display:none}
+#sb-config-panel.open{display:block}
 
 /* ── Sidebar buttons ── */
 .sb-btn{
