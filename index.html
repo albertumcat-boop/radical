@@ -1929,7 +1929,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
             <div style="margin-top:7px;border-top:1px solid #1e1e30;padding-top:7px">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
                 <div style="font-size:9px;color:#5a5678;font-weight:600">✏️ FÓRMULA DIRECTA</div>
-                <button type="button" id="dv6-raw-toggle" style="font-size:9px;background:none;border:none;color:#5a5678;cursor:pointer;padding:0 2px" title="Mostrar/ocultar">▲</button>
+                <button type="button" id="dv6-raw-toggle" style="font-size:10px;background:#1e1e30;border:1px solid #3d3d58;border-radius:4px;color:#a78bfa;cursor:pointer;padding:1px 6px;line-height:1.4" title="Mostrar/ocultar panel de fórmula">▲ ocultar</button>
               </div>
               <div id="dv6-raw-body">
               <!-- Variables de medidas como chips clicables -->
@@ -5065,7 +5065,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       if(rawToggle && rawBody) rawToggle.onclick = ()=>{
         const hidden = rawBody.style.display === 'none';
         rawBody.style.display = hidden ? '' : 'none';
-        rawToggle.textContent = hidden ? '▲' : '▼';
+        rawToggle.textContent = hidden ? '▲ ocultar' : '▼ mostrar';
       };
     }
     // Al seleccionar un punto, recargar chips de puntos y fórmula actual
