@@ -3123,15 +3123,18 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           _instr(`✋ Trazo cancelado. Clic de nuevo en ${_points[near].name} para iniciar una línea nueva.`);
         }
       } else if (!_lnStart) {
-        // Clic en vacío sin línea en curso: si cae sobre una línea existente,
-        // insertar un punto ahí y partirla; si cae en vacío, agregar punto nuevo.
+        // Clic en vacío sin línea en curso: insertar punto y armarlo como inicio
+        // de la próxima línea. Así el primer clic coloca el punto Y lo arma,
+        // y el segundo clic ya traza la línea — sin necesidad de hacer clic dos
+        // veces sobre el mismo punto.
         const lineHit = _nearestLineBody(mm, threshMm);
         _snapshot();
-        if (lineHit.idx !== -1) {
-          _splitLine(lineHit.idx, mm.x, mm.y);
-        } else {
-          _addPt(mm.x, mm.y);
-        }
+        const newId = lineHit.idx !== -1
+          ? _splitLine(lineHit.idx, mm.x, mm.y)
+          : _addPt(mm.x, mm.y);
+        _lnStart = newId;
+        _renderAll();
+        _instr(`⚡ ${_points[newId].name} — clic en otro punto o lugar para trazar`);
       } else {
         // Hay una línea a medio trazar: si el clic cayó sobre otra línea,
         // insertar un punto ahí y continuar encadenando.
