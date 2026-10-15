@@ -1518,7 +1518,7 @@ PAT.DrafterUI = (function () {
 .tb:disabled{opacity:.35;cursor:not-allowed}
 .dv6-body{display:flex;flex:1;overflow:hidden;min-height:0}
 /* canvas */
-.dv6-cv{flex:1;position:relative;overflow:hidden;background:#252535;touch-action:none}
+.dv6-cv{flex:1;position:relative;overflow:hidden;background:#dcd8d0;touch-action:none}
 .dv6-cv.sel{cursor:default}
 .dv6-cv.pt{cursor:crosshair}
 .dv6-cv.ln{cursor:cell}
@@ -1538,8 +1538,8 @@ PAT.DrafterUI = (function () {
 #dv6-nota-panel .np-close:hover{color:#fff;}
 #dv6-nota-panel .np-edit-btn{background:none;border:1px solid rgba(139,92,246,.3);color:#7c6fad;cursor:pointer;font-size:11px;line-height:1;padding:2px 6px;border-radius:4px;flex-shrink:0;}
 #dv6-nota-panel .np-edit-btn:hover{background:rgba(139,92,246,.2);color:#a78bfa;border-color:rgba(139,92,246,.6);}
-#dv6-coord{position:absolute;top:10px;left:12px;font-size:11px;color:#8a86a8;font-family:monospace;
-  background:rgba(30,31,44,.88);padding:4px 10px;border-radius:6px;pointer-events:none;line-height:1.5}
+#dv6-coord{position:absolute;top:10px;left:12px;font-size:11px;color:#3a2e1e;font-family:monospace;
+  background:rgba(220,216,208,.85);padding:4px 10px;border-radius:6px;pointer-events:none;line-height:1.5}
 #dv6-dist{position:absolute;top:10px;right:12px;font-size:12px;font-weight:700;color:#34d399;
   font-family:monospace;background:rgba(6,6,12,.85);padding:4px 12px;border-radius:6px;
   pointer-events:none;display:none;border:1px solid rgba(52,211,153,.3)}
@@ -1548,7 +1548,7 @@ PAT.DrafterUI = (function () {
   pointer-events:none;display:none;transform:translate(-50%,-50%)}
 /* panel derecho */
 .dv6-pnl{width:260px;flex-shrink:0;border-left:1px solid #2e2e45;display:flex;flex-direction:column;
-  overflow:hidden;background:#08080f}
+  overflow:hidden;background:#1a1b2a}
 .dv6-psec{border-bottom:1px solid #2e2e45;flex-shrink:0}
 .dv6-ptl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#5a5678;
   padding:8px 14px 4px;display:flex;align-items:center;justify-content:space-between}
@@ -1808,15 +1808,15 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       <svg id="dv6-svg" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="dv6-g1" width="5" height="5" patternUnits="userSpaceOnUse">
-            <path d="M5 0H0V5" fill="none" stroke="rgba(255,255,255,.12)" stroke-width=".25"/>
+            <path d="M5 0H0V5" fill="none" stroke="rgba(0,0,0,.10)" stroke-width=".3"/>
           </pattern>
           <pattern id="dv6-g10" width="10" height="10" patternUnits="userSpaceOnUse">
             <rect width="10" height="10" fill="url(#dv6-g1)"/>
-            <path d="M10 0H0V10" fill="none" stroke="rgba(255,255,255,.22)" stroke-width=".5"/>
+            <path d="M10 0H0V10" fill="none" stroke="rgba(0,0,0,.18)" stroke-width=".5"/>
           </pattern>
           <pattern id="dv6-g100" width="100" height="100" patternUnits="userSpaceOnUse">
             <rect width="100" height="100" fill="url(#dv6-g10)"/>
-            <path d="M100 0H0V100" fill="none" stroke="rgba(180,155,115,.38)" stroke-width="1"/>
+            <path d="M100 0H0V100" fill="none" stroke="rgba(90,60,20,.30)" stroke-width="1"/>
           </pattern>
         </defs>
 
@@ -1824,9 +1824,9 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
         <g id="dv6-canvas">
           <rect id="dv6-grid" x="-9999" y="-9999" width="19998" height="19998" fill="url(#dv6-g100)"/>
           <g id="dv6-axes">
-            <line x1="-9999" y1="0" x2="9999" y2="0" stroke="rgba(180,155,115,.28)" stroke-width=".4"/>
-            <line x1="0" y1="-9999" x2="0" y2="9999" stroke="rgba(180,155,115,.28)" stroke-width=".4"/>
-            <circle cx="0" cy="0" r="1" fill="rgba(180,155,115,.65)"/>
+            <line x1="-9999" y1="0" x2="9999" y2="0" stroke="rgba(90,60,20,.45)" stroke-width=".5"/>
+            <line x1="0" y1="-9999" x2="0" y2="9999" stroke="rgba(90,60,20,.45)" stroke-width=".5"/>
+            <circle cx="0" cy="0" r="1.5" fill="rgba(90,60,20,.8)"/>
           </g>
           <g id="dv6-bgimg" opacity="0.6" style="display:none"></g>
           <g id="dv6-dims"></g>
