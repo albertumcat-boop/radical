@@ -1452,7 +1452,7 @@ PAT.DrafterUI = (function () {
   let _showDims     = true;
   let _unifiedMode  = true;  // Modo unificado: click vacío=punto, click punto=línea
   let _buildLog     = [];    // Historial de construcción (Feature 4)
-  let _curColor     = '#e2e8f0'; // Color activo de línea
+  let _curColor     = '#1e2040'; // Color activo de línea
   let _manualPrevLineCount = 0;  // Líneas antes del último paso capturado
 
   // ════════════════════════════════════════════════════════════
@@ -1730,10 +1730,10 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
     <div style="display:flex;align-items:center;gap:5px;position:relative">
       <span style="font-size:10px;color:#7c7aa8;white-space:nowrap">Color:</span>
       <div id="dv6-color-swatch" title="Color de línea activo"
-           style="width:20px;height:20px;border-radius:4px;border:2px solid #5a5678;background:#e2e8f0;cursor:pointer;flex-shrink:0"></div>
+           style="width:20px;height:20px;border-radius:4px;border:2px solid #5a5678;background:#1e2040;cursor:pointer;flex-shrink:0"></div>
       <div id="dv6-color-palette" style="display:none;position:absolute;top:28px;left:0;z-index:200;background:#1a1828;border:1px solid #3d3d58;border-radius:10px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.7)">
         <div style="display:grid;grid-template-columns:repeat(5,24px);gap:5px;margin-bottom:6px">
-          <div class="dv6-clr-opt" data-c="#e2e8f0" style="background:#e2e8f0" title="Blanco"></div>
+          <div class="dv6-clr-opt" data-c="#1e2040" style="background:#1e2040" title="Azul oscuro (default)"></div>
           <div class="dv6-clr-opt" data-c="#ef4444" style="background:#ef4444" title="Rojo — Delantero"></div>
           <div class="dv6-clr-opt" data-c="#3b82f6" style="background:#3b82f6" title="Azul — Trasero"></div>
           <div class="dv6-clr-opt" data-c="#10b981" style="background:#10b981" title="Verde — Manga"></div>
@@ -1744,7 +1744,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
           <div class="dv6-clr-opt" data-c="#f97316" style="background:#f97316" title="Naranja — Separación"></div>
           <div class="dv6-clr-opt" data-c="#6b7280" style="background:#6b7280" title="Gris — Auxiliar"></div>
         </div>
-        <input type="color" id="dv6-color-custom" value="#e2e8f0" style="width:100%;height:24px;border:none;border-radius:4px;cursor:pointer;background:none">
+        <input type="color" id="dv6-color-custom" value="#1e2040" style="width:100%;height:24px;border:none;border-radius:4px;cursor:pointer;background:none">
       </div>
     </div>
     <!-- Manual -->
@@ -4401,7 +4401,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
       }else{
         el=document.createElementNS(NS,'line');
         el.setAttribute('x1',a.x);el.setAttribute('y1',a.y);el.setAttribute('x2',b.x);el.setAttribute('y2',b.y);
-        el.setAttribute('stroke',ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':(ln.color||'#e2e8f0'));
+        el.setAttribute('stroke',ln.type==='fold'?'#f87171':ln.type==='dart'?'#f59e0b':(ln.color||'#1e2040'));
         if(ln.type==='fold')el.setAttribute('stroke-dasharray','3,1.5');
         if(ln.type==='dart')el.setAttribute('stroke-dasharray','2,1');
       }
