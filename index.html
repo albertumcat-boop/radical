@@ -1544,8 +1544,8 @@ PAT.DrafterUI = (function () {
   font-family:monospace;background:rgba(6,6,12,.85);padding:4px 12px;border-radius:6px;
   pointer-events:none;display:none;border:1px solid rgba(52,211,153,.3)}
 /* snap indicator */
-#dv6-snapdot{position:absolute;width:10px;height:10px;border:2px solid #fbbf24;border-radius:50%;
-  pointer-events:none;display:none;transform:translate(-50%,-50%)}
+#dv6-snapdot{position:absolute;width:14px;height:14px;border:3px solid #d97706;border-radius:50%;
+  pointer-events:none;display:none;transform:translate(-50%,-50%);background:rgba(217,119,6,.15)}
 /* panel derecho */
 .dv6-pnl{width:260px;flex-shrink:0;border-left:1px solid #2e2e45;display:flex;flex-direction:column;
   overflow:hidden;background:#1a1b2a}
@@ -4290,7 +4290,7 @@ select.dv6-pi{white-space:normal} /* en <select> el atributo no aplica al contro
 
   function _renderLines(){
     while(_linesG.firstChild)_linesG.removeChild(_linesG.firstChild);
-    const sw=0.5; // mm — el canvas transform escala esto
+    const sw=1.2; // mm — el canvas transform escala esto
 
     // ── Líneas de construcción (van primero, detrás de todo) ─────────────────
     _lines.forEach(ln=>{
